@@ -33,6 +33,10 @@ export default async function EditTripPage({ params }) {
             Listes
           </Link>
           {" · "}
+          <Link href={`/admin/voyages/${tripId}/billets`} className="text-emerald-700 hover:underline">
+            Billets d&apos;avion
+          </Link>
+          {" · "}
           <Link href={`/admin/inscriptions?tripId=${tripId}`} className="text-emerald-700 hover:underline">
             Inscrits
           </Link>

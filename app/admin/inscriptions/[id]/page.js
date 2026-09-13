@@ -5,6 +5,7 @@ import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/vis
 import { listServices, listRegistrationServices } from "@/lib/services";
 import { getRoomDetails } from "@/lib/roomAssignment";
 import { listPaymentsForRegistration } from "@/lib/payments";
+import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
 import VisaSection from "./VisaSection";
 import ServicesSection from "./ServicesSection";
@@ -19,7 +20,7 @@ export default async function RegistrationDetailPage({ params }) {
     notFound();
   }
 
-  const [visaTypes, visaRequest, catalogServices, registrationServices, room, payments] =
+  const [visaTypes, visaRequest, catalogServices, registrationServices, room, payments, flightBooking] =
     await Promise.all([
       listVisaTypesForProgram(registration.program_id),
       getVisaRequestByRegistration(id),
@@ -27,6 +28,7 @@ export default async function RegistrationDetailPage({ params }) {
       listRegistrationServices(id),
       registration.room_id ? getRoomDetails(registration.room_id) : null,
       listPaymentsForRegistration(id),
+      getFlightBookingForRegistration(id),
     ]);
 
   return (
@@ -69,6 +71,22 @@ export default async function RegistrationDetailPage({ params }) {
               {room
                 ? `${room.hotel_name} — ${room.room_type} ${room.room_number || ""}`
                 : "Non affectée"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-zinc-500">Billet d&apos;avion</dt>
+            <dd className="font-medium text-zinc-900">
+              {flightBooking ? (
+                <>
+                  {flightBooking.booking_reference || "Réservé"}
+                  {flightBooking.ticket_number && ` (billet ${flightBooking.ticket_number})`}
+                  {flightBooking.duffel_mode === "test" && (
+                    <span className="ml-1 text-xs text-blue-600">[test]</span>
+                  )}
+                </>
+              ) : (
+                "Non réservé"
+              )}
             </dd>
           </div>
         </dl>

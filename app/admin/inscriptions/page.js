@@ -56,6 +56,13 @@ export default async function InscriptionsPage({ searchParams }) {
           >
             listes
           </Link>
+          {" · "}
+          <Link
+            href={`/admin/voyages/${tripId}/billets`}
+            className="text-emerald-700 hover:underline"
+          >
+            billets d&apos;avion
+          </Link>
         </p>
       )}
 

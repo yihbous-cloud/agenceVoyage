@@ -85,6 +85,8 @@ CREATE TABLE trips (
     departure_date DATE NOT NULL,
     return_date DATE NOT NULL,
     destination_country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
+    origin_iata CHAR(3) NULL COMMENT 'Code IATA aéroport de départ, ex: CMN (recherche de vols Duffel)',
+    destination_iata CHAR(3) NULL COMMENT 'Code IATA aéroport d''arrivée, ex: JED',
     airline_id SMALLINT UNSIGNED NULL,
     total_seats INT UNSIGNED NOT NULL DEFAULT 0,
     price_per_person DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -348,7 +350,47 @@ CREATE TABLE contact_messages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================
--- 10. VUES UTILES (pour les listes intelligentes)
+-- 10. RÉSERVATIONS DE BILLETS D'AVION (intégration Duffel)
+-- =====================================================================
+
+-- Une réservation Duffel : soit individuelle (1 voyageur), soit groupée
+-- (plusieurs voyageurs du même voyage sur la même offre/commande).
+CREATE TABLE flight_bookings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT UNSIGNED NOT NULL,
+    scope ENUM('individuel', 'groupe') NOT NULL,
+    duffel_offer_id VARCHAR(64) NOT NULL,
+    duffel_order_id VARCHAR(64) NULL COMMENT 'renseigné une fois la commande créée chez Duffel',
+    booking_reference VARCHAR(50) NULL COMMENT 'PNR compagnie renvoyé par Duffel',
+    total_amount DECIMAL(10,2) NOT NULL,
+    currency CHAR(3) NOT NULL,
+    status ENUM('en_attente', 'confirme', 'echec', 'annule') NOT NULL DEFAULT 'en_attente',
+    duffel_mode ENUM('test', 'live') NOT NULL DEFAULT 'test' COMMENT 'préfixe de la clé API utilisée, pour ne jamais confondre un essai avec un achat réel',
+    created_by_staff_id BIGINT UNSIGNED NULL,
+    error_message VARCHAR(500) NULL,
+    raw_offer JSON NULL,
+    raw_order JSON NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id),
+    FOREIGN KEY (created_by_staff_id) REFERENCES staff_users(id),
+    INDEX idx_flight_booking_trip (trip_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Lien entre une réservation Duffel et chaque voyageur/inscription couvert
+-- (une réservation groupée couvre plusieurs lignes ici).
+CREATE TABLE flight_booking_passengers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    flight_booking_id BIGINT UNSIGNED NOT NULL,
+    registration_id BIGINT UNSIGNED NOT NULL,
+    duffel_passenger_id VARCHAR(64) NULL,
+    ticket_number VARCHAR(50) NULL,
+    FOREIGN KEY (flight_booking_id) REFERENCES flight_bookings(id) ON DELETE CASCADE,
+    FOREIGN KEY (registration_id) REFERENCES registrations(id),
+    UNIQUE KEY uq_booking_registration (flight_booking_id, registration_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =====================================================================
+-- 11. VUES UTILES (pour les listes intelligentes)
 -- =====================================================================
 
 -- Vue : liste complète des voyageurs par voyage (base pour export)

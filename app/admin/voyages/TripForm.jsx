@@ -15,6 +15,8 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   const [destinationCountry, setDestinationCountry] = useState(
     trip?.destination_country || "Arabie Saoudite"
   );
+  const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
+  const [destinationIata, setDestinationIata] = useState(trip?.destination_iata || "");
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
   const [pricePerPerson, setPricePerPerson] = useState(trip?.price_per_person ?? 0);
@@ -37,6 +39,8 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       departureDate,
       returnDate,
       destinationCountry,
+      originIata: originIata || null,
+      destinationIata: destinationIata || null,
       airlineId: airlineId || null,
       totalSeats: Number(totalSeats),
       pricePerPerson: Number(pricePerPerson),
@@ -164,6 +168,36 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
           </select>
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Aéroport de départ (IATA)
+          </label>
+          <input
+            maxLength={3}
+            value={originIata}
+            onChange={(e) => setOriginIata(e.target.value.toUpperCase())}
+            placeholder="ex: CMN"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Aéroport d&apos;arrivée (IATA)
+          </label>
+          <input
+            maxLength={3}
+            value={destinationIata}
+            onChange={(e) => setDestinationIata(e.target.value.toUpperCase())}
+            placeholder="ex: JED"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+          />
+        </div>
+      </div>
+      <p className="-mt-2 text-xs text-zinc-500">
+        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel.
+      </p>
 
       <div className="grid grid-cols-3 gap-4">
         <div>

@@ -101,6 +101,9 @@ app/
   admin/actualites/*                    CRUD actualités
   admin/messages/*                      messages de contact reçus
   api/admin/news/*, /contact-messages/[id]   CRUD actualités, statut/suppression des messages
+  admin/voyages/[tripId]/billets        recherche et achat de billets d'avion (Duffel)
+  api/admin/trips/[tripId]/flight-offers    recherche d'offres de vol pour un ou plusieurs inscrits
+  api/admin/flight-bookings             création de la commande Duffel (achat réel)
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
@@ -117,6 +120,8 @@ lib/
   airlines.js                          catalogue de compagnies aériennes
   news.js                              actualités (public + admin)
   contactMessages.js                   messages de contact (public + admin)
+  duffel.js                             client API Duffel (recherche d'offres, commande)
+  flightBookings.js                     réservations de billets (individuelles ou groupées)
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
@@ -137,10 +142,58 @@ database/
 - [x] Suivi des paiements et rapports financiers : paiements par inscription (montant/mode/référence, calcul dû/payé/solde), rapports par voyage, par programme et par période, réservé aux rôles direction/comptabilité
 - [x] Gestion des programmes et voyages depuis l'admin (CRUD complet, plus de seed SQL nécessaire) : création/édition/suppression de programmes (avec protection anti-suppression si des voyages y sont rattachés) et de voyages (référence, dates, compagnie, places, prix programme/billet avion, statut), et catalogue de compagnies aériennes extensible sans aucun code — réservé au rôle direction, vérifié de bout en bout : création d'un programme + compagnie + voyage entièrement via l'interface, aussitôt visible et réservable sur le site public
 - [x] Site public complet (partie "vitrine") : accueil enrichi (programmes à la une, réassurance, actualités récentes), à propos, actualités (liste + détail, gérées depuis l'admin), FAQ (schema.org `FAQPage`), contact (formulaire → messages consultables dans l'admin), pages légales, plus le SEO technique : sitemap.xml dynamique, robots.txt, `llms.txt` (citabilité par les moteurs IA), schema.org `TravelAgency` et `NewsArticle`
+- [x] Intégration Duffel pour l'achat de billets d'avion (voir section dédiée ci-dessous) — code complet et vérifié (permissions, validations, sauvegarde des voyages), **mais jamais testé de bout en bout avec une vraie clé API** puisqu'aucun compte Duffel n'existait au moment de la construction
 
 Reste à construire (sessions suivantes) :
 
+- [ ] Tester l'intégration Duffel de bout en bout avec une clé de test réelle (voir section dédiée) et ajuster si le format des réponses Duffel diffère de ce qui a été implémenté d'après la documentation
 - [ ] Connexion n8n + WhatsApp Cloud API
+
+## Intégration Duffel (achat de billets d'avion)
+
+Permet de rechercher de vrais vols et d'acheter réellement des billets pour
+les inscrits d'un voyage, individuellement ou en groupe, depuis
+`/admin/voyages/[id]/billets`.
+
+### Configuration
+
+1. Créez un compte sur [duffel.com](https://duffel.com)
+2. Dans le dashboard, récupérez une clé **de test** (`duffel_test_...`) —
+   ne jamais utiliser une clé `duffel_live_` en développement
+3. Renseignez-la dans `.env` :
+   ```
+   DUFFEL_API_KEY=duffel_test_votre_cle
+   ```
+4. Pour chaque voyage concerné, renseignez les codes IATA aéroport de
+   départ/arrivée dans sa fiche (`/admin/voyages/[id]`)
+
+### Fonctionnement
+
+- Recherche : un ou plusieurs inscrits confirmés/payés sans billet →
+  recherche d'offres réelles (route + dates du voyage)
+- Sélection d'une offre → formulaire des coordonnées passager pré-rempli
+  depuis la fiche voyageur (nom, date de naissance, passeport), modifiable
+  avant confirmation
+- Achat : création d'une commande Duffel (`type: instant`, paiement
+  `balance`) — nécessite un solde de test suffisant dans le compte Duffel
+  (rechargeable gratuitement en mode test depuis leur dashboard)
+- Le mode (test/production) est déduit du préfixe de la clé et affiché en
+  bandeau sur la page ; toute réservation garde la trace du mode utilisé
+  (`flight_bookings.duffel_mode`)
+- Permissions : recherche et achat réservés aux rôles `direction` et
+  `ventes`
+
+### ⚠️ Non testé de bout en bout
+
+Ce module a été construit d'après la documentation Duffel (API v2) mais
+**aucun compte Duffel n'était disponible pendant le développement** :
+recherche et achat n'ont donc pas pu être vérifiés avec de vraies réponses
+de l'API. Ce qui a été vérifié : permissions par rôle, validations
+(aéroports manquants, offre expirée), sauvegarde des champs IATA. Avant
+tout achat réel (clé `duffel_live_`), testez d'abord intégralement avec une
+clé `duffel_test_` et un compte de test approvisionné, et corrigez si la
+forme exacte des réponses Duffel diffère de ce qui a été supposé
+(notamment l'extraction des numéros de billet dans `flightBookings.js`).
 
 ## Notes
 
