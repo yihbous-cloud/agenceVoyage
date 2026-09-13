@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const PROGRAM_TYPES = ["omra", "hajj", "tourisme", "autre"];
+const FAMILIES = [
+  { value: "omra_hajj", label: "Omra & Hajj" },
+  { value: "voyage_organise", label: "Voyage organisé" },
+];
+const SEASONS = ["mawlid", "rajab", "chaabane", "ramadan", "chawal"];
 
 export default function ProgramForm({ program, canDelete }) {
   const router = useRouter();
@@ -12,6 +17,9 @@ export default function ProgramForm({ program, canDelete }) {
   const [title, setTitle] = useState(program?.title || "");
   const [slug, setSlug] = useState(program?.slug || "");
   const [programType, setProgramType] = useState(program?.program_type || "omra");
+  const [family, setFamily] = useState(program?.family || "omra_hajj");
+  const [season, setSeason] = useState(program?.season || "");
+  const [theme, setTheme] = useState(program?.theme || "");
   const [shortDescription, setShortDescription] = useState(
     program?.short_description || ""
   );
@@ -36,6 +44,9 @@ export default function ProgramForm({ program, canDelete }) {
       title,
       slug,
       programType,
+      family,
+      season: family === "omra_hajj" ? season || null : null,
+      theme: family === "voyage_organise" ? theme || null : null,
       shortDescription: shortDescription || null,
       fullDescription: fullDescription || null,
       coverImageUrl: coverImageUrl || null,
@@ -116,6 +127,63 @@ export default function ProgramForm({ program, canDelete }) {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Famille (catalogue public)
+          </label>
+          <select
+            required
+            value={family}
+            onChange={(e) => setFamily(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          >
+            {FAMILIES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-zinc-500">
+            Détermine le hub public (/omra-hajj ou /voyages-organises).
+          </p>
+        </div>
+
+        {family === "omra_hajj" && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Saison (calendrier hégirien)
+            </label>
+            <select
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">— Non précisée —</option>
+              {SEASONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {family === "voyage_organise" && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Thème / envie
+            </label>
+            <input
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              placeholder="plage, culture, aventure, famille, couple..."
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        )}
       </div>
 
       <div>

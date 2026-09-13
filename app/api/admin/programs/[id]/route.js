@@ -15,6 +15,12 @@ export async function PUT(request, { params }) {
   if (!body.title) {
     return NextResponse.json({ message: "Le titre est requis" }, { status: 400 });
   }
+  if (!["omra_hajj", "voyage_organise"].includes(body.family)) {
+    return NextResponse.json(
+      { message: "La famille (Omra & Hajj / Voyages organisés) est requise" },
+      { status: 400 }
+    );
+  }
 
   try {
     await updateProgram(id, {

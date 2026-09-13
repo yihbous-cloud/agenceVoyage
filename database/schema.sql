@@ -67,6 +67,12 @@ CREATE TABLE programs (
     title VARCHAR(200) NOT NULL,
     slug VARCHAR(220) NOT NULL UNIQUE COMMENT 'pour URL SEO-friendly',
     program_type ENUM('omra', 'hajj', 'tourisme', 'autre') NOT NULL DEFAULT 'omra',
+    -- Famille de catalogue pour la navigation publique (2 hubs distincts) :
+    -- indépendante de program_type (granularité différente, voir
+    -- database/migrations/001_add_program_family.sql pour la décision)
+    family ENUM('omra_hajj', 'voyage_organise') NOT NULL DEFAULT 'omra_hajj',
+    season ENUM('mawlid', 'rajab', 'chaabane', 'ramadan', 'chawal') NULL COMMENT 'pertinent uniquement si family = omra_hajj',
+    theme VARCHAR(50) NULL COMMENT 'ex: plage, culture, aventure, famille, couple — pertinent uniquement si family = voyage_organise',
     short_description VARCHAR(500) NULL,
     full_description TEXT NULL COMMENT 'contenu riche, utilisé aussi pour schema.org / GEO',
     cover_image_url VARCHAR(500) NULL,
@@ -74,7 +80,8 @@ CREATE TABLE programs (
     meta_title VARCHAR(200) NULL,
     meta_description VARCHAR(300) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_program_family (family)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Un "voyage" est une instance datée d'un programme (départ précis)

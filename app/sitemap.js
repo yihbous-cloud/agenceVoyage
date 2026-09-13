@@ -1,4 +1,4 @@
-import { getPublishedPrograms } from "@/lib/programs";
+import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
 
 export default async function sitemap() {
@@ -6,7 +6,8 @@ export default async function sitemap() {
 
   const staticRoutes = [
     { url: "", priority: 1 },
-    { url: "/programmes", priority: 0.9 },
+    { url: "/omra-hajj", priority: 0.9 },
+    { url: "/voyages-organises", priority: 0.9 },
     { url: "/a-propos", priority: 0.5 },
     { url: "/actualites", priority: 0.6 },
     { url: "/faq", priority: 0.5 },
@@ -17,16 +18,24 @@ export default async function sitemap() {
     priority: r.priority,
   }));
 
-  const [programs, news] = await Promise.all([
-    getPublishedPrograms().catch(() => []),
+  const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
+    getProgramsByFamily("omra_hajj").catch(() => []),
+    getProgramsByFamily("voyage_organise").catch(() => []),
     listPublishedNews().catch(() => []),
   ]);
 
-  const programRoutes = programs.map((p) => ({
-    url: `${baseUrl}/programmes/${p.slug}`,
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  const programRoutes = [
+    ...omraHajjPrograms.map((p) => ({
+      url: `${baseUrl}/omra-hajj/${p.slug}`,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    })),
+    ...voyagePrograms.map((p) => ({
+      url: `${baseUrl}/voyages-organises/${p.slug}`,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    })),
+  ];
 
   const newsRoutes = news.map((n) => ({
     url: `${baseUrl}/actualites/${n.slug}`,

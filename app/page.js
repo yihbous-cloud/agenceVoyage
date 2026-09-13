@@ -1,34 +1,18 @@
 import Link from "next/link";
-import { getPublishedPrograms } from "@/lib/programs";
+import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
+import ProgramCard from "./_components/ProgramCard";
+import ReassuranceBanner from "./_components/ReassuranceBanner";
 
 export const revalidate = 300;
 
-const REASSURANCE = [
-  {
-    title: "Accompagnement complet",
-    description:
-      "Vols, hébergement, transport et visa pris en charge du premier jour au retour.",
-  },
-  {
-    title: "Hôtels proches des lieux saints",
-    description:
-      "Une sélection d'hôtels à proximité du Haram pour l'Omra et le Hajj.",
-  },
-  {
-    title: "Suivi personnalisé",
-    description:
-      "Une équipe joignable par WhatsApp pour répondre à vos questions avant et pendant le voyage.",
-  },
-];
-
 export default async function Home() {
-  const [programs, news] = await Promise.all([
-    getPublishedPrograms().catch(() => []),
+  const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
+    getProgramsByFamily("omra_hajj", { limit: 3 }).catch(() => []),
+    getProgramsByFamily("voyage_organise", { limit: 3 }).catch(() => []),
     listPublishedNews().catch(() => []),
   ]);
 
-  const featuredPrograms = programs.slice(0, 3);
   const latestNews = news.slice(0, 3);
 
   return (
@@ -43,10 +27,16 @@ export default async function Home() {
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/programmes"
+            href="/omra-hajj"
             className="rounded-full bg-emerald-700 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-800"
           >
-            Voir nos programmes
+            Omra &amp; Hajj
+          </Link>
+          <Link
+            href="/voyages-organises"
+            className="rounded-full bg-amber-600 px-6 py-3 font-medium text-white transition-colors hover:bg-amber-700"
+          >
+            Voyages organisés
           </Link>
           <Link
             href="/contact"
@@ -57,54 +47,39 @@ export default async function Home() {
         </div>
       </section>
 
-      {featuredPrograms.length > 0 && (
+      {omraHajjPrograms.length > 0 && (
         <section className="mx-auto max-w-5xl px-6 py-12">
-          <h2 className="text-2xl font-bold text-zinc-900">
-            Programmes à la une
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-zinc-900">Omra &amp; Hajj</h2>
+            <Link href="/omra-hajj" className="text-sm font-medium text-emerald-700 hover:underline">
+              Voir tout
+            </Link>
+          </div>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredPrograms.map((program) => (
-              <Link
-                key={program.id}
-                href={`/programmes/${program.slug}`}
-                className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  {program.program_type}
-                </span>
-                <h3 className="mt-2 text-lg font-semibold text-zinc-900">
-                  {program.title}
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600">
-                  {program.short_description}
-                </p>
-                {program.next_departure_date && (
-                  <p className="mt-4 text-sm font-medium text-zinc-800">
-                    Prochain départ :{" "}
-                    {new Date(program.next_departure_date).toLocaleDateString("fr-FR")}
-                  </p>
-                )}
-              </Link>
+            {omraHajjPrograms.map((program) => (
+              <ProgramCard key={program.id} program={program} />
             ))}
           </div>
         </section>
       )}
 
-      <section className="bg-white py-14">
-        <div className="mx-auto max-w-5xl px-6">
-          <h2 className="text-2xl font-bold text-zinc-900">
-            Pourquoi choisir Golden Fantastic
-          </h2>
-          <div className="mt-6 grid gap-8 sm:grid-cols-3">
-            {REASSURANCE.map((item) => (
-              <div key={item.title}>
-                <h3 className="font-semibold text-zinc-900">{item.title}</h3>
-                <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
-              </div>
+      {voyagePrograms.length > 0 && (
+        <section className="mx-auto max-w-5xl px-6 py-12">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-zinc-900">Voyages organisés</h2>
+            <Link href="/voyages-organises" className="text-sm font-medium text-amber-700 hover:underline">
+              Voir tout
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {voyagePrograms.map((program) => (
+              <ProgramCard key={program.id} program={program} />
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      <ReassuranceBanner />
 
       {latestNews.length > 0 && (
         <section className="mx-auto max-w-5xl px-6 py-12">

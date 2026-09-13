@@ -60,10 +60,15 @@ app/
   mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
   sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots, citabilité IA)
   api/contact/route.js                 API publique : enregistre un message de contact
-  programmes/page.js                   liste des programmes publiés
-  programmes/[slug]/page.js            détail d'un programme + départs ouverts (SEO/GEO, schema.org)
-  programmes/[slug]/ReservationForm.jsx    formulaire d'inscription public (client)
-  api/reservations/route.js            API publique : crée un voyageur + une inscription
+  omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram)
+  voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail
+  _components/ProgramCard.jsx          carte de programme, habillage conditionné par `family` (pas de duplication)
+  _components/ProgramDetail.jsx        gabarit de détail partagé par les deux hubs (`family` en prop)
+  _components/ReassuranceBanner.jsx    bandeau de confiance commun (accueil + deux hubs)
+  _components/ReservationForm.jsx      formulaire d'inscription public (client), partagé par les deux familles
+  programmes/page.js                   ancienne URL : page de bascule vers les deux hubs (pas de 404)
+  programmes/[slug]/page.js            ancienne URL : redirection 308 vers /omra-hajj/[slug] ou /voyages-organises/[slug]
+  api/reservations/route.js            API publique : crée un voyageur + une inscription (identique pour les deux familles)
   api/auth/login, /logout              connexion / déconnexion interne
   admin/login/page.js                  page de connexion interne
   admin/layout.js                      layout protégé (nav + session)
@@ -127,7 +132,8 @@ lib/
 middleware.js                          protège /admin/* (redirige vers /admin/login)
 scripts/create-staff-user.js           bootstrap d'un compte interne
 database/
-  schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage)
+  schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage, family/season/theme)
+  migrations/001_add_program_family.sql   migration additive : ajoute family/season/theme à `programs` pour les DB existantes
 ```
 
 ## Ce qui est fait vs. à venir
@@ -143,6 +149,7 @@ database/
 - [x] Gestion des programmes et voyages depuis l'admin (CRUD complet, plus de seed SQL nécessaire) : création/édition/suppression de programmes (avec protection anti-suppression si des voyages y sont rattachés) et de voyages (référence, dates, compagnie, places, prix programme/billet avion, statut), et catalogue de compagnies aériennes extensible sans aucun code — réservé au rôle direction, vérifié de bout en bout : création d'un programme + compagnie + voyage entièrement via l'interface, aussitôt visible et réservable sur le site public
 - [x] Site public complet (partie "vitrine") : accueil enrichi (programmes à la une, réassurance, actualités récentes), à propos, actualités (liste + détail, gérées depuis l'admin), FAQ (schema.org `FAQPage`), contact (formulaire → messages consultables dans l'admin), pages légales, plus le SEO technique : sitemap.xml dynamique, robots.txt, `llms.txt` (citabilité par les moteurs IA), schema.org `TravelAgency` et `NewsArticle`
 - [x] Intégration Duffel pour l'achat de billets d'avion (voir section dédiée ci-dessous) — code complet et vérifié (permissions, validations, sauvegarde des voyages), **mais jamais testé de bout en bout avec une vraie clé API** puisqu'aucun compte Duffel n'existait au moment de la construction
+- [x] Séparation du catalogue public en deux familles (Omra & Hajj / Voyages organisés) : migration additive `family`/`season`/`theme` sur `programs`, deux hubs publics filtrables (`/omra-hajj`, `/voyages-organises`), gabarit de détail partagé (checklist visa + distance Haram mises en avant côté Omra/Hajj), champs admin dédiés, sitemap/llms.txt à jour, anciennes URLs `/programmes` préservées (page de bascule + redirection 308) — vérifié de bout en bout : migration sur une base existante, filtres des deux hubs, garde-fou famille croisée (404), réservation identique sur un programme de chaque famille, build de production
 
 Reste à construire (sessions suivantes) :
 

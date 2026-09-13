@@ -1,65 +1,35 @@
 import Link from "next/link";
-import { getPublishedPrograms } from "@/lib/programs";
 
 export const metadata = {
-  title: "Nos programmes de voyage",
+  title: "Nos programmes",
   description:
-    "Découvrez tous les programmes Omra, Hajj et séjours touristiques proposés par Golden Fantastic.",
+    "Découvrez nos programmes Omra & Hajj ainsi que nos voyages organisés.",
 };
 
-export const revalidate = 300;
-
-export default async function ProgrammesPage() {
-  let programs = [];
-  let dbError = null;
-
-  try {
-    programs = await getPublishedPrograms();
-  } catch (err) {
-    dbError = err.message;
-  }
-
+// Le catalogue a été séparé en deux hubs dédiés (/omra-hajj et
+// /voyages-organises, voir prompt de séparation du catalogue). Cette page
+// n'est plus le hub principal mais reste en place (au lieu d'un simple 404)
+// pour ne pas casser un lien existant vers /programmes.
+export default function ProgrammesRedirectPage() {
   return (
-    <main className="mx-auto max-w-5xl flex-1 px-6 py-12">
+    <main className="mx-auto flex max-w-3xl flex-1 flex-col items-center gap-6 px-6 py-24 text-center">
       <h1 className="text-3xl font-bold text-zinc-900">Nos programmes</h1>
-
-      {dbError && (
-        <p className="mt-6 rounded-lg bg-red-50 p-4 text-sm text-red-700">
-          Impossible de charger les programmes depuis la base de données ({dbError}).
-          Vérifiez la configuration MySQL (.env).
-        </p>
-      )}
-
-      {!dbError && programs.length === 0 && (
-        <p className="mt-6 text-zinc-600">Aucun programme publié pour le moment.</p>
-      )}
-
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {programs.map((program) => (
-          <Link
-            key={program.id}
-            href={`/programmes/${program.slug}`}
-            className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-              {program.program_type}
-            </span>
-            <h2 className="mt-2 text-xl font-semibold text-zinc-900">
-              {program.title}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-600">
-              {program.short_description}
-            </p>
-            {program.next_departure_date && (
-              <p className="mt-4 text-sm font-medium text-zinc-800">
-                Prochain départ :{" "}
-                {new Date(program.next_departure_date).toLocaleDateString("fr-FR")}
-                {program.starting_price &&
-                  ` — à partir de ${program.starting_price} ${program.currency}`}
-              </p>
-            )}
-          </Link>
-        ))}
+      <p className="max-w-xl text-zinc-600">
+        Nos programmes sont désormais répartis en deux catalogues dédiés :
+      </p>
+      <div className="flex flex-wrap justify-center gap-4">
+        <Link
+          href="/omra-hajj"
+          className="rounded-full bg-emerald-700 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-800"
+        >
+          Omra &amp; Hajj
+        </Link>
+        <Link
+          href="/voyages-organises"
+          className="rounded-full bg-amber-600 px-6 py-3 font-medium text-white transition-colors hover:bg-amber-700"
+        >
+          Voyages organisés
+        </Link>
       </div>
     </main>
   );

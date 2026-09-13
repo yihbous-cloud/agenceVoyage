@@ -56,6 +56,19 @@ L'utilisateur souhaite pouvoir **acheter réellement** des billets d'avion (pas 
 - ⚠️ Ne jamais utiliser une clé `duffel_live_` en développement/test — toujours `duffel_test_` (sandbox gratuite, sans argent ni réservation réels) tant que le flux n'est pas validé de bout en bout
 - Le mode (test/live) est déduit uniquement du préfixe de la clé API (`DUFFEL_API_KEY`), jamais d'un interrupteur séparé, pour éviter toute confusion
 
+## 3quater. Séparation du catalogue public (Omra & Hajj / Voyages organisés)
+
+Le site public distingue deux familles de programmes, à l'intention d'achat différente :
+
+1. **Omra & Hajj** — achat engagé, comparaison par saison du calendrier hégirien (`programs.season`)
+2. **Voyages organisés** — achat inspirationnel, comparaison par destination et par thème/envie (`programs.theme`)
+
+- Chaque programme porte une colonne `programs.family` (`omra_hajj` / `voyage_organise`), indépendante de `programs.program_type` (voir `database/migrations/001_add_program_family.sql` pour la justification de ne pas les fusionner)
+- Deux hubs publics dédiés : `/omra-hajj` et `/voyages-organises`, chacun avec ses propres filtres (saison ; destination/envie)
+- Un seul gabarit technique de détail (`app/_components/ProgramDetail.jsx`), habillage conditionné par `family` — pas de duplication du moteur de réservation
+- La distance à la Haram (`hotels.distance_to_haram_m`, déjà en base) est désormais affichée sur les cartes et le détail Omra/Hajj (voyage le plus proche)
+- Anciennes URLs `/programmes` et `/programmes/[slug]` conservées : la première devient une page de bascule vers les deux hubs, la seconde redirige (308) vers la nouvelle URL préfixée par famille
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

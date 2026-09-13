@@ -25,6 +25,7 @@ export default async function ProgrammesPage() {
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Titre</th>
+              <th className="px-4 py-3">Famille</th>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Voyages</th>
@@ -36,6 +37,9 @@ export default async function ProgrammesPage() {
             {programs.map((p) => (
               <tr key={p.id} className="border-b border-zinc-100 last:border-0">
                 <td className="px-4 py-3 font-medium text-zinc-900">{p.title}</td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {p.family === "omra_hajj" ? "Omra & Hajj" : "Voyage organisé"}
+                </td>
                 <td className="px-4 py-3 capitalize text-zinc-600">{p.program_type}</td>
                 <td className="px-4 py-3 text-zinc-500">{p.slug}</td>
                 <td className="px-4 py-3 text-zinc-600">{p.trips_count}</td>
@@ -62,7 +66,7 @@ export default async function ProgrammesPage() {
             ))}
             {programs.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-zinc-500" colSpan={6}>
+                <td className="px-4 py-3 text-zinc-500" colSpan={7}>
                   Aucun programme.
                 </td>
               </tr>

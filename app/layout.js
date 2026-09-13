@@ -46,9 +46,12 @@ export default function RootLayout({ children }) {
             <Link href="/" className="text-lg font-semibold text-emerald-700">
               Golden Fantastic
             </Link>
-            <nav className="flex gap-5 text-sm font-medium text-zinc-600">
-              <Link href="/programmes" className="hover:text-emerald-700">
-                Nos programmes
+            <nav className="flex flex-wrap gap-5 text-sm font-medium text-zinc-600">
+              <Link href="/omra-hajj" className="hover:text-emerald-700">
+                Omra &amp; Hajj
+              </Link>
+              <Link href="/voyages-organises" className="hover:text-emerald-700">
+                Voyages organisés
               </Link>
               <Link href="/a-propos" className="hover:text-emerald-700">
                 À propos
