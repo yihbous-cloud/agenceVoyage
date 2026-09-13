@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }) {
     <div className="flex flex-1 flex-col bg-zinc-50">
       <div className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <nav className="flex items-center gap-6 text-sm font-medium text-zinc-600">
+          <nav className="flex flex-wrap items-center gap-6 text-sm font-medium text-zinc-600">
             <Link href="/admin" className="text-zinc-900">
               Tableau de bord
             </Link>
@@ -39,6 +39,12 @@ export default async function AdminLayout({ children }) {
             </Link>
             <Link href="/admin/airlines" className="hover:text-emerald-700">
               Compagnies
+            </Link>
+            <Link href="/admin/actualites" className="hover:text-emerald-700">
+              Actualités
+            </Link>
+            <Link href="/admin/messages" className="hover:text-emerald-700">
+              Messages
             </Link>
             {["direction", "comptabilite"].includes(session.role) && (
               <Link href="/admin/finances" className="hover:text-emerald-700">

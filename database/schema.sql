@@ -314,7 +314,41 @@ CREATE TABLE whatsapp_messages_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================
--- 9. VUES UTILES (pour les listes intelligentes)
+-- 9. SITE PUBLIC (actualités & messages de contact)
+-- =====================================================================
+
+-- Annonces / nouveaux programmes publiés sur le site (CLAUDE.md 4a)
+CREATE TABLE news_posts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    slug VARCHAR(220) NOT NULL UNIQUE,
+    excerpt VARCHAR(500) NULL,
+    content TEXT NULL,
+    cover_image_url VARCHAR(500) NULL,
+    is_published BOOLEAN NOT NULL DEFAULT FALSE,
+    published_at DATETIME NULL,
+    meta_title VARCHAR(200) NULL,
+    meta_description VARCHAR(300) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_news_published (is_published, published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Messages soumis via le formulaire de contact public
+CREATE TABLE contact_messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(30) NULL,
+    subject VARCHAR(200) NULL,
+    message TEXT NOT NULL,
+    status ENUM('nouveau', 'traite') NOT NULL DEFAULT 'nouveau',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_contact_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =====================================================================
+-- 10. VUES UTILES (pour les listes intelligentes)
 -- =====================================================================
 
 -- Vue : liste complète des voyageurs par voyage (base pour export)

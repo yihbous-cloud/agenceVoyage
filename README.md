@@ -52,7 +52,14 @@ Rôles valides : `direction`, `ventes`, `comptabilite`, `suivi`. Connexion sur `
 
 ```
 app/
-  page.js                              page d'accueil
+  page.js                              accueil (hero, programmes à la une, réassurance, actualités)
+  a-propos/page.js                     page à propos
+  actualites/page.js, /[slug]/page.js  liste et détail des actualités (schema.org NewsArticle)
+  faq/page.js                          questions fréquentes (schema.org FAQPage)
+  contact/page.js, ContactForm.jsx     formulaire de contact public
+  mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
+  sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots, citabilité IA)
+  api/contact/route.js                 API publique : enregistre un message de contact
   programmes/page.js                   liste des programmes publiés
   programmes/[slug]/page.js            détail d'un programme + départs ouverts (SEO/GEO, schema.org)
   programmes/[slug]/ReservationForm.jsx    formulaire d'inscription public (client)
@@ -91,6 +98,9 @@ app/
   api/admin/programs/*, /programs/[id]/trips        CRUD programmes + création de voyage
   api/admin/trips/[tripId]/route.js     GET/PUT/DELETE d'un voyage
   api/admin/airlines/*                  CRUD compagnies aériennes
+  admin/actualites/*                    CRUD actualités
+  admin/messages/*                      messages de contact reçus
+  api/admin/news/*, /contact-messages/[id]   CRUD actualités, statut/suppression des messages
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
@@ -105,6 +115,8 @@ lib/
   payments.js                          paiements + rapports financiers (par voyage/programme/période)
   programsAdmin.js                     CRUD programmes + voyages (interne)
   airlines.js                          catalogue de compagnies aériennes
+  news.js                              actualités (public + admin)
+  contactMessages.js                   messages de contact (public + admin)
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
@@ -124,11 +136,11 @@ database/
 - [x] Générateur de listes, exportables en Excel et PDF, par voyage : liste complète des voyageurs (identité, passeport, hôtel, chambre, statut, finances), liste de demande de visa (type, organisme, statut, documents fournis), liste compagnie aérienne (gabarit de colonnes différent par compagnie — RAM/Saudia/Turkish/générique — piloté par `airlines.export_template_key`, aucun changement de code pour une nouvelle compagnie)
 - [x] Suivi des paiements et rapports financiers : paiements par inscription (montant/mode/référence, calcul dû/payé/solde), rapports par voyage, par programme et par période, réservé aux rôles direction/comptabilité
 - [x] Gestion des programmes et voyages depuis l'admin (CRUD complet, plus de seed SQL nécessaire) : création/édition/suppression de programmes (avec protection anti-suppression si des voyages y sont rattachés) et de voyages (référence, dates, compagnie, places, prix programme/billet avion, statut), et catalogue de compagnies aériennes extensible sans aucun code — réservé au rôle direction, vérifié de bout en bout : création d'un programme + compagnie + voyage entièrement via l'interface, aussitôt visible et réservable sur le site public
+- [x] Site public complet (partie "vitrine") : accueil enrichi (programmes à la une, réassurance, actualités récentes), à propos, actualités (liste + détail, gérées depuis l'admin), FAQ (schema.org `FAQPage`), contact (formulaire → messages consultables dans l'admin), pages légales, plus le SEO technique : sitemap.xml dynamique, robots.txt, `llms.txt` (citabilité par les moteurs IA), schema.org `TravelAgency` et `NewsArticle`
 
 Reste à construire (sessions suivantes) :
 
 - [ ] Connexion n8n + WhatsApp Cloud API
-- [ ] Sitemap dynamique, `llms.txt`
 
 ## Notes
 
@@ -136,3 +148,5 @@ Reste à construire (sessions suivantes) :
 - Sans base MySQL configurée/accessible, les pages publiques dégradent proprement (message d'erreur affiché, pas de crash serveur).
 - La session interne est un JWT signé (HS256, `SESSION_SECRET`) stocké en cookie httpOnly, durée 8h. Le middleware protège toutes les routes `/admin/*` sauf `/admin/login`.
 - **Limitation connue** : les PDF exportés n'affichent pas la colonne "Nom (arabe)" (police PDF standard sans support de l'écriture arabe — corruption du rendu sinon). L'Excel, lui, l'affiche correctement. À corriger plus tard en intégrant une police arabe (ex. Noto Naskh Arabic) si le PDF doit inclure ce champ.
+- Le `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle CSS hors des cascade layers de Tailwind, qui écrasait silencieusement les classes `bg-zinc-50`/`text-zinc-900` du `<body>`) — nettoyé ; le site garde un thème clair unique quel que soit le réglage du navigateur.
+- Renseignez `NEXT_PUBLIC_SITE_URL` en production (utilisé par le sitemap, `llms.txt` et le schema.org `TravelAgency`) — sinon ces éléments pointent vers `http://localhost:3000`.
