@@ -4,9 +4,11 @@ import { getSession } from "@/lib/session";
 import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
 import { listServices, listRegistrationServices } from "@/lib/services";
 import { getRoomDetails } from "@/lib/roomAssignment";
+import { listPaymentsForRegistration } from "@/lib/payments";
 import EditRegistrationForm from "./EditRegistrationForm";
 import VisaSection from "./VisaSection";
 import ServicesSection from "./ServicesSection";
+import PaymentsSection from "./PaymentsSection";
 
 export default async function RegistrationDetailPage({ params }) {
   const { id } = await params;
@@ -17,13 +19,15 @@ export default async function RegistrationDetailPage({ params }) {
     notFound();
   }
 
-  const [visaTypes, visaRequest, catalogServices, registrationServices, room] = await Promise.all([
-    listVisaTypesForProgram(registration.program_id),
-    getVisaRequestByRegistration(id),
-    listServices(),
-    listRegistrationServices(id),
-    registration.room_id ? getRoomDetails(registration.room_id) : null,
-  ]);
+  const [visaTypes, visaRequest, catalogServices, registrationServices, room, payments] =
+    await Promise.all([
+      listVisaTypesForProgram(registration.program_id),
+      getVisaRequestByRegistration(id),
+      listServices(),
+      listRegistrationServices(id),
+      registration.room_id ? getRoomDetails(registration.room_id) : null,
+      listPaymentsForRegistration(id),
+    ]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -84,6 +88,13 @@ export default async function RegistrationDetailPage({ params }) {
         catalogServices={catalogServices}
         registrationServices={registrationServices}
         flightTicketPrice={registration.flight_ticket_price}
+        role={session?.role}
+      />
+
+      <PaymentsSection
+        registrationId={registration.id}
+        payments={payments}
+        totalDue={registration.total_due}
         role={session?.role}
       />
     </div>

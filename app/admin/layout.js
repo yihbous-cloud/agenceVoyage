@@ -34,6 +34,11 @@ export default async function AdminLayout({ children }) {
             <Link href="/admin/services" className="hover:text-emerald-700">
               Services
             </Link>
+            {["direction", "comptabilite"].includes(session.role) && (
+              <Link href="/admin/finances" className="hover:text-emerald-700">
+                Finances
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-4 text-sm text-zinc-500">
             <span>
