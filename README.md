@@ -68,17 +68,26 @@ app/
   admin/inscriptions/[id]/ServicesSection.jsx  services facturés (billet avion, autres)
   admin/visa-types/*                   catalogue des types de visa (documents + prix)
   admin/services/*                     catalogue générique de services extensible
+  admin/hotels/*                       catalogue des hôtels partenaires
+  admin/voyages/[tripId]/hebergement   répartition hôtels/chambres pour un voyage
   api/admin/registrations/*            CRUD inscriptions, avec permissions par rôle
   api/admin/visa-types/*               CRUD types de visa
   api/admin/visa-documents/[id]        bascule statut d'un document (fourni/manquant)
   api/admin/services/*                 CRUD catalogue de services
   api/admin/registrations/[id]/services, /registration-services/[id]   lignes de facturation
+  api/admin/hotels/*                   CRUD catalogue d'hôtels
+  api/admin/trips/[tripId]/hotels, /trip-hotels/[id]   hôtels associés à un voyage
+  api/admin/trip-hotels/[id]/rooms, /rooms/[id]        chambres
+  api/admin/registrations/[id]/room    affectation manuelle (anti-conflit genre/capacité)
+  api/admin/trips/[tripId]/auto-assign répartition automatique
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
   registrations.js                     requêtes inscriptions / stats (interne)
   visaTypes.js                         catalogue visa + suivi documents par voyageur
   services.js                          catalogue de services + lignes de facturation
+  hotels.js                            catalogue d'hôtels
+  roomAssignment.js                    hôtels/chambres par voyage + affectation (manuelle et auto)
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
@@ -94,13 +103,13 @@ database/
 - [x] Page programme (SEO/GEO : meta tags dynamiques, JSON-LD `TouristTrip`) + réservation en ligne basique
 - [x] Authentification interne (JWT en cookie httpOnly) + tableau de bord + CRUD des inscrits, avec permissions par rôle (direction/ventes accès complet, comptabilité limité au montant dû, suivi limité au visa/notes)
 - [x] Catalogue de services : types de visa (réutilisables ou spécifiques à un programme, avec documents requis et prix), suivi document par document par voyageur, billet d'avion au prix du voyage, catalogue générique extensible pour les autres services
+- [x] Répartition hôtels/chambres : catalogue d'hôtels, association hôtel(s)↔voyage avec dates, gestion des chambres (type/capacité), affectation manuelle avec anti-conflit (capacité, non-mixité de genre) et répartition automatique (regroupe le genre le plus nombreux en premier pour minimiser les places perdues)
 
 Reste à construire (sessions suivantes) :
 
-- [ ] Module de répartition hôtels/chambres
 - [ ] Générateur de listes (voyageurs, visas, compagnies aériennes avec templates par compagnie)
 - [ ] Suivi des paiements détaillé (table `payments`) et rapports financiers
-- [ ] Gestion des programmes/voyages/hôtels depuis l'admin (actuellement seed via SQL direct, y compris `flight_ticket_price`)
+- [ ] Gestion des programmes/voyages depuis l'admin (actuellement seed via SQL direct, y compris `flight_ticket_price`)
 - [ ] Connexion n8n + WhatsApp Cloud API
 - [ ] Sitemap dynamique, `llms.txt`
 

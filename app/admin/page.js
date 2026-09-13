@@ -41,6 +41,7 @@ export default async function AdminDashboard() {
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Départ</th>
                 <th className="px-4 py-3">Inscrits / Places</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -59,11 +60,19 @@ export default async function AdminDashboard() {
                       {trip.registered_count} / {trip.total_seats}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/admin/voyages/${trip.id}/hebergement`}
+                      className="text-emerald-700 hover:underline"
+                    >
+                      Hébergement
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {upcomingTrips.length === 0 && (
                 <tr>
-                  <td className="px-4 py-3 text-zinc-500" colSpan={4}>
+                  <td className="px-4 py-3 text-zinc-500" colSpan={5}>
                     Aucun départ à venir.
                   </td>
                 </tr>

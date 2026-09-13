@@ -25,6 +25,9 @@ export default async function AdminLayout({ children }) {
             <Link href="/admin/inscriptions" className="hover:text-emerald-700">
               Inscrits
             </Link>
+            <Link href="/admin/hotels" className="hover:text-emerald-700">
+              Hôtels
+            </Link>
             <Link href="/admin/visa-types" className="hover:text-emerald-700">
               Types de visa
             </Link>

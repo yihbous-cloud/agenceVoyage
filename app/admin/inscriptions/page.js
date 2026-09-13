@@ -42,6 +42,13 @@ export default async function InscriptionsPage({ searchParams }) {
           <Link href="/admin/inscriptions" className="text-emerald-700 hover:underline">
             réinitialiser
           </Link>
+          {" · "}
+          <Link
+            href={`/admin/voyages/${tripId}/hebergement`}
+            className="text-emerald-700 hover:underline"
+          >
+            gérer l&apos;hébergement
+          </Link>
         </p>
       )}
 

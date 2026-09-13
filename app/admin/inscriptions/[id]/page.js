@@ -3,6 +3,7 @@ import { getRegistrationById } from "@/lib/registrations";
 import { getSession } from "@/lib/session";
 import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
 import { listServices, listRegistrationServices } from "@/lib/services";
+import { getRoomDetails } from "@/lib/roomAssignment";
 import EditRegistrationForm from "./EditRegistrationForm";
 import VisaSection from "./VisaSection";
 import ServicesSection from "./ServicesSection";
@@ -16,11 +17,12 @@ export default async function RegistrationDetailPage({ params }) {
     notFound();
   }
 
-  const [visaTypes, visaRequest, catalogServices, registrationServices] = await Promise.all([
+  const [visaTypes, visaRequest, catalogServices, registrationServices, room] = await Promise.all([
     listVisaTypesForProgram(registration.program_id),
     getVisaRequestByRegistration(id),
     listServices(),
     listRegistrationServices(id),
+    registration.room_id ? getRoomDetails(registration.room_id) : null,
   ]);
 
   return (
@@ -55,6 +57,14 @@ export default async function RegistrationDetailPage({ params }) {
             <dt className="text-zinc-500">Email</dt>
             <dd className="font-medium text-zinc-900">
               {registration.traveler_email || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-zinc-500">Chambre</dt>
+            <dd className="font-medium text-zinc-900">
+              {room
+                ? `${room.hotel_name} — ${room.room_type} ${room.room_number || ""}`
+                : "Non affectée"}
             </dd>
           </div>
         </dl>
