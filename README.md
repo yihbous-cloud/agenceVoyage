@@ -63,18 +63,28 @@ app/
   admin/page.js                        tableau de bord (stats, prochains départs)
   admin/inscriptions/page.js           liste des inscrits (filtrable par voyage)
   admin/inscriptions/new/page.js       création manuelle d'une inscription
-  admin/inscriptions/[id]/page.js      détail / édition (statut, visa, montant dû)
+  admin/inscriptions/[id]/page.js      détail / édition (statut, visa, montant dû, services)
+  admin/inscriptions/[id]/VisaSection.jsx      assignation type de visa + checklist documents
+  admin/inscriptions/[id]/ServicesSection.jsx  services facturés (billet avion, autres)
+  admin/visa-types/*                   catalogue des types de visa (documents + prix)
+  admin/services/*                     catalogue générique de services extensible
   api/admin/registrations/*            CRUD inscriptions, avec permissions par rôle
+  api/admin/visa-types/*               CRUD types de visa
+  api/admin/visa-documents/[id]        bascule statut d'un document (fourni/manquant)
+  api/admin/services/*                 CRUD catalogue de services
+  api/admin/registrations/[id]/services, /registration-services/[id]   lignes de facturation
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
   registrations.js                     requêtes inscriptions / stats (interne)
+  visaTypes.js                         catalogue visa + suivi documents par voyageur
+  services.js                          catalogue de services + lignes de facturation
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
 scripts/create-staff-user.js           bootstrap d'un compte interne
 database/
-  schema.sql                           schéma complet MySQL fourni
+  schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage)
 ```
 
 ## Ce qui est fait vs. à venir
@@ -83,13 +93,14 @@ database/
 - [x] Structure Next.js + connexion MySQL
 - [x] Page programme (SEO/GEO : meta tags dynamiques, JSON-LD `TouristTrip`) + réservation en ligne basique
 - [x] Authentification interne (JWT en cookie httpOnly) + tableau de bord + CRUD des inscrits, avec permissions par rôle (direction/ventes accès complet, comptabilité limité au montant dû, suivi limité au visa/notes)
+- [x] Catalogue de services : types de visa (réutilisables ou spécifiques à un programme, avec documents requis et prix), suivi document par document par voyageur, billet d'avion au prix du voyage, catalogue générique extensible pour les autres services
 
 Reste à construire (sessions suivantes) :
 
 - [ ] Module de répartition hôtels/chambres
 - [ ] Générateur de listes (voyageurs, visas, compagnies aériennes avec templates par compagnie)
 - [ ] Suivi des paiements détaillé (table `payments`) et rapports financiers
-- [ ] Gestion des programmes/voyages/hôtels depuis l'admin (actuellement seed via SQL direct)
+- [ ] Gestion des programmes/voyages/hôtels depuis l'admin (actuellement seed via SQL direct, y compris `flight_ticket_price`)
 - [ ] Connexion n8n + WhatsApp Cloud API
 - [ ] Sitemap dynamique, `llms.txt`
 

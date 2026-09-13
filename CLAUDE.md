@@ -31,6 +31,21 @@ Ce fichier décrit le projet pour Claude Code, afin qu'il travaille avec la mêm
 
 ⚠️ **Chaque compagnie a un format de liste différent** pour la réservation des billets — le système doit gérer un **template d'export distinct par compagnie** (Excel/PDF), configurable.
 
+## 3bis. Catalogue de services facturés
+
+L'agence facture, par inscription/voyageur, des **services** distincts du prix du voyage lui-même :
+
+1. **Programme Omra / Hajj / tourisme** — le voyage organisé (déjà modélisé : `trips.price_per_person`)
+2. **Service visa** — ⚠️ chaque **type de visa** a sa propre **liste de documents requis** et son propre **prix** (ne pas modéliser le visa comme un simple service générique à prix unique)
+3. **Réservation billet d'avion** — le prix/la logistique dépend de la **compagnie aérienne** choisie (RAM, Saudia, Turkish...)
+4. **Autres services** — catalogue **extensible** : de nouveaux types de service doivent pouvoir être ajoutés plus tard sans développement supplémentaire (même exigence que pour les compagnies aériennes, section 3)
+
+**Décisions prises (voir `database/schema.sql`)** :
+- Types de visa : catalogue global réutilisable (`visa_types`, `program_id` NULL) **et** possibilité de types spécifiques à un programme (`program_id` renseigné) — les deux cas sont supportés
+- Documents requis par type de visa : catalogue (`visa_type_documents`) + suivi individuel fourni/manquant par voyageur (`visa_request_documents`), lié à `visa_requests.visa_type_id`
+- Billet d'avion : prix rattaché au **voyage précis** (`trips.flight_ticket_price`), pas à la compagnie en général (les prix aériens varient par date/route)
+- Autres services : catalogue générique existant (`services` / `registration_services`) déjà extensible tel quel, aucun changement nécessaire
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

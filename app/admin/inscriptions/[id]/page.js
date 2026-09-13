@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { getRegistrationById } from "@/lib/registrations";
 import { getSession } from "@/lib/session";
+import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
+import { listServices, listRegistrationServices } from "@/lib/services";
 import EditRegistrationForm from "./EditRegistrationForm";
+import VisaSection from "./VisaSection";
+import ServicesSection from "./ServicesSection";
 
 export default async function RegistrationDetailPage({ params }) {
   const { id } = await params;
@@ -11,6 +15,13 @@ export default async function RegistrationDetailPage({ params }) {
   if (!registration) {
     notFound();
   }
+
+  const [visaTypes, visaRequest, catalogServices, registrationServices] = await Promise.all([
+    listVisaTypesForProgram(registration.program_id),
+    getVisaRequestByRegistration(id),
+    listServices(),
+    listRegistrationServices(id),
+  ]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -50,6 +61,21 @@ export default async function RegistrationDetailPage({ params }) {
       </div>
 
       <EditRegistrationForm registration={registration} role={session?.role} />
+
+      <VisaSection
+        registrationId={registration.id}
+        visaTypes={visaTypes}
+        visaRequest={visaRequest}
+        role={session?.role}
+      />
+
+      <ServicesSection
+        registrationId={registration.id}
+        catalogServices={catalogServices}
+        registrationServices={registrationServices}
+        flightTicketPrice={registration.flight_ticket_price}
+        role={session?.role}
+      />
     </div>
   );
 }

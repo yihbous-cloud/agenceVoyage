@@ -88,6 +88,7 @@ CREATE TABLE trips (
     airline_id SMALLINT UNSIGNED NULL,
     total_seats INT UNSIGNED NOT NULL DEFAULT 0,
     price_per_person DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    flight_ticket_price DECIMAL(10,2) NULL COMMENT 'Prix du service "billet avion" pour ce voyage précis (compagnie = airline_id) ; le prix dépend du voyage, pas seulement de la compagnie',
     currency CHAR(3) NOT NULL DEFAULT 'MAD',
     status ENUM('planifie', 'ouvert', 'complet', 'en_cours', 'termine', 'annule') NOT NULL DEFAULT 'planifie',
     notes TEXT NULL,
@@ -215,12 +216,38 @@ CREATE TABLE payments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================
--- 7. DEMANDES DE VISA
+-- 7. TYPES DE VISA, DOCUMENTS & DEMANDES
 -- =====================================================================
+
+-- Catalogue des types de visa : réutilisable globalement (program_id NULL)
+-- ou spécifique à un programme précis (program_id renseigné)
+CREATE TABLE visa_types (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL COMMENT 'ex: Visa Omra Arabie Saoudite, Visa touristique Turquie',
+    country VARCHAR(100) NULL,
+    program_id BIGINT UNSIGNED NULL COMMENT 'NULL = réutilisable pour tous les programmes ; sinon spécifique à ce programme',
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    description VARCHAR(500) NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
+    INDEX idx_visa_type_program (program_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Documents requis pour un type de visa (catalogue, indépendant du voyageur)
+CREATE TABLE visa_type_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    visa_type_id BIGINT UNSIGNED NOT NULL,
+    document_name VARCHAR(150) NOT NULL COMMENT 'ex: Copie passeport, Photo identité, Certificat médical',
+    is_required BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    FOREIGN KEY (visa_type_id) REFERENCES visa_types(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE visa_requests (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     registration_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    visa_type_id BIGINT UNSIGNED NULL COMMENT 'Type de visa demandé (détermine les documents requis et le prix)',
     submitted_date DATE NULL,
     consulate_or_authority VARCHAR(150) NULL COMMENT 'organisme concerné',
     status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
@@ -228,7 +255,20 @@ CREATE TABLE visa_requests (
     issue_date DATE NULL,
     expiry_date DATE NULL,
     notes VARCHAR(255) NULL,
-    FOREIGN KEY (registration_id) REFERENCES registrations(id) ON DELETE CASCADE
+    FOREIGN KEY (registration_id) REFERENCES registrations(id) ON DELETE CASCADE,
+    FOREIGN KEY (visa_type_id) REFERENCES visa_types(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Suivi document par document, par voyageur (checklist "fourni / manquant")
+CREATE TABLE visa_request_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    visa_request_id BIGINT UNSIGNED NOT NULL,
+    visa_type_document_id BIGINT UNSIGNED NOT NULL,
+    status ENUM('manquant', 'fourni') NOT NULL DEFAULT 'manquant',
+    provided_at DATETIME NULL,
+    FOREIGN KEY (visa_request_id) REFERENCES visa_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (visa_type_document_id) REFERENCES visa_type_documents(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_request_document (visa_request_id, visa_type_document_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================

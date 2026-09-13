@@ -25,6 +25,12 @@ export default async function AdminLayout({ children }) {
             <Link href="/admin/inscriptions" className="hover:text-emerald-700">
               Inscrits
             </Link>
+            <Link href="/admin/visa-types" className="hover:text-emerald-700">
+              Types de visa
+            </Link>
+            <Link href="/admin/services" className="hover:text-emerald-700">
+              Services
+            </Link>
           </nav>
           <div className="flex items-center gap-4 text-sm text-zinc-500">
             <span>
