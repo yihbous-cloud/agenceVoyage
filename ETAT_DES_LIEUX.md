@@ -1,0 +1,237 @@
+# État des lieux — Golden Fantastic
+
+Document de référence décrivant l'état complet du projet à date. Complète [CLAUDE.md](CLAUDE.md) (cahier des charges) et [README.md](README.md) (guide technique de démarrage) : ce fichier-ci est l'inventaire détaillé — pages, fonctions, tables, relations, et statut de chaque partie.
+
+Dernière mise à jour : voir historique Git (`git log`).
+
+---
+
+## 1. Idée générale du projet
+
+**Golden Fantastic** est une agence de voyages spécialisée dans l'organisation de programmes **Omra, Hajj et séjours touristiques**. Le projet est un système complet à deux faces :
+
+- **Un site public (« vitrine »)** : présente les programmes de voyage, permet de réserver en ligne, publie des actualités, et est optimisé pour le référencement classique (SEO) et pour être **cité par les moteurs IA** (GEO — Generative Engine Optimization : `llms.txt`, schema.org, contenu structuré).
+- **Un système interne (CRM/ERP)** : gère tout le cycle opérationnel d'un voyage — inscriptions, répartition hôtels/chambres, visas, paiements, listes d'export, et (en construction) l'achat réel de billets d'avion via l'API Duffel.
+
+Volume visé : minimum 24 voyages/an, avec potentiellement des centaines de voyageurs par voyage type Omra. Le système est pensé pour ce volume dès la conception (voir CLAUDE.md §1).
+
+**Stack** : Next.js (App Router, un seul projet full-stack — pages publiques en SSR/SSG, API routes pour tout le backend) + MySQL. Aucun autre backend séparé. Hébergement cible : VPS Hostinger (pas encore déployé — développement/test en local uniquement à ce jour).
+
+---
+
+## 2. Pages du site public (partie client)
+
+| Route | Contenu | Rendu |
+|---|---|---|
+| `/` | Accueil : hero, programmes à la une, section réassurance, actualités récentes | SSR, revalidate 300s |
+| `/programmes` | Liste des programmes publiés (titre, type, description courte, prochain départ, prix) | SSR, revalidate 300s |
+| `/programmes/[slug]` | Détail d'un programme : description complète, liste des voyages ouverts (dates, compagnie, prix, places restantes), formulaire de réservation | SSR, revalidate 300s, JSON-LD `TouristTrip` |
+| `/a-propos` | Présentation de l'agence, valeurs | Statique |
+| `/actualites` | Liste des actualités publiées | SSR, revalidate 300s |
+| `/actualites/[slug]` | Détail d'une actualité | SSR, revalidate 300s, JSON-LD `NewsArticle` |
+| `/faq` | Questions fréquentes (documents, paiement, réservation, chambres, annulation) | Statique, JSON-LD `FAQPage` |
+| `/contact` | Coordonnées + formulaire de contact | Formulaire → API `/api/contact` |
+| `/mentions-legales` | Mentions légales (contenu modèle à finaliser) | Statique, `noindex` |
+| `/confidentialite` | Politique de confidentialité (contenu modèle à finaliser) | Statique, `noindex` |
+| `/sitemap.xml` | Sitemap dynamique (accueil, pages statiques, programmes publiés, actualités publiées) | Généré (`app/sitemap.js`) |
+| `/robots.txt` | Autorise tout sauf `/admin`, référence le sitemap | Généré (`app/robots.js`) |
+| `/llms.txt` | Description de l'agence + liste des programmes publiés, pour la citabilité par les moteurs IA | Généré dynamiquement (`app/llms.txt/route.js`) |
+
+**Réservation en ligne (public)** : le formulaire sur `/programmes/[slug]` envoie à `POST /api/reservations`, qui crée (ou retrouve, par numéro WhatsApp) un `traveler` puis une `registration` avec le statut `inscrit`. Aucune information de paiement n'est demandée à ce stade — le paiement se gère ensuite côté interne.
+
+**Formulaire de contact** : envoie à `POST /api/contact`, crée une ligne `contact_messages` (statut `nouveau`), consultable dans `/admin/messages`.
+
+---
+
+## 3. Pages de l'espace interne (admin)
+
+Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middleware.js` : sans session valide, redirection vers `/admin/login`. La session est un JWT signé (HS256) en cookie httpOnly, durée 8h.
+
+| Route | Contenu | Rôles avec accès (lecture / gestion) |
+|---|---|---|
+| `/admin/login` | Connexion (email + mot de passe) | Public (non authentifié) |
+| `/admin` | Tableau de bord : compteurs d'inscriptions par statut, prochains départs avec liens rapides | Tous rôles |
+| `/admin/inscriptions` | Liste des inscrits, filtrable par voyage (`?tripId=`) | Tous (lecture) / création+édition selon champ (voir §5) |
+| `/admin/inscriptions/new` | Création manuelle d'une inscription (tous les champs voyageur + choix du voyage) | direction, ventes |
+| `/admin/inscriptions/[id]` | Fiche complète d'un inscrit : infos, statut, visa (assignation + documents), services facturés, paiements, billet d'avion (lecture) | Tous (lecture) / édition selon section et rôle |
+| `/admin/programmes` | Liste des programmes (avec nombre de voyages, statut publié) | Tous (lecture) / direction (gestion) |
+| `/admin/programmes/new`, `/admin/programmes/[id]` | Création / édition d'un programme, avec la liste de ses voyages | direction |
+| `/admin/programmes/[id]/voyages/new` | Création d'un voyage rattaché à un programme | direction |
+| `/admin/voyages/[tripId]` | Édition d'un voyage (référence, dates, compagnie, aéroports IATA, places, prix, statut) | direction |
+| `/admin/voyages/[tripId]/hebergement` | Hôtels du voyage, chambres, affectation manuelle et automatique des voyageurs | Tous (lecture) / direction, suivi (gestion) |
+| `/admin/voyages/[tripId]/listes` | Génération des 3 listes exportables (voyageurs, visas, compagnie aérienne) en Excel/PDF | Tous |
+| `/admin/voyages/[tripId]/billets` | Recherche et achat de billets d'avion réels via Duffel (individuel ou groupé) | Tous (lecture) / direction, ventes (achat) |
+| `/admin/hotels` | Catalogue d'hôtels partenaires | Tous (lecture) / direction, suivi (gestion) |
+| `/admin/visa-types` | Catalogue des types de visa (documents requis + prix) | Tous (lecture) / direction, suivi (gestion) |
+| `/admin/services` | Catalogue générique de services facturables | Tous (lecture) / direction, comptabilité (gestion) |
+| `/admin/airlines` | Catalogue de compagnies aériennes (nom, code IATA, gabarit d'export) | Tous (lecture) / direction (gestion) |
+| `/admin/actualites` | CRUD des actualités publiées sur le site public | Tous (lecture) / direction (gestion) |
+| `/admin/messages` | Messages reçus via le formulaire de contact public | direction, ventes |
+| `/admin/finances` | Rapports financiers : par voyage, par programme, paiements par période | direction, comptabilité (page entière restreinte) |
+
+**Ce qui n'existe PAS encore côté admin** : pas d'interface pour créer/gérer les comptes internes (`staff_users`) — uniquement via le script CLI `scripts/create-staff-user.js`. Pas d'interface pour gérer les rôles eux-mêmes (les 4 rôles sont fixes, câblés en dur dans le code de chaque route).
+
+---
+
+## 4. Fonctions, traitements et relations par module
+
+### 4.1 Authentification & rôles
+- `lib/auth.js` : hash de mot de passe (bcryptjs), création/vérification de JWT de session (`jose`), fonction `requireRole(session, rolesAutorisés)` utilisée dans presque toutes les routes API admin
+- `lib/session.js` : lecture de la session côté server components (`getSession()`)
+- `middleware.js` : garde d'accès sur `/admin/*`
+- 4 rôles fixes : `direction` (accès complet), `ventes` (inscrits/réservations/messages/billets), `comptabilite` (finances/paiements/services), `suivi` (hôtels/visas/listes)
+- Bootstrap d'un compte : `npm run create-staff -- "Nom" email motdepasse role`
+
+### 4.2 Programmes & voyages (`lib/programsAdmin.js`, `lib/programs.js`)
+- Programme : contenu marketing (titre, slug, type, description, SEO, publié ou non)
+- Voyage : instance datée d'un programme (référence unique, dates, aéroports IATA, compagnie, places, prix programme, prix billet avion séparé, devise, statut)
+- CRUD complet des deux depuis l'admin ; suppression protégée par les FK (un programme avec des voyages, ou un voyage avec des inscriptions, ne peuvent pas être supprimés — message d'erreur clair)
+- Génération automatique du slug depuis le titre (`slugify`)
+- Le site public ne lit que les programmes `is_published = TRUE` et les voyages `status IN (ouvert, planifie)` avec date future
+
+### 4.3 Inscriptions (`lib/registrations.js`)
+- Une inscription (`registration`) relie un `traveler` à un `trip`, avec un statut (`inscrit → confirme → paye_partiel/paye_complet`, ou `annule`)
+- Un même voyageur (par numéro WhatsApp) ne peut être inscrit qu'une fois par voyage (contrainte unique)
+- Champs édités par rôle : `status` et `visa_status` (direction/ventes), `total_due` (comptabilité), `notes` (tous)
+- Le tableau de bord agrège les compteurs par statut et les prochains départs
+
+### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`)
+- Catalogue d'hôtels (ville, étoiles, distance au Haram)
+- Un voyage peut être associé à plusieurs hôtels (ex. Omra : La Mecque + Médine), chacun avec ses dates de check-in/out
+- Chambres : type (simple/double/triple/quadruple) + capacité, rattachées à un hôtel-voyage
+- **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre
+- **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre
+
+### 4.5 Visa (`lib/visaTypes.js`)
+- Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme
+- Chaque type a son propre prix et sa propre liste de documents requis (avec indicateur obligatoire/optionnel)
+- Une inscription peut se voir assigner un type de visa → génère automatiquement une checklist de documents (statut fourni/manquant, horodatage)
+
+### 4.6 Services facturés (`lib/services.js`)
+- Catalogue générique de services (nom + prix par défaut) — extensible sans changement de schéma
+- Chaque inscription peut avoir plusieurs lignes de service avec un montant propre
+- Cas particulier "Billet avion" : le montant se pré-remplit automatiquement depuis `trips.flight_ticket_price` du voyage concerné
+
+### 4.7 Paiements & finances (`lib/payments.js`)
+- Paiements enregistrés par inscription (montant, devise, mode, référence de reçu, qui l'a saisi)
+- Calcul dû/payé/solde à 3 niveaux : par inscription, par voyage, par programme
+- Filtrage des paiements par période avec total
+- Page `/admin/finances` entièrement réservée à direction/comptabilité (contrôle d'accès au niveau de la page, pas seulement des actions)
+
+### 4.8 Listes exportables (`lib/listGenerators.js`, `lib/airlineTemplates.js`, `lib/exporters/`)
+- 3 listes par voyage : voyageurs complets (vue `v_trip_traveler_list`), demandes de visa (avec documents), compagnie aérienne (vue `v_trip_airline_list`, uniquement statuts confirmé/payé)
+- Export Excel (`exceljs`) et PDF (`pdfkit`)
+- **Gabarit de colonnes différent par compagnie aérienne** (`airlines.export_template_key` → `ram_template`, `saudia_template`, `turkish_template`, `generic_template`) — ajouter une compagnie ne demande aucun code
+- Limitation connue : les PDF n'incluent pas la colonne "Nom (arabe)" (police PDF standard sans support arabe ; l'Excel l'affiche correctement)
+
+### 4.9 Actualités & contact (`lib/news.js`, `lib/contactMessages.js`)
+- Actualités : CRUD admin, publication avec horodatage, visibles sur `/actualites`
+- Messages de contact : reçus du formulaire public, statut nouveau/traité, consultables et supprimables dans l'admin
+
+### 4.10 Billets d'avion — intégration Duffel (`lib/duffel.js`, `lib/flightBookings.js`)
+- Recherche de vols réels (aéroports du voyage + dates) via l'API Duffel
+- Achat individuel (1 inscrit) ou groupé (plusieurs inscrits du même voyage, une seule commande)
+- Coordonnées passager pré-remplies depuis la fiche voyageur, modifiables avant achat
+- Toute réservation (réussie ou échouée) est tracée (`flight_bookings` + `flight_booking_passengers`), avec le mode (test/live) déduit du préfixe de la clé API
+- **⚠️ Voir §7 — non testé de bout en bout, aucune clé Duffel disponible pendant la construction**
+
+### 4.11 Compagnies aériennes (`lib/airlines.js`)
+- Catalogue simple (nom, code IATA, gabarit d'export) utilisé à la fois par les voyages (choix de compagnie), les listes (gabarit d'export) et Duffel (recherche de vols)
+
+---
+
+## 5. Architecture des tables et relations
+
+```
+roles ──< staff_users
+airlines ──< trips
+programs ──< trips ──< registrations >── travelers
+programs ──< visa_types (nullable → global si NULL)
+visa_types ──< visa_type_documents
+trips ──< trip_hotels >── hotels
+trip_hotels ──< rooms ──< registrations (room_id, nullable)
+registrations ──< registration_services >── services
+registrations ──< payments
+registrations ──1:1── visa_requests ──< visa_request_documents >── visa_type_documents
+registrations ──< flight_booking_passengers >── flight_bookings ──< trips
+travelers ──< whatsapp_messages_log
+registrations ──< whatsapp_reminders
+programs (contenu) : news_posts et contact_messages sont indépendants (aucune FK vers programs/trips)
+```
+
+**Détail des tables** (25 tables + 2 vues, voir [database/schema.sql](database/schema.sql) pour le détail complet des colonnes) :
+
+| Domaine | Tables |
+|---|---|
+| Utilisateurs internes | `roles`, `staff_users` |
+| Compagnies aériennes | `airlines` |
+| Programmes & voyages | `programs`, `trips` |
+| Hôtels & chambres | `hotels`, `trip_hotels`, `rooms` |
+| Voyageurs & inscriptions | `travelers`, `registrations` |
+| Facturation | `services`, `registration_services`, `payments` |
+| Visa | `visa_types`, `visa_type_documents`, `visa_requests`, `visa_request_documents` |
+| WhatsApp (schéma prêt, non câblé) | `whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log` |
+| Site public | `news_posts`, `contact_messages` |
+| Billets d'avion (Duffel) | `flight_bookings`, `flight_booking_passengers` |
+| Vues | `v_trip_traveler_list`, `v_trip_airline_list` |
+
+**Entité centrale** : `registrations` — presque toutes les autres tables s'y rattachent directement ou indirectement (chambre, visa, services, paiements, billet d'avion). C'est le point d'agrégation de tout le parcours d'un voyageur sur un voyage donné.
+
+---
+
+## 6. Statut des parties du projet
+
+### ✅ Finalisées et testées de bout en bout
+- Structure Next.js + connexion MySQL, dégradation propre si la base est inaccessible
+- Site public : accueil, programmes (liste + détail + réservation), à propos, actualités, FAQ, contact, pages légales
+- SEO/GEO technique : sitemap dynamique, robots.txt, llms.txt, schema.org (`TravelAgency`, `TouristTrip`, `NewsArticle`, `FAQPage`)
+- Authentification interne + tableau de bord + CRUD des inscrits, permissions par rôle vérifiées par appels API directs (contournant l'UI)
+- Catalogue de services (visa, billet avion, extensible) avec suivi documentaire
+- Répartition hôtels/chambres (manuelle + automatique), anti-conflit vérifié
+- Générateur de listes Excel/PDF avec gabarits par compagnie
+- Paiements et rapports financiers
+- Gestion des programmes/voyages/compagnies aériennes depuis l'admin (plus besoin de SQL manuel)
+- Gestion des actualités et des messages de contact
+
+### 🟡 En cours / construites mais non validées en conditions réelles
+- **Intégration Duffel (achat de billets d'avion)** : code complet (schéma, client API, routes, interface), permissions et validations vérifiées, **mais recherche et achat n'ont jamais pu être testés avec de vraies réponses de l'API** faute de compte Duffel disponible. Un risque existe que la forme exacte des réponses Duffel (notamment l'extraction du numéro de billet) diffère de ce qui a été implémenté d'après la documentation. À valider avec une clé `duffel_test_` avant tout usage réel.
+
+### ❌ Non commencées
+- **Connexion n8n + WhatsApp Business Cloud API** : le schéma existe (`whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log`) mais aucune intégration réelle, aucun webhook, aucune interface d'administration des questions/réponses ou des rappels programmés
+- **Interface d'administration des comptes internes** (`staff_users`) : création uniquement via script CLI, pas de page admin pour créer/désactiver un compte ou changer un rôle
+- Support d'une police arabe dans les exports PDF (actuellement colonne retirée du PDF, présente uniquement dans l'Excel)
+
+### 📋 À ajouter / pistes d'amélioration (non demandées explicitement mais identifiées)
+- Multi-devises réelles si l'agence facture au-delà du MAD (actuellement `currency` est un champ libre par voyage/paiement, sans conversion)
+- Gestion de plusieurs types de chambre au-delà de simple/double/triple/quadruple si besoin (ENUM fixe actuellement)
+- Historique/audit des modifications (qui a changé quoi et quand) au-delà de `registered_by_staff_id` / `recorded_by_staff_id` déjà présents sur certaines tables
+- Notifications automatiques (hors WhatsApp) : rappels par email par exemple
+- Déploiement effectif sur le VPS Hostinger visé par CLAUDE.md (le projet tourne uniquement en local pour l'instant)
+
+---
+
+## 7. Informations complémentaires
+
+### Décisions déjà prises (voir aussi CLAUDE.md)
+- Types de visa réutilisables **et** spécifiques à un programme sont tous deux supportés
+- Documents de visa suivis individuellement par voyageur (pas seulement une liste informative)
+- Prix du billet d'avion rattaché au voyage précis, pas seulement à la compagnie
+- Le catalogue générique `services`/`registration_services` couvre "les autres services" sans besoin de changement de schéma
+- Achat de billets Duffel supporté en individuel **et** en groupé
+
+### Informations encore à préciser par l'utilisateur (issues de CLAUDE.md §7, toujours ouvertes)
+- Nom de domaine définitif du site (impacte `NEXT_PUBLIC_SITE_URL`, sitemap, llms.txt)
+- Organisme(s) exact(s) concerné(s) par les demandes de visa, pour affiner le format de la liste de demande de visa
+- Confirmation des types de chambre standards (simple/double/triple/quadruple suffisent-ils ?)
+- Devise(s) de facturation définitive(s) (MAD uniquement ou multi-devises réel ?)
+
+### Bugs réels trouvés et corrigés pendant le développement (pour référence)
+- `mysql2` : `pool.execute()` (requêtes préparées) ne supporte pas l'expansion de tableau dans une clause `IN (?)`, contrairement à `pool.query()` — corrigé en générant les points d'interrogation manuellement partout où c'était utilisé
+- `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle hors des cascade layers Tailwind, écrasant silencieusement les classes de thème clair) — nettoyé, le site garde un thème clair unique
+- Algorithme de répartition automatique des chambres : traiter systématiquement les hommes avant les femmes pouvait gâcher une place dans une chambre mixte-libre — corrigé pour traiter le genre le plus nombreux en premier
+- Connexion MySQL avec `localhost` provoquait un crash Node (AggregateError) sur Windows en l'absence de serveur — corrigé en utilisant `127.0.0.1`
+
+### Environnement de développement
+- Base de données testée via un conteneur Docker MySQL 8.0 local (voir README pour la commande complète)
+- Comptes de test créés via `npm run create-staff -- "Nom" email motdepasse role`
+- Aucune donnée de démonstration n'est laissée en base entre les sessions de test (nettoyage systématique après vérification)
