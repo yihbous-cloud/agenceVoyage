@@ -1,50 +1,77 @@
-# Agence Voyage
+# Golden Fantastic — Agence de voyages
 
-Application web pour une agence de voyage : catalogue de destinations et réservations en ligne.
+Système combinant un site public (programmes de voyage, réservation en ligne, SEO/GEO) et un futur CRM/ERP interne, pour une agence spécialisée Omra, Hajj et séjours touristiques.
+
+Voir [CLAUDE.md](CLAUDE.md) pour le cahier des charges complet.
 
 ## Stack
 
-- **Backend** : Node.js + Express (API REST, `server/`)
-- **Frontend** : React + Vite (`client/`)
+- **Frontend + Backend** : Next.js (App Router), rendu serveur pour les pages publiques (SEO/GEO)
+- **Base de données** : MySQL (schéma dans [database/schema.sql](database/schema.sql))
 
 ## Démarrage
 
-### 1. Backend
+### 1. Base de données MySQL
+
+Avec Docker :
 
 ```bash
-cd server
+docker run -d --name golden-fantastic-db \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=golden_fantastic \
+  -p 3306:3306 \
+  mysql:8.0
+
+# une fois le conteneur prêt (quelques secondes) :
+docker exec -i golden-fantastic-db mysql -uroot -proot golden_fantastic < database/schema.sql
+```
+
+Ou pointez vers une instance MySQL existante (ex. Hostinger VPS).
+
+### 2. Application Next.js
+
+```bash
 npm install
-cp .env.example .env
+cp .env.example .env   # renseigner DB_HOST / DB_USER / DB_PASSWORD / DB_NAME
 npm run dev
 ```
 
-L'API démarre sur `http://localhost:5000`.
+Le site démarre sur `http://localhost:3000`.
 
-### 2. Frontend
+## Structure actuelle
 
-```bash
-cd client
-npm install
-cp .env.example .env
-npm run dev
+```
+app/
+  page.js                        page d'accueil
+  programmes/page.js             liste des programmes publiés
+  programmes/[slug]/page.js       détail d'un programme + départs ouverts (SEO/GEO, schema.org)
+  programmes/[slug]/ReservationForm.jsx   formulaire d'inscription (client)
+  api/reservations/route.js      API : crée un voyageur + une inscription
+lib/
+  db.js                          pool de connexion MySQL
+  programs.js                    requêtes programmes / voyages
+database/
+  schema.sql                     schéma complet MySQL fourni
 ```
 
-Le site démarre sur `http://localhost:5173`.
+## Ce qui est fait vs. à venir
 
-## Endpoints API
+Cette première tranche couvre les 3 premières étapes de l'ordre de démarrage du CLAUDE.md :
 
-| Méthode | Route                  | Description                  |
-|---------|-------------------------|-------------------------------|
-| GET     | `/api/voyages`          | Liste des voyages              |
-| GET     | `/api/voyages/:id`      | Détail d'un voyage              |
-| POST    | `/api/voyages`          | Créer un voyage                 |
-| PUT     | `/api/voyages/:id`      | Modifier un voyage               |
-| DELETE  | `/api/voyages/:id`      | Supprimer un voyage               |
-| GET     | `/api/reservations`     | Liste des réservations           |
-| POST    | `/api/reservations`     | Créer une réservation            |
-| PUT     | `/api/reservations/:id` | Modifier une réservation          |
-| DELETE  | `/api/reservations/:id` | Supprimer une réservation          |
+- [x] Schéma de base de données (programmes, voyages, hôtels, chambres, inscriptions, paiements, visas, compagnies aériennes, WhatsApp)
+- [x] Structure Next.js + connexion MySQL
+- [x] Page programme (SEO/GEO : meta tags dynamiques, JSON-LD `TouristTrip`) + réservation en ligne basique
+
+Reste à construire (sessions suivantes) :
+
+- [ ] Authentification et tableau de bord interne (rôles direction/ventes/comptabilité/suivi)
+- [ ] Module de répartition hôtels/chambres
+- [ ] Générateur de listes (voyageurs, visas, compagnies aériennes avec templates par compagnie)
+- [ ] Suivi des paiements et rapports financiers
+- [ ] Connexion n8n + WhatsApp Cloud API
+- [ ] Sitemap dynamique, `llms.txt`
 
 ## Notes
 
-Les données sont actuellement stockées en mémoire côté serveur (`server/src/data/`), à des fins de démarrage rapide. Pour une utilisation en production, il est recommandé de brancher une vraie base de données (MongoDB, PostgreSQL, etc.) derrière la même interface de stockage.
+- Le formulaire de réservation crée directement un enregistrement `travelers` + `registrations` (statut `inscrit`). Le calcul du montant dû (`total_due`) et le suivi des paiements seront ajoutés avec le module financier.
+- Sans base MySQL configurée/accessible, les pages publiques dégradent proprement (message d'erreur affiché, pas de crash serveur).
