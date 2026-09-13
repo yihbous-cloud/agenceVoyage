@@ -25,6 +25,9 @@ export default async function AdminLayout({ children }) {
             <Link href="/admin/inscriptions" className="hover:text-emerald-700">
               Inscrits
             </Link>
+            <Link href="/admin/programmes" className="hover:text-emerald-700">
+              Programmes
+            </Link>
             <Link href="/admin/hotels" className="hover:text-emerald-700">
               Hôtels
             </Link>
@@ -33,6 +36,9 @@ export default async function AdminLayout({ children }) {
             </Link>
             <Link href="/admin/services" className="hover:text-emerald-700">
               Services
+            </Link>
+            <Link href="/admin/airlines" className="hover:text-emerald-700">
+              Compagnies
             </Link>
             {["direction", "comptabilite"].includes(session.role) && (
               <Link href="/admin/finances" className="hover:text-emerald-700">

@@ -85,6 +85,12 @@ app/
   admin/finances/page.js               rapports financiers (par voyage, par programme, par période)
   admin/inscriptions/[id]/PaymentsSection.jsx   paiements d'une inscription (dû/payé/solde)
   api/admin/registrations/[id]/payments, /payments/[id]     CRUD paiements
+  admin/programmes/*                   CRUD programmes (+ liste des voyages par programme)
+  admin/voyages/[tripId]/page.js        CRUD voyage (référence, dates, compagnie, prix, statut)
+  admin/airlines/*                      catalogue de compagnies aériennes (extensible, sans code)
+  api/admin/programs/*, /programs/[id]/trips        CRUD programmes + création de voyage
+  api/admin/trips/[tripId]/route.js     GET/PUT/DELETE d'un voyage
+  api/admin/airlines/*                  CRUD compagnies aériennes
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
@@ -97,6 +103,8 @@ lib/
   airlineTemplates.js                  gabarit de colonnes par compagnie (RAM/Saudia/Turkish/générique)
   exporters/excel.js, exporters/pdf.js génération des fichiers .xlsx / .pdf
   payments.js                          paiements + rapports financiers (par voyage/programme/période)
+  programsAdmin.js                     CRUD programmes + voyages (interne)
+  airlines.js                          catalogue de compagnies aériennes
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
@@ -115,10 +123,10 @@ database/
 - [x] Répartition hôtels/chambres : catalogue d'hôtels, association hôtel(s)↔voyage avec dates, gestion des chambres (type/capacité), affectation manuelle avec anti-conflit (capacité, non-mixité de genre) et répartition automatique (regroupe le genre le plus nombreux en premier pour minimiser les places perdues)
 - [x] Générateur de listes, exportables en Excel et PDF, par voyage : liste complète des voyageurs (identité, passeport, hôtel, chambre, statut, finances), liste de demande de visa (type, organisme, statut, documents fournis), liste compagnie aérienne (gabarit de colonnes différent par compagnie — RAM/Saudia/Turkish/générique — piloté par `airlines.export_template_key`, aucun changement de code pour une nouvelle compagnie)
 - [x] Suivi des paiements et rapports financiers : paiements par inscription (montant/mode/référence, calcul dû/payé/solde), rapports par voyage, par programme et par période, réservé aux rôles direction/comptabilité
+- [x] Gestion des programmes et voyages depuis l'admin (CRUD complet, plus de seed SQL nécessaire) : création/édition/suppression de programmes (avec protection anti-suppression si des voyages y sont rattachés) et de voyages (référence, dates, compagnie, places, prix programme/billet avion, statut), et catalogue de compagnies aériennes extensible sans aucun code — réservé au rôle direction, vérifié de bout en bout : création d'un programme + compagnie + voyage entièrement via l'interface, aussitôt visible et réservable sur le site public
 
 Reste à construire (sessions suivantes) :
 
-- [ ] Gestion des programmes/voyages depuis l'admin (actuellement seed via SQL direct, y compris `flight_ticket_price`)
 - [ ] Connexion n8n + WhatsApp Cloud API
 - [ ] Sitemap dynamique, `llms.txt`
 
