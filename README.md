@@ -70,6 +70,7 @@ app/
   admin/services/*                     catalogue générique de services extensible
   admin/hotels/*                       catalogue des hôtels partenaires
   admin/voyages/[tripId]/hebergement   répartition hôtels/chambres pour un voyage
+  admin/voyages/[tripId]/listes        génération des listes (voyageurs, visas, compagnie)
   api/admin/registrations/*            CRUD inscriptions, avec permissions par rôle
   api/admin/visa-types/*               CRUD types de visa
   api/admin/visa-documents/[id]        bascule statut d'un document (fourni/manquant)
@@ -80,6 +81,7 @@ app/
   api/admin/trip-hotels/[id]/rooms, /rooms/[id]        chambres
   api/admin/registrations/[id]/room    affectation manuelle (anti-conflit genre/capacité)
   api/admin/trips/[tripId]/auto-assign répartition automatique
+  api/admin/trips/[tripId]/lists/{travelers,visa,airline}   export Excel/PDF des listes
 lib/
   db.js                                pool de connexion MySQL
   programs.js                          requêtes programmes / voyages (public)
@@ -88,6 +90,9 @@ lib/
   services.js                          catalogue de services + lignes de facturation
   hotels.js                            catalogue d'hôtels
   roomAssignment.js                    hôtels/chambres par voyage + affectation (manuelle et auto)
+  listGenerators.js                    requêtes des 3 listes (voyageurs, visas, compagnie)
+  airlineTemplates.js                  gabarit de colonnes par compagnie (RAM/Saudia/Turkish/générique)
+  exporters/excel.js, exporters/pdf.js génération des fichiers .xlsx / .pdf
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
@@ -104,10 +109,10 @@ database/
 - [x] Authentification interne (JWT en cookie httpOnly) + tableau de bord + CRUD des inscrits, avec permissions par rôle (direction/ventes accès complet, comptabilité limité au montant dû, suivi limité au visa/notes)
 - [x] Catalogue de services : types de visa (réutilisables ou spécifiques à un programme, avec documents requis et prix), suivi document par document par voyageur, billet d'avion au prix du voyage, catalogue générique extensible pour les autres services
 - [x] Répartition hôtels/chambres : catalogue d'hôtels, association hôtel(s)↔voyage avec dates, gestion des chambres (type/capacité), affectation manuelle avec anti-conflit (capacité, non-mixité de genre) et répartition automatique (regroupe le genre le plus nombreux en premier pour minimiser les places perdues)
+- [x] Générateur de listes, exportables en Excel et PDF, par voyage : liste complète des voyageurs (identité, passeport, hôtel, chambre, statut, finances), liste de demande de visa (type, organisme, statut, documents fournis), liste compagnie aérienne (gabarit de colonnes différent par compagnie — RAM/Saudia/Turkish/générique — piloté par `airlines.export_template_key`, aucun changement de code pour une nouvelle compagnie)
 
 Reste à construire (sessions suivantes) :
 
-- [ ] Générateur de listes (voyageurs, visas, compagnies aériennes avec templates par compagnie)
 - [ ] Suivi des paiements détaillé (table `payments`) et rapports financiers
 - [ ] Gestion des programmes/voyages depuis l'admin (actuellement seed via SQL direct, y compris `flight_ticket_price`)
 - [ ] Connexion n8n + WhatsApp Cloud API
@@ -118,3 +123,4 @@ Reste à construire (sessions suivantes) :
 - Le formulaire de réservation public crée directement un enregistrement `travelers` + `registrations` (statut `inscrit`). Le calcul du montant dû (`total_due`) et le suivi des paiements détaillé seront ajoutés avec le module financier.
 - Sans base MySQL configurée/accessible, les pages publiques dégradent proprement (message d'erreur affiché, pas de crash serveur).
 - La session interne est un JWT signé (HS256, `SESSION_SECRET`) stocké en cookie httpOnly, durée 8h. Le middleware protège toutes les routes `/admin/*` sauf `/admin/login`.
+- **Limitation connue** : les PDF exportés n'affichent pas la colonne "Nom (arabe)" (police PDF standard sans support de l'écriture arabe — corruption du rendu sinon). L'Excel, lui, l'affiche correctement. À corriger plus tard en intégrant une police arabe (ex. Noto Naskh Arabic) si le PDF doit inclure ce champ.

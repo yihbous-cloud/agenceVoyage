@@ -67,6 +67,13 @@ export default async function AdminDashboard() {
                     >
                       Hébergement
                     </Link>
+                    {" · "}
+                    <Link
+                      href={`/admin/voyages/${trip.id}/listes`}
+                      className="text-emerald-700 hover:underline"
+                    >
+                      Listes
+                    </Link>
                   </td>
                 </tr>
               ))}
