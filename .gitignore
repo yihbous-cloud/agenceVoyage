@@ -3,6 +3,10 @@ node_modules/
 out/
 build/
 dist/
+
+# Images uploadées depuis l'admin (contenu utilisateur, pas versionné)
+public/uploads/*
+!public/uploads/.gitkeep
 .env
 .env*.local
 *.log

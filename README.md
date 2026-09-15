@@ -101,6 +101,7 @@ app/
   admin/voyages/[tripId]/page.js        CRUD voyage (référence, dates, compagnie, prix, statut)
   admin/airlines/*                      catalogue de compagnies aériennes (extensible, sans code)
   api/admin/programs/*, /programs/[id]/trips        CRUD programmes + création de voyage
+  api/admin/upload/route.js             upload d'image de couverture (fichier local, stocké dans public/uploads/)
   api/admin/trips/[tripId]/route.js     GET/PUT/DELETE d'un voyage
   api/admin/airlines/*                  CRUD compagnies aériennes
   admin/actualites/*                    CRUD actualités
@@ -210,3 +211,4 @@ forme exacte des réponses Duffel diffère de ce qui a été supposé
 - **Limitation connue** : les PDF exportés n'affichent pas la colonne "Nom (arabe)" (police PDF standard sans support de l'écriture arabe — corruption du rendu sinon). L'Excel, lui, l'affiche correctement. À corriger plus tard en intégrant une police arabe (ex. Noto Naskh Arabic) si le PDF doit inclure ce champ.
 - Le `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle CSS hors des cascade layers de Tailwind, qui écrasait silencieusement les classes `bg-zinc-50`/`text-zinc-900` du `<body>`) — nettoyé ; le site garde un thème clair unique quel que soit le réglage du navigateur.
 - Renseignez `NEXT_PUBLIC_SITE_URL` en production (utilisé par le sitemap, `llms.txt` et le schema.org `TravelAgency`) — sinon ces éléments pointent vers `http://localhost:3000`.
+- Les images de couverture des programmes sont uploadées directement depuis l'admin (`/admin/programmes/new`) et stockées sur le disque du serveur dans `public/uploads/` (non versionné, réservé au rôle direction, 5 Mo max, JPG/PNG/WEBP/GIF). En production sur le VPS Hostinger, ce dossier doit être conservé entre les déploiements (ou migré vers un stockage objet type S3 si le volume d'images devient important).

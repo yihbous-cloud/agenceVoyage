@@ -34,6 +34,34 @@ export default function ProgramForm({ program, canDelete }) {
   );
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Erreur lors de l'envoi de l'image");
+      }
+
+      setCoverImageUrl(data.url);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -212,13 +240,39 @@ export default function ProgramForm({ program, canDelete }) {
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          URL image de couverture
+          Image de couverture
         </label>
+
+        {coverImageUrl && (
+          <div className="mt-2 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverImageUrl}
+              alt=""
+              className="h-24 w-36 rounded-lg border border-zinc-200 object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setCoverImageUrl("")}
+              className="text-sm text-red-600 hover:underline"
+            >
+              Supprimer l&apos;image
+            </button>
+          </div>
+        )}
+
         <input
-          value={coverImageUrl}
-          onChange={(e) => setCoverImageUrl(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onChange={handleFileChange}
+          disabled={uploading}
+          className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
         />
+        {uploading && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
+        {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+        <p className="mt-1 text-xs text-zinc-500">
+          JPG, PNG, WEBP ou GIF — 5 Mo maximum.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -258,7 +312,7 @@ export default function ProgramForm({ program, canDelete }) {
       <div className="flex items-center justify-between">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {submitting ? "Enregistrement..." : "Enregistrer"}
