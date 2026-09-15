@@ -1,10 +1,27 @@
 import Link from "next/link";
 import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
-import ProgramCard from "./_components/ProgramCard";
-import ReassuranceBanner from "./_components/ReassuranceBanner";
+import HomeShowcaseCard from "./_components/HomeShowcaseCard";
 
 export const revalidate = 300;
+
+const REASSURANCE = [
+  {
+    title: "Accompagnement complet",
+    description:
+      "Vols, hébergement, transport et visa pris en charge du premier jour au retour.",
+  },
+  {
+    title: "Hôtels proches des lieux saints",
+    description:
+      "Une sélection d'hôtels à proximité du Haram pour l'Omra et le Hajj.",
+  },
+  {
+    title: "Suivi personnalisé",
+    description:
+      "Une équipe joignable par WhatsApp pour répondre à vos questions avant et pendant le voyage.",
+  },
+];
 
 export default async function Home() {
   const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
@@ -16,93 +33,210 @@ export default async function Home() {
   const latestNews = news.slice(0, 3);
 
   return (
-    <main className="flex-1">
-      <section className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 py-24 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
-          Golden Fantastic
-        </h1>
-        <p className="max-w-2xl text-lg text-zinc-600">
-          Omra, Hajj et séjours touristiques organisés. Découvrez nos prochains
-          départs et réservez votre place en ligne.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
+    <main id="top" className="flex-1 bg-cream">
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-ink py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(200,162,74,0.16),transparent_60%)]" />
+        <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(135deg,#E9D9AE_0px,#E9D9AE_1px,transparent_1px,transparent_26px)]" />
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 text-center">
+          <span className="font-script text-6xl leading-none text-gold">
+            Golden Fantastic
+          </span>
+          <h1 className="font-display text-4xl font-normal text-white sm:text-5xl">
+            L&apos;Omra, le Hajj et vos voyages, réservés en toute confiance
+          </h1>
+          <p className="max-w-xl text-lg text-white/70">
+            Programmes Omra &amp; Hajj et voyages organisés, accompagnement
+            complet du départ au retour.
+          </p>
+        </div>
+      </section>
+
+      {/* Accès rapide aux deux catalogues */}
+      <section className="relative z-10 mx-auto -mt-14 max-w-3xl px-6">
+        <div className="grid gap-px bg-ink p-2 sm:grid-cols-2">
           <Link
             href="/omra-hajj"
-            className="rounded-full bg-emerald-700 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-800"
+            className="group flex items-center justify-between bg-cream-card px-7 py-6 transition-colors hover:bg-gold-pale/50"
           >
-            Omra &amp; Hajj
+            <div>
+              <div className="text-xs tracking-widest text-muted uppercase">
+                Catalogue
+              </div>
+              <div className="mt-1 font-display text-xl text-ink">
+                Omra &amp; Hajj
+              </div>
+            </div>
+            <span className="text-gold transition-transform group-hover:translate-x-1">
+              →
+            </span>
           </Link>
           <Link
             href="/voyages-organises"
-            className="rounded-full bg-amber-600 px-6 py-3 font-medium text-white transition-colors hover:bg-amber-700"
+            className="group flex items-center justify-between bg-cream-card px-7 py-6 transition-colors hover:bg-gold-pale/50"
           >
-            Voyages organisés
+            <div>
+              <div className="text-xs tracking-widest text-muted uppercase">
+                Catalogue
+              </div>
+              <div className="mt-1 font-display text-xl text-ink">
+                Voyages organisés
+              </div>
+            </div>
+            <span className="text-gold transition-transform group-hover:translate-x-1">
+              →
+            </span>
           </Link>
+        </div>
+      </section>
+
+      {/* Omra & Hajj */}
+      {omraHajjPrograms.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 py-24">
+          <div className="text-center">
+            <div className="font-script text-5xl leading-none text-gold">
+              Omra &amp; Hajj
+            </div>
+            <div className="mt-2 font-display text-sm tracking-[0.28em] text-muted uppercase">
+              Formules par saison du calendrier hégirien
+            </div>
+          </div>
+          <div className="mt-14 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {omraHajjPrograms.map((program) => (
+              <HomeShowcaseCard key={program.id} program={program} />
+            ))}
+          </div>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/omra-hajj"
+              className="border border-gold px-9 py-3.5 text-xs tracking-widest text-[#A8863C] uppercase transition-colors hover:bg-gold hover:text-ink"
+            >
+              Voir tous les programmes
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Voyages organisés */}
+      {voyagePrograms.length > 0 && (
+        <section className="bg-ink py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="text-center">
+              <div className="font-script text-5xl leading-none text-gold">
+                Voyages organisés
+              </div>
+              <div className="mt-2 font-display text-sm tracking-[0.28em] text-white/60 uppercase">
+                Par destination, par envie
+              </div>
+            </div>
+            <div className="mt-14 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+              {voyagePrograms.map((program) => (
+                <HomeShowcaseCard key={program.id} program={program} />
+              ))}
+            </div>
+            <div className="mt-10 flex justify-center">
+              <Link
+                href="/voyages-organises"
+                className="border border-gold px-9 py-3.5 text-xs tracking-widest text-gold uppercase transition-colors hover:bg-gold hover:text-ink"
+              >
+                Voir tous les voyages
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Réassurance */}
+      <section className="bg-cream-card py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid gap-10 sm:grid-cols-3">
+            {REASSURANCE.map((item) => (
+              <div key={item.title} className="text-center">
+                <div className="mx-auto h-px w-10 bg-gold" />
+                <h3 className="mt-4 font-display text-lg font-normal text-ink">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm text-muted">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Actualités */}
+      {latestNews.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 py-20">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl font-normal text-ink">
+              Actualités
+            </h2>
+            <Link
+              href="/actualites"
+              className="text-sm font-medium text-[#A8863C] hover:underline"
+            >
+              Voir tout
+            </Link>
+          </div>
+          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            {latestNews.map((post) => (
+              <Link
+                key={post.id}
+                href={`/actualites/${post.slug}`}
+                className="group relative h-72 overflow-hidden border border-gold-pale/60"
+              >
+                {post.cover_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={post.cover_image_url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-gold-pale via-cream-card to-gold/30" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <h3 className="font-display text-lg font-normal text-white">
+                    {post.title}
+                  </h3>
+                  {post.excerpt && (
+                    <p className="mt-1 line-clamp-2 text-sm text-white/70">
+                      {post.excerpt}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Contact */}
+      <section className="border-t border-gold/20 bg-ink-soft py-20">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 text-center">
+          <span className="font-script text-5xl leading-none text-gold">
+            Parlons de votre voyage
+          </span>
+          <p className="max-w-xl text-white/70">
+            Nos conseillers vous accompagnent pour choisir le programme adapté
+            à votre projet — réponse sous 24 h.
+          </p>
           <Link
             href="/contact"
-            className="rounded-full border border-zinc-300 px-6 py-3 font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+            className="bg-gold px-9 py-3.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
           >
             Nous contacter
           </Link>
         </div>
       </section>
 
-      {omraHajjPrograms.length > 0 && (
-        <section className="mx-auto max-w-5xl px-6 py-12">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-zinc-900">Omra &amp; Hajj</h2>
-            <Link href="/omra-hajj" className="text-sm font-medium text-emerald-700 hover:underline">
-              Voir tout
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {omraHajjPrograms.map((program) => (
-              <ProgramCard key={program.id} program={program} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {voyagePrograms.length > 0 && (
-        <section className="mx-auto max-w-5xl px-6 py-12">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-zinc-900">Voyages organisés</h2>
-            <Link href="/voyages-organises" className="text-sm font-medium text-amber-700 hover:underline">
-              Voir tout
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {voyagePrograms.map((program) => (
-              <ProgramCard key={program.id} program={program} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      <ReassuranceBanner />
-
-      {latestNews.length > 0 && (
-        <section className="mx-auto max-w-5xl px-6 py-12">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-zinc-900">Actualités</h2>
-            <Link href="/actualites" className="text-sm font-medium text-emerald-700 hover:underline">
-              Voir tout
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-3">
-            {latestNews.map((post) => (
-              <Link
-                key={post.id}
-                href={`/actualites/${post.slug}`}
-                className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <h3 className="font-semibold text-zinc-900">{post.title}</h3>
-                <p className="mt-2 text-sm text-zinc-600">{post.excerpt}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <a
+        href="#top"
+        aria-label="Retour en haut"
+        className="fixed right-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center border border-gold bg-ink text-xl text-gold shadow-lg"
+      >
+        ↑
+      </a>
     </main>
   );
 }

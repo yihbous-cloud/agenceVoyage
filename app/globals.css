@@ -3,4 +3,17 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-script: var(--font-italianno);
+  --font-display: var(--font-marcellus);
+  --font-luxe: var(--font-jost);
+
+  /* Palette "dorée" utilisée par le header/footer partagés et la page d'accueil */
+  --color-ink: #100d0a;
+  --color-ink-soft: #17130f;
+  --color-gold: #c8a24a;
+  --color-gold-light: #e4c87e;
+  --color-gold-pale: #e9d9ae;
+  --color-cream: #f6f3ed;
+  --color-cream-card: #fbf8f2;
+  --color-muted: #6e655a;
 }

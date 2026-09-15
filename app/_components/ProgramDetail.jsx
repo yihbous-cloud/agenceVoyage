@@ -1,12 +1,5 @@
 import ReservationForm from "./ReservationForm";
-
-const SEASON_LABELS = {
-  mawlid: "Mawlid",
-  rajab: "Rajab",
-  chaabane: "Chaabane",
-  ramadan: "Ramadan",
-  chawal: "Chawal",
-};
+import { SEASON_LABELS } from "./formatTrip";
 
 // Gabarit de détail partagé par /omra-hajj/[slug] et /voyages-organises/[slug].
 // Un seul composant technique : `family` pilote uniquement l'habillage
