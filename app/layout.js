@@ -37,6 +37,11 @@ export const metadata = {
   },
   description:
     "Golden Fantastic, agence de voyages spécialisée Omra, Hajj et séjours touristiques.",
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
+  },
 };
 
 const organizationJsonLd = {

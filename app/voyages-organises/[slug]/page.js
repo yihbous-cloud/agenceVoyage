@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProgramBySlug, getOpenTripsForProgram } from "@/lib/programs";
+import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
 import ProgramDetail from "../../_components/ProgramDetail";
 
 export const revalidate = 300;
@@ -32,7 +33,17 @@ export default async function VoyageOrganiseDetailPage({ params }) {
     notFound();
   }
 
-  const trips = await getOpenTripsForProgram(program.id).catch(() => []);
+  const [trips, faqs] = await Promise.all([
+    getOpenTripsForProgram(program.id).catch(() => []),
+    listPublishedFaqsForProgram(program.id).catch(() => []),
+  ]);
 
-  return <ProgramDetail program={program} trips={trips} family="voyage_organise" />;
+  return (
+    <ProgramDetail
+      program={program}
+      trips={trips}
+      family="voyage_organise"
+      faqs={faqs}
+    />
+  );
 }

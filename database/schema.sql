@@ -109,6 +109,20 @@ CREATE TABLE trips (
     INDEX idx_trip_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- FAQ par programme (vide par défaut, alimentée depuis l'admin) — sert le
+-- SEO/GEO (FAQPage JSON-LD, réponses directes citables par les IA)
+CREATE TABLE program_faqs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    program_id BIGINT UNSIGNED NOT NULL,
+    question VARCHAR(300) NOT NULL,
+    answer TEXT NOT NULL,
+    sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    is_published BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
+    INDEX idx_program_faq_program (program_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- =====================================================================
 -- 4. HÔTELS & CHAMBRES
 -- =====================================================================

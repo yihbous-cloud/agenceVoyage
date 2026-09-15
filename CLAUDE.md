@@ -69,6 +69,19 @@ Le site public distingue deux familles de programmes, à l'intention d'achat dif
 - La distance à la Haram (`hotels.distance_to_haram_m`, déjà en base) est désormais affichée sur les cartes et le détail Omra/Hajj (voyage le plus proche)
 - Anciennes URLs `/programmes` et `/programmes/[slug]` conservées : la première devient une page de bascule vers les deux hubs, la seconde redirige (308) vers la nouvelle URL préfixée par famille
 
+## 3quinquies. Stratégie SEO / pSEO / GEO / AIO
+
+Suite à `PLAN-SEO-GEO-AIO.md` (fourni par l'utilisateur). La Phase 1 (fondations techniques), le pSEO villes de départ et la structure FAQ par programme ont été implémentés ; le reste (Google Business Profile, backlinks, contenu multilingue, statistiques propriétaires...) reste à faire côté business/contenu — voir `ETAT_DES_LIEUX.md` pour le détail à jour.
+
+- **`robots.txt`** autorise explicitement GPTBot/ClaudeBot/PerplexityBot/Google-Extended/Applebot-Extended, en plus de la règle générale
+- **`next/image`** utilisé sur toutes les images publiques (Core Web Vitals) ; le formulaire admin garde `<img>` (page protégée, non indexée)
+- **JSON-LD enrichi** : `TouristTrip` avec `datePublished`/`dateModified`, `BreadcrumbList` sur les hubs et le détail programme, `FAQPage` par programme quand du contenu existe
+- **pSEO — villes de départ** (`/villes-depart/[ville]`) : dimension orthogonale aux deux hubs existants, n'a **pas** remplacé leur structure d'URL. Correspondance IATA → ville dans `lib/airports.js` (liste statique, pas de table SQL) ; pages générées uniquement pour les codes IATA mappés
+- **FAQ par programme** (table `program_faqs`, migration `002_add_program_faqs.sql`) : structure et interface admin en place, **contenu vide au départ** — à rédiger par l'agence (10-15 questions/programme recommandé par le plan)
+- **AIO** : flux RSS (`/feed.xml`) et API JSON publique en lecture seule (`/api/public/programs`)
+- **`LocalBusiness`** (schema.org) : non implémenté, en attente de l'adresse/téléphone réels de l'agence (voir §7)
+- **Multilingue AR/FR** : architecture cible documentée (URLs `/fr/...` et `/ar/...`, `hreflang` réciproque, RTL via Tailwind) mais **implémentation différée** — restructurer les routes maintenant sans contenu arabe réel créerait des pages vides, contraire à la propre règle anti-contenu-fin du plan. À déclencher dans une session dédiée une fois une traduction arabe des pages cœur prête
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
@@ -132,6 +145,7 @@ Le site public distingue deux familles de programmes, à l'intention d'achat dif
 - Organisme(s) concerné(s) par les demandes de visa (pour construire le format requis)
 - Types de chambres standards proposés (simple/double/triple/quadruple ?)
 - Devise(s) de facturation (MAD uniquement, ou multi-devises ?)
+- Adresse et téléphone réels de l'agence (bloque l'ajout du schema.org `LocalBusiness`, voir §3quinquies)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

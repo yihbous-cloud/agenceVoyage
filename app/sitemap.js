@@ -1,5 +1,6 @@
-import { getProgramsByFamily } from "@/lib/programs";
+import { getProgramsByFamily, getDepartureCities } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
+import { citySlug } from "@/lib/airports";
 
 export default async function sitemap() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -18,11 +19,18 @@ export default async function sitemap() {
     priority: r.priority,
   }));
 
-  const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
+  const [omraHajjPrograms, voyagePrograms, news, departureCities] = await Promise.all([
     getProgramsByFamily("omra_hajj").catch(() => []),
     getProgramsByFamily("voyage_organise").catch(() => []),
     listPublishedNews().catch(() => []),
+    getDepartureCities().catch(() => []),
   ]);
+
+  const cityRoutes = departureCities.map((c) => ({
+    url: `${baseUrl}/villes-depart/${citySlug(c.city)}`,
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
 
   const programRoutes = [
     ...omraHajjPrograms.map((p) => ({
@@ -44,5 +52,5 @@ export default async function sitemap() {
     priority: 0.4,
   }));
 
-  return [...staticRoutes, ...programRoutes, ...newsRoutes];
+  return [...staticRoutes, ...programRoutes, ...cityRoutes, ...newsRoutes];
 }

@@ -28,6 +28,7 @@ Volume visé : minimum 24 voyages/an, avec potentiellement des centaines de voya
 | `/omra-hajj/[slug]` | Détail d'un programme Omra/Hajj : description, checklist visa (documents requis), voyages ouverts avec hôtel + distance à la Haram, réservation | SSR, revalidate 300s, JSON-LD `TouristTrip` |
 | `/voyages-organises` | Hub Voyages organisés : liste filtrable par destination et par envie/thème (`?destination=`, `?envie=`) | SSR, revalidate 300s |
 | `/voyages-organises/[slug]` | Détail d'un voyage organisé : photo de couverture, description, voyages ouverts, réservation | SSR, revalidate 300s, JSON-LD `TouristTrip` |
+| `/villes-depart/[ville]` | Hub pSEO : programmes des deux familles ayant un départ ouvert depuis cette ville (uniquement les villes mappées dans `lib/airports.js`) | SSR, revalidate 300s, JSON-LD `BreadcrumbList` |
 | `/programmes` | Ancienne URL (avant séparation du catalogue) : page de bascule vers les deux hubs | Statique |
 | `/programmes/[slug]` | Ancienne URL : redirection permanente (308) vers `/omra-hajj/[slug]` ou `/voyages-organises/[slug]` | Redirection |
 | `/a-propos` | Présentation de l'agence, valeurs | Statique |
@@ -37,9 +38,11 @@ Volume visé : minimum 24 voyages/an, avec potentiellement des centaines de voya
 | `/contact` | Coordonnées + formulaire de contact | Formulaire → API `/api/contact` |
 | `/mentions-legales` | Mentions légales (contenu modèle à finaliser) | Statique, `noindex` |
 | `/confidentialite` | Politique de confidentialité (contenu modèle à finaliser) | Statique, `noindex` |
-| `/sitemap.xml` | Sitemap dynamique (accueil, hubs, programmes publiés des deux familles, actualités publiées) | Généré (`app/sitemap.js`) |
-| `/robots.txt` | Autorise tout sauf `/admin`, référence le sitemap | Généré (`app/robots.js`) |
-| `/llms.txt` | Description de l'agence + les deux catalogues (Omra & Hajj / Voyages organisés) séparément, pour la citabilité par les moteurs IA | Généré dynamiquement (`app/llms.txt/route.js`) |
+| `/sitemap.xml` | Sitemap dynamique (accueil, hubs, programmes publiés des deux familles, villes de départ, actualités publiées) | Généré (`app/sitemap.js`) |
+| `/robots.txt` | Autorise tout sauf `/admin`, y compris explicitement GPTBot/ClaudeBot/PerplexityBot/Google-Extended/Applebot-Extended, référence le sitemap | Généré (`app/robots.js`) |
+| `/llms.txt` | Description de l'agence + les deux catalogues + les villes de départ, pour la citabilité par les moteurs IA | Généré dynamiquement (`app/llms.txt/route.js`) |
+| `/feed.xml` | Flux RSS des actualités publiées (AIO) | Généré (`app/feed.xml/route.js`) |
+| `/api/public/programs` | API JSON publique en lecture seule des programmes publiés (AIO) | Généré (`app/api/public/programs/route.js`) |
 
 **Réservation en ligne (public)** : le formulaire sur `/omra-hajj/[slug]` ou `/voyages-organises/[slug]` (composant partagé `app/_components/ReservationForm.jsx`) envoie à `POST /api/reservations`, qui crée (ou retrouve, par numéro WhatsApp) un `traveler` puis une `registration` avec le statut `inscrit`. Aucune information de paiement n'est demandée à ce stade — le paiement se gère ensuite côté interne. Identique pour les deux familles.
 
@@ -59,7 +62,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/inscriptions/new` | Création manuelle d'une inscription (tous les champs voyageur + choix du voyage) | direction, ventes |
 | `/admin/inscriptions/[id]` | Fiche complète d'un inscrit : infos, statut, visa (assignation + documents), services facturés, paiements, billet d'avion (lecture) | Tous (lecture) / édition selon section et rôle |
 | `/admin/programmes` | Liste des programmes (avec nombre de voyages, statut publié) | Tous (lecture) / direction (gestion) |
-| `/admin/programmes/new`, `/admin/programmes/[id]` | Création / édition d'un programme, avec la liste de ses voyages | direction |
+| `/admin/programmes/new`, `/admin/programmes/[id]` | Création / édition d'un programme (dont image de couverture uploadée depuis le disque), avec la liste de ses voyages et la gestion de ses FAQ (SEO/GEO) | direction |
 | `/admin/programmes/[id]/voyages/new` | Création d'un voyage rattaché à un programme | direction |
 | `/admin/voyages/[tripId]` | Édition d'un voyage (référence, dates, compagnie, aéroports IATA, places, prix, statut) | direction |
 | `/admin/voyages/[tripId]/hebergement` | Hôtels du voyage, chambres, affectation manuelle et automatique des voyageurs | Tous (lecture) / direction, suivi (gestion) |
@@ -144,6 +147,14 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 ### 4.11 Compagnies aériennes (`lib/airlines.js`)
 - Catalogue simple (nom, code IATA, gabarit d'export) utilisé à la fois par les voyages (choix de compagnie), les listes (gabarit d'export) et Duffel (recherche de vols)
 
+### 4.12 SEO / pSEO / GEO / AIO (`lib/programFaqs.js`, `lib/airports.js`, application de `PLAN-SEO-GEO-AIO.md`)
+- **FAQ par programme** (`program_faqs`) : catalogue vide au départ, géré depuis `/admin/programmes/[id]` (`ProgramFaqManager.jsx`), affiché sur la fiche publique uniquement si du contenu publié existe, avec JSON-LD `FAQPage` correspondant
+- **pSEO villes de départ** : `lib/airports.js` mappe les codes IATA (`trips.origin_iata`) vers un nom de ville (liste statique, pas de table SQL) ; `getDepartureCities()`/`getProgramsByDepartureCity()` alimentent `/villes-depart/[ville]`, qui agrège les deux familles pour une ville donnée — dimension orthogonale aux hubs `/omra-hajj`/`/voyages-organises`, ne les remplace pas
+- **Maillage interne** : sur la fiche programme, le code IATA du voyage devient un lien vers la ville de départ correspondante quand elle est mappée
+- **JSON-LD enrichi** : `BreadcrumbList` (composant partagé `app/_components/BreadcrumbJsonLd.jsx`) sur les hubs, le détail programme et les villes de départ ; `datePublished`/`dateModified` sur `TouristTrip` (depuis `programs.created_at`/`updated_at`)
+- **AIO** : `next/image` sur toutes les images publiques (Core Web Vitals), flux RSS (`/feed.xml`), API JSON publique en lecture seule (`/api/public/programs`), `robots.txt` avec bots IA listés explicitement
+- **Non implémenté** (voir §7) : schema.org `LocalBusiness` (adresse/téléphone réels manquants), architecture multilingue AR/FR (décision documentée dans CLAUDE.md §3quinquies, implémentation différée)
+
 ---
 
 ## 5. Architecture des tables et relations
@@ -165,13 +176,13 @@ registrations ──< whatsapp_reminders
 programs (contenu) : news_posts et contact_messages sont indépendants (aucune FK vers programs/trips)
 ```
 
-**Détail des tables** (25 tables + 2 vues, voir [database/schema.sql](database/schema.sql) pour le détail complet des colonnes ; migrations additives dans [database/migrations/](database/migrations/)) :
+**Détail des tables** (26 tables + 2 vues, voir [database/schema.sql](database/schema.sql) pour le détail complet des colonnes ; migrations additives dans [database/migrations/](database/migrations/)) :
 
 | Domaine | Tables |
 |---|---|
 | Utilisateurs internes | `roles`, `staff_users` |
 | Compagnies aériennes | `airlines` |
-| Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips` |
+| Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
 | Hôtels & chambres | `hotels`, `trip_hotels`, `rooms` |
 | Voyageurs & inscriptions | `travelers`, `registrations` |
 | Facturation | `services`, `registration_services`, `payments` |
@@ -191,7 +202,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - Structure Next.js + connexion MySQL, dégradation propre si la base est inaccessible
 - Site public : accueil, deux hubs de catalogue (Omra & Hajj / Voyages organisés, liste + détail + réservation), à propos, actualités, FAQ, contact, pages légales
 - Séparation du catalogue en deux familles : migration additive `family`/`season`/`theme`, hubs filtrables, distance à la Haram affichée, checklist visa sur le détail Omra/Hajj, anciennes URLs `/programmes` préservées (bascule + redirection 308), admin mis à jour (champ famille obligatoire à la création)
-- SEO/GEO technique : sitemap dynamique, robots.txt, llms.txt, schema.org (`TravelAgency`, `TouristTrip`, `NewsArticle`, `FAQPage`)
+- SEO/pSEO/GEO/AIO (application de `PLAN-SEO-GEO-AIO.md` Phase 1) : sitemap dynamique, robots.txt avec bots IA explicites, llms.txt, schema.org (`TravelAgency`, `TouristTrip` avec dates, `NewsArticle`, `FAQPage`, `BreadcrumbList`), `next/image` sur toutes les images publiques, flux RSS, API JSON publique, pages pSEO par ville de départ, structure FAQ par programme (contenu à rédiger)
 - Authentification interne + tableau de bord + CRUD des inscrits, permissions par rôle vérifiées par appels API directs (contournant l'UI)
 - Catalogue de services (visa, billet avion, extensible) avec suivi documentaire
 - Répartition hôtels/chambres (manuelle + automatique), anti-conflit vérifié
@@ -207,6 +218,9 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - **Connexion n8n + WhatsApp Business Cloud API** : le schéma existe (`whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log`) mais aucune intégration réelle, aucun webhook, aucune interface d'administration des questions/réponses ou des rappels programmés
 - **Interface d'administration des comptes internes** (`staff_users`) : création uniquement via script CLI, pas de page admin pour créer/désactiver un compte ou changer un rôle
 - Support d'une police arabe dans les exports PDF (actuellement colonne retirée du PDF, présente uniquement dans l'Excel)
+- schema.org `LocalBusiness` : bloqué faute d'adresse/téléphone réels de l'agence (voir §7)
+- Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation (restructuration des routes + traduction) volontairement différée
+- Actions hors-code du plan SEO (§9 du plan) : Google Business Profile, Search Console/Bing Webmaster Tools, netlinking/presse/Wikidata, statistiques propriétaires chiffrées, articles de guide/pilier, pipeline Lighthouse CI
 
 ### 📋 À ajouter / pistes d'amélioration (non demandées explicitement mais identifiées)
 - Hub Omra & Hajj : filtres `type` (omra_classique/omra_combinee/hajj_nusuk/hajj_direct) et `gamme` (éco/touristique/luxe) volontairement **non implémentés** — aucune colonne ne les modélise dans le schéma actuel (`program_type` reste omra/hajj/tourisme/autre) ; nécessiterait une colonne supplémentaire, non ajoutée pour rester strictement dans le périmètre validé (family/season/theme)
@@ -234,6 +248,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - Organisme(s) exact(s) concerné(s) par les demandes de visa, pour affiner le format de la liste de demande de visa
 - Confirmation des types de chambre standards (simple/double/triple/quadruple suffisent-ils ?)
 - Devise(s) de facturation définitive(s) (MAD uniquement ou multi-devises réel ?)
+- Adresse et téléphone réels de l'agence (bloque le schema.org `LocalBusiness`, voir CLAUDE.md §3quinquies)
 
 ### Bugs réels trouvés et corrigés pendant le développement (pour référence)
 - `mysql2` : `pool.execute()` (requêtes préparées) ne supporte pas l'expansion de tableau dans une clause `IN (?)`, contrairement à `pool.query()` — corrigé en générant les points d'interrogation manuellement partout où c'était utilisé

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
 import HomeShowcaseCard from "./_components/HomeShowcaseCard";
@@ -185,11 +186,12 @@ export default async function Home() {
                 className="group relative h-72 overflow-hidden border border-gold-pale/60"
               >
                 {post.cover_image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={post.cover_image_url}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    fill
+                    sizes="(min-width: 1024px) 33vw, 100vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-gold-pale via-cream-card to-gold/30" />

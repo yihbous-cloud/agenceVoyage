@@ -1,16 +1,19 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getProgramById, listTripsForProgram } from "@/lib/programsAdmin";
+import { listAllFaqsForProgram } from "@/lib/programFaqs";
 import { getSession } from "@/lib/session";
 import ProgramForm from "../ProgramForm";
 import TripsList from "./TripsList";
+import ProgramFaqManager from "./ProgramFaqManager";
 
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
 
-  const [program, trips, session] = await Promise.all([
+  const [program, trips, faqs, session] = await Promise.all([
     getProgramById(id),
     listTripsForProgram(id),
+    listAllFaqsForProgram(id),
     getSession(),
   ]);
 
@@ -39,6 +42,17 @@ export default async function ProgramDetailPage({ params }) {
           )}
         </div>
         <TripsList trips={trips} canManage={canManage} />
+      </div>
+
+      <div className="max-w-2xl space-y-3">
+        <h2 className="text-lg font-semibold text-zinc-900">
+          FAQ (affichée sur la fiche publique du programme)
+        </h2>
+        <ProgramFaqManager
+          programId={id}
+          initialFaqs={faqs}
+          canManage={canManage}
+        />
       </div>
     </div>
   );

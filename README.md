@@ -58,12 +58,16 @@ app/
   faq/page.js                          questions fréquentes (schema.org FAQPage)
   contact/page.js, ContactForm.jsx     formulaire de contact public
   mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
-  sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots, citabilité IA)
+  sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots avec bots IA explicites, citabilité IA)
+  feed.xml/route.js                    flux RSS des actualités (AIO)
+  api/public/programs/route.js         API JSON publique en lecture seule des programmes (AIO)
   api/contact/route.js                 API publique : enregistre un message de contact
-  omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram)
-  voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail
+  omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram, FAQ)
+  voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail (FAQ)
+  villes-depart/[ville]/page.js        hub pSEO par ville de départ (agrège les deux familles, maillage interne depuis le détail programme)
   _components/ProgramCard.jsx          carte de programme, habillage conditionné par `family` (pas de duplication)
-  _components/ProgramDetail.jsx        gabarit de détail partagé par les deux hubs (`family` en prop)
+  _components/ProgramDetail.jsx        gabarit de détail partagé par les deux hubs (`family` en prop), FAQ + JSON-LD BreadcrumbList/FAQPage
+  _components/BreadcrumbJsonLd.jsx     JSON-LD BreadcrumbList réutilisable (hubs, détail programme, villes de départ)
   _components/ReassuranceBanner.jsx    bandeau de confiance commun (accueil + deux hubs)
   _components/ReservationForm.jsx      formulaire d'inscription public (client), partagé par les deux familles
   programmes/page.js                   ancienne URL : page de bascule vers les deux hubs (pas de 404)
@@ -97,7 +101,9 @@ app/
   admin/finances/page.js               rapports financiers (par voyage, par programme, par période)
   admin/inscriptions/[id]/PaymentsSection.jsx   paiements d'une inscription (dû/payé/solde)
   api/admin/registrations/[id]/payments, /payments/[id]     CRUD paiements
-  admin/programmes/*                   CRUD programmes (+ liste des voyages par programme)
+  admin/programmes/*                   CRUD programmes (+ liste des voyages par programme + gestion des FAQ)
+  admin/programmes/[id]/ProgramFaqManager.jsx   ajout/édition/suppression des FAQ d'un programme
+  api/admin/programs/[id]/faqs, /program-faqs/[id]   CRUD des FAQ par programme
   admin/voyages/[tripId]/page.js        CRUD voyage (référence, dates, compagnie, prix, statut)
   admin/airlines/*                      catalogue de compagnies aériennes (extensible, sans code)
   api/admin/programs/*, /programs/[id]/trips        CRUD programmes + création de voyage
@@ -112,7 +118,9 @@ app/
   api/admin/flight-bookings             création de la commande Duffel (achat réel)
 lib/
   db.js                                pool de connexion MySQL
-  programs.js                          requêtes programmes / voyages (public)
+  programs.js                          requêtes programmes / voyages (public) — inclut getDepartureCities/getProgramsByDepartureCity (pSEO)
+  programFaqs.js                       FAQ par programme (public + admin)
+  airports.js                          correspondance IATA → ville (liste statique, pSEO + maillage interne)
   registrations.js                     requêtes inscriptions / stats (interne)
   visaTypes.js                         catalogue visa + suivi documents par voyageur
   services.js                          catalogue de services + lignes de facturation
@@ -133,8 +141,9 @@ lib/
 middleware.js                          protège /admin/* (redirige vers /admin/login)
 scripts/create-staff-user.js           bootstrap d'un compte interne
 database/
-  schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage, family/season/theme)
+  schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage, family/season/theme, program_faqs)
   migrations/001_add_program_family.sql   migration additive : ajoute family/season/theme à `programs` pour les DB existantes
+  migrations/002_add_program_faqs.sql     migration additive : nouvelle table program_faqs (FAQ par programme)
 ```
 
 ## Ce qui est fait vs. à venir
@@ -151,11 +160,16 @@ database/
 - [x] Site public complet (partie "vitrine") : accueil enrichi (programmes à la une, réassurance, actualités récentes), à propos, actualités (liste + détail, gérées depuis l'admin), FAQ (schema.org `FAQPage`), contact (formulaire → messages consultables dans l'admin), pages légales, plus le SEO technique : sitemap.xml dynamique, robots.txt, `llms.txt` (citabilité par les moteurs IA), schema.org `TravelAgency` et `NewsArticle`
 - [x] Intégration Duffel pour l'achat de billets d'avion (voir section dédiée ci-dessous) — code complet et vérifié (permissions, validations, sauvegarde des voyages), **mais jamais testé de bout en bout avec une vraie clé API** puisqu'aucun compte Duffel n'existait au moment de la construction
 - [x] Séparation du catalogue public en deux familles (Omra & Hajj / Voyages organisés) : migration additive `family`/`season`/`theme` sur `programs`, deux hubs publics filtrables (`/omra-hajj`, `/voyages-organises`), gabarit de détail partagé (checklist visa + distance Haram mises en avant côté Omra/Hajj), champs admin dédiés, sitemap/llms.txt à jour, anciennes URLs `/programmes` préservées (page de bascule + redirection 308) — vérifié de bout en bout : migration sur une base existante, filtres des deux hubs, garde-fou famille croisée (404), réservation identique sur un programme de chaque famille, build de production
+- [x] Application de `PLAN-SEO-GEO-AIO.md` (Phase 1 fondations + pSEO + FAQ, voir CLAUDE.md §3quinquies pour le détail et les décisions) : `robots.txt` avec bots IA explicites, migration vers `next/image` sur toutes les images publiques, JSON-LD enrichi (`BreadcrumbList`, `dateModified`, `FAQPage`), flux RSS (`/feed.xml`) et API JSON publique (`/api/public/programs`), pages pSEO par ville de départ (`/villes-depart/[ville]`, maillage interne depuis le détail programme), FAQ par programme (structure + admin, contenu à rédiger) — vérifié de bout en bout : migration sur une base existante, garde-fou ville inconnue (404), agrégation des deux familles sur une même ville, JSON-LD `FAQPage`/`BreadcrumbList` valides, permissions admin FAQ, `next/image` optimise bien une image uploadée réelle, build de production
 
 Reste à construire (sessions suivantes) :
 
 - [ ] Tester l'intégration Duffel de bout en bout avec une clé de test réelle (voir section dédiée) et ajuster si le format des réponses Duffel diffère de ce qui a été implémenté d'après la documentation
 - [ ] Connexion n8n + WhatsApp Cloud API
+- [ ] `LocalBusiness` (schema.org) : en attente de l'adresse/téléphone réels de l'agence
+- [ ] Rédiger le contenu des FAQ par programme (structure prête, vide au départ)
+- [ ] Actions hors-code du plan SEO : Google Business Profile, Search Console/Bing Webmaster Tools, netlinking, statistiques propriétaires, articles de guide
+- [ ] Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation différée jusqu'à disposer d'un vrai contenu arabe
 
 ## Intégration Duffel (achat de billets d'avion)
 

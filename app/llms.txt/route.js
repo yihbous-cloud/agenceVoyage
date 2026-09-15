@@ -1,10 +1,12 @@
-import { getProgramsByFamily } from "@/lib/programs";
+import { getProgramsByFamily, getDepartureCities } from "@/lib/programs";
+import { citySlug } from "@/lib/airports";
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const [omraHajjPrograms, voyagePrograms] = await Promise.all([
+  const [omraHajjPrograms, voyagePrograms, departureCities] = await Promise.all([
     getProgramsByFamily("omra_hajj").catch(() => []),
     getProgramsByFamily("voyage_organise").catch(() => []),
+    getDepartureCities().catch(() => []),
   ]);
 
   const lines = [
@@ -28,6 +30,12 @@ export async function GET() {
         `- [${p.title}](${baseUrl}/voyages-organises/${p.slug}): ${p.short_description || ""}`
     ),
     "",
+    "## Villes de départ",
+    "",
+    ...departureCities.map(
+      (c) => `- [Départ de ${c.city}](${baseUrl}/villes-depart/${citySlug(c.city)})`
+    ),
+    "",
     "## Pages",
     "",
     `- [Omra & Hajj](${baseUrl}/omra-hajj)`,
@@ -35,6 +43,8 @@ export async function GET() {
     `- [À propos](${baseUrl}/a-propos)`,
     `- [Questions fréquentes](${baseUrl}/faq)`,
     `- [Contact](${baseUrl}/contact)`,
+    `- [Flux RSS des actualités](${baseUrl}/feed.xml)`,
+    `- [API JSON publique des programmes](${baseUrl}/api/public/programs)`,
   ];
 
   return new Response(lines.join("\n"), {

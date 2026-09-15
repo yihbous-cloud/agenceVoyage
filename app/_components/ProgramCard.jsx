@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { SEASON_LABELS, formatDate, computeDuration } from "./formatTrip";
 
 // Carte de programme unique, habillage conditionné par `program.family` —
@@ -21,12 +22,15 @@ export default function ProgramCard({ program }) {
       }`}
     >
       {!isOmraHajj && program.cover_image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={program.cover_image_url}
-          alt=""
-          className="h-40 w-full object-cover"
-        />
+        <div className="relative h-40 w-full">
+          <Image
+            src={program.cover_image_url}
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       )}
 
       <div className="p-6">

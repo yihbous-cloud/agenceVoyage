@@ -1,6 +1,7 @@
 import { getProgramsByFamily } from "@/lib/programs";
 import ProgramCard from "../_components/ProgramCard";
 import ReassuranceBanner from "../_components/ReassuranceBanner";
+import BreadcrumbJsonLd from "../_components/BreadcrumbJsonLd";
 
 export const metadata = {
   title: "Voyages organisés",
@@ -32,8 +33,13 @@ export default async function VoyagesOrganisesPage({ searchParams }) {
     dbError = err.message;
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
   return (
     <main className="flex-1">
+      <BreadcrumbJsonLd
+        items={[{ name: "Accueil", item: baseUrl }, { name: "Voyages organisés" }]}
+      />
       <section className="mx-auto max-w-5xl px-6 pb-6 pt-12 text-center">
         <h1 className="text-3xl font-bold text-zinc-900 sm:text-4xl">
           Voyages organisés
