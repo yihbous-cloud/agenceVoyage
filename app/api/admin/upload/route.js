@@ -13,9 +13,13 @@ const ALLOWED_TYPES = {
 };
 const MAX_SIZE = 5 * 1024 * 1024;
 
-// Upload générique d'image (utilisé par le formulaire programme pour
-// l'image de couverture) — enregistre le fichier sur le disque du serveur
-// dans public/uploads/, aucun service externe (S3, etc.) requis.
+// Sous-dossiers autorisés dans public/uploads/ — whitelist explicite pour
+// éviter qu'un dossier arbitraire (traversal) soit passé par le client.
+const ALLOWED_FOLDERS = ["programs", "agency"];
+
+// Upload générique d'image (image de couverture d'un programme, logo de
+// l'agence...) — enregistre le fichier sur le disque du serveur dans
+// public/uploads/<folder>/, aucun service externe (S3, etc.) requis.
 export async function POST(request) {
   const session = await getSession();
   if (!requireRole(session, ["direction"])) {
@@ -24,6 +28,8 @@ export async function POST(request) {
 
   const formData = await request.formData();
   const file = formData.get("file");
+  const folderInput = formData.get("folder");
+  const folder = ALLOWED_FOLDERS.includes(folderInput) ? folderInput : "programs";
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ message: "Aucun fichier reçu" }, { status: 400 });
@@ -46,9 +52,9 @@ export async function POST(request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${crypto.randomUUID()}.${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "programs");
+  const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/programs/${filename}` }, { status: 201 });
+  return NextResponse.json({ url: `/uploads/${folder}/${filename}` }, { status: 201 });
 }

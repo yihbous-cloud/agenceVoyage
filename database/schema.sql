@@ -245,6 +245,7 @@ CREATE TABLE payments (
 CREATE TABLE agency_settings (
     id TINYINT UNSIGNED PRIMARY KEY DEFAULT 1,
     name VARCHAR(150) NOT NULL DEFAULT 'Golden Fantastic',
+    logo_url VARCHAR(255) NULL COMMENT 'chemin public (/uploads/agency/...)',
     address VARCHAR(255) NULL,
     city VARCHAR(100) NULL,
     phone VARCHAR(30) NULL,
