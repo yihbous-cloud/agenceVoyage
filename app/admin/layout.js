@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import LogoutButton from "./LogoutButton";
 import AdminSidebarNav from "./AdminSidebarNav";
 import "../globals.css";
@@ -36,8 +37,9 @@ const NAV_LINKS = [
 ];
 
 // Section réservée, séparée de la navigation principale : configuration
-// utilisée en en-tête des documents générés (reçus de paiement...).
-const SETTINGS_LINKS = [{ href: "/admin/parametres", label: "Infos agence" }];
+// utilisée en en-tête des documents générés (reçus de paiement...) et
+// administration du personnel/des permissions.
+const BASE_SETTINGS_LINKS = [{ href: "/admin/parametres", label: "Infos agence" }];
 
 // Layout racine de l'espace interne — indépendant de app/(site)/layout.js.
 // Volontairement séparé du header/footer marketing du site public.
@@ -45,6 +47,27 @@ const SETTINGS_LINKS = [{ href: "/admin/parametres", label: "Infos agence" }];
 // haut), avec état actif basé sur le chemin courant (AdminSidebarNav).
 export default async function AdminLayout({ children }) {
   const session = await getSession();
+
+  let settingsLinks = BASE_SETTINGS_LINKS;
+  let navLinks = NAV_LINKS;
+
+  if (session) {
+    const [canViewFinances, canManageUsers, canManageRoles] = await Promise.all([
+      hasPermission(session, "finances.view"),
+      hasPermission(session, "utilisateurs.manage"),
+      hasPermission(session, "roles.manage"),
+    ]);
+
+    navLinks = canViewFinances
+      ? [...NAV_LINKS, { href: "/admin/finances", label: "Finances" }]
+      : NAV_LINKS;
+
+    settingsLinks = [
+      ...BASE_SETTINGS_LINKS,
+      ...(canManageUsers ? [{ href: "/admin/parametres/utilisateurs", label: "Utilisateurs" }] : []),
+      ...(canManageRoles ? [{ href: "/admin/parametres/roles", label: "Rôles & permissions" }] : []),
+    ];
+  }
 
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -62,18 +85,12 @@ export default async function AdminLayout({ children }) {
               </div>
 
               <div className="flex-1 overflow-y-auto px-3 py-4">
-                <AdminSidebarNav
-                  links={
-                    ["direction", "comptabilite"].includes(session.role)
-                      ? [...NAV_LINKS, { href: "/admin/finances", label: "Finances" }]
-                      : NAV_LINKS
-                  }
-                />
+                <AdminSidebarNav links={navLinks} />
 
                 <p className="mt-6 mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   Paramètres
                 </p>
-                <AdminSidebarNav links={SETTINGS_LINKS} />
+                <AdminSidebarNav links={settingsLinks} />
               </div>
 
               <div className="border-t border-zinc-200 px-5 py-4">

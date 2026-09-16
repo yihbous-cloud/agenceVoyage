@@ -7,6 +7,7 @@ import {
   listUnassignedRegistrations,
 } from "@/lib/roomAssignment";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import HebergementManager from "./HebergementManager";
 
 export default async function HebergementPage({ params }) {
@@ -24,6 +25,8 @@ export default async function HebergementPage({ params }) {
     listUnassignedRegistrations(tripId),
     getSession(),
   ]);
+
+  const canManage = await hasPermission(session, "hebergement.manage");
 
   return (
     <div className="space-y-6">
@@ -44,7 +47,7 @@ export default async function HebergementPage({ params }) {
         tripHotels={tripHotels}
         rooms={rooms}
         unassigned={unassigned}
-        canManage={["direction", "suivi"].includes(session?.role)}
+        canManage={canManage}
       />
     </div>
   );

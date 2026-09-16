@@ -6,6 +6,7 @@ import {
 } from "@/lib/flightBookings";
 import { getDuffelMode } from "@/lib/duffel";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import FlightBookingManager from "./FlightBookingManager";
 
 export default async function BilletsPage({ params }) {
@@ -23,6 +24,7 @@ export default async function BilletsPage({ params }) {
   ]);
 
   const mode = process.env.DUFFEL_API_KEY ? getDuffelMode() : "non_configure";
+  const canBook = (await hasPermission(session, "billets.manage")) && mode !== "non_configure";
 
   return (
     <div className="space-y-6">
@@ -59,7 +61,7 @@ export default async function BilletsPage({ params }) {
         tripId={trip.id}
         bookable={bookable}
         bookings={bookings}
-        canBook={["direction", "ventes"].includes(session?.role) && mode !== "non_configure"}
+        canBook={canBook}
       />
     </div>
   );

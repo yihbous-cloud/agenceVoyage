@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { listAllPrograms } from "@/lib/programsAdmin";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function ProgrammesPage() {
   const [programs, session] = await Promise.all([listAllPrograms(), getSession()]);
-  const canManage = session?.role === "direction";
+  const canManage = await hasPermission(session, "programmes.manage");
 
   return (
     <div className="space-y-6">

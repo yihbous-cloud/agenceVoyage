@@ -3,13 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function VisaSection({ registrationId, visaTypes, visaRequest, role }) {
+export default function VisaSection({ registrationId, visaTypes, visaRequest, canManage }) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const canManage = ["direction", "suivi"].includes(role);
 
   const handleAssign = async (e) => {
     e.preventDefault();

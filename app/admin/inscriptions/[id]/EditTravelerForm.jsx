@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 // consultation d'un registre officiel.
 const PASSPORT_FORMAT = /^[A-Za-z0-9]{6,9}$/;
 
-export default function EditTravelerForm({ registration, role }) {
+export default function EditTravelerForm({ registration, canEdit }) {
   const router = useRouter();
   const [fullName, setFullName] = useState(registration.full_name);
   const [phoneWhatsapp, setPhoneWhatsapp] = useState(registration.phone_whatsapp);
@@ -28,7 +28,6 @@ export default function EditTravelerForm({ registration, role }) {
   const [submitting, setSubmitting] = useState(false);
   const passportInputRef = useRef(null);
 
-  const canEdit = ["direction", "ventes"].includes(role);
   const isPassportConfirmed =
     confirmedPassportNumber != null && confirmedPassportNumber === passportNumber.trim();
   const fieldsDisabled = !canEdit || formLocked;

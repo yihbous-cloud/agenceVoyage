@@ -103,8 +103,12 @@ app/
   admin/inscriptions/[id]/PaymentsSection.jsx   paiements d'une inscription (dû/payé/solde) + lien reçu imprimable par versement
   api/admin/registrations/[id]/payments, /payments/[id]     CRUD paiements
   api/admin/payments/[id]/recu          reçu de paiement PDF (format A5), un reçu par versement
-  admin/parametres/page.js              informations de l'agence (nom, adresse, contact, RC/IF/ICE) — en-tête des reçus
-  api/admin/agency-settings             GET (tout rôle) / PUT (direction) des informations de l'agence
+  admin/parametres/page.js              informations de l'agence (nom, adresse, contact, RC/IF/ICE, logo) — en-tête des reçus
+  api/admin/agency-settings             GET (tout rôle) / PUT (permission parametres.edit) des informations de l'agence
+  admin/parametres/utilisateurs/*       CRUD des comptes internes (permission utilisateurs.manage)
+  admin/parametres/roles/*              matrice rôles × permissions, création de rôles (permission roles.manage)
+  api/admin/staff-users/*               CRUD des comptes internes
+  api/admin/roles/*                     liste/création de rôles, remplacement des permissions d'un rôle
   admin/programmes/*                   CRUD programmes (+ liste des voyages par programme + gestion des FAQ)
   admin/programmes/[id]/ProgramFaqManager.jsx   ajout/édition/suppression des FAQ d'un programme
   api/admin/programs/[id]/faqs, /program-faqs/[id]   CRUD des FAQ par programme
@@ -144,8 +148,10 @@ lib/
   flightBookings.js                     réservations de billets (individuelles ou groupées)
   auth.js                              hash mot de passe, JWT de session (edge-safe)
   session.js                           lecture de la session (server components)
+  permissions.js                       permissions dynamiques par rôle — hasPermission(), matrice, CRUD des rôles (voir CLAUDE.md §3undecies)
+  staffUsers.js                        CRUD des comptes internes (staff_users)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
-scripts/create-staff-user.js           bootstrap d'un compte interne
+scripts/create-staff-user.js           bootstrap du tout premier compte interne (avant qu'une UI soit accessible) ; l'admin /admin/parametres/utilisateurs est le point d'entrée normal ensuite
 database/
   schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage, family/season/theme, program_faqs)
   migrations/001_add_program_family.sql   migration additive : ajoute family/season/theme à `programs` pour les DB existantes

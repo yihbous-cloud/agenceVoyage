@@ -1,5 +1,6 @@
 import { listContactMessages } from "@/lib/contactMessages";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import MessagesList from "./MessagesList";
 
 export default async function MessagesPage() {
@@ -8,7 +9,7 @@ export default async function MessagesPage() {
     getSession(),
   ]);
 
-  const canManage = ["direction", "ventes"].includes(session?.role);
+  const canManage = await hasPermission(session, "messages.manage");
 
   return (
     <div className="space-y-6">

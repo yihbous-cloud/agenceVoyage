@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { listAllNews } from "@/lib/news";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function AdminNewsPage() {
   const [posts, session] = await Promise.all([listAllNews(), getSession()]);
-  const canManage = session?.role === "direction";
+  const canManage = await hasPermission(session, "actualites.manage");
 
   return (
     <div className="space-y-6">

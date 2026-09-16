@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { listVisaTypes, createVisaType } from "@/lib/visaTypes";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(request) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "suivi"])) {
+  if (!(await hasPermission(session, "visa_types.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

@@ -13,7 +13,7 @@ export async function POST(request) {
   }
 
   const rows = await query(
-    `SELECT su.id, su.full_name, su.email, su.password_hash, su.is_active, r.name AS role
+    `SELECT su.id, su.full_name, su.email, su.password_hash, su.is_active, su.role_id AS roleId, r.name AS role
      FROM staff_users su
      JOIN roles r ON r.id = su.role_id
      WHERE su.email = ?
@@ -43,6 +43,7 @@ export async function POST(request) {
     fullName: user.full_name,
     email: user.email,
     role: user.role,
+    roleId: user.roleId,
   });
 
   const response = NextResponse.json({

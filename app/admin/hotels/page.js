@@ -1,10 +1,11 @@
 import { listHotels } from "@/lib/hotels";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import HotelsManager from "./HotelsManager";
 
 export default async function HotelsPage() {
   const [hotels, session] = await Promise.all([listHotels(), getSession()]);
-  const canManage = ["direction", "suivi"].includes(session?.role);
+  const canManage = await hasPermission(session, "hotels.manage");
 
   return (
     <div className="space-y-6">

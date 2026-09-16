@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { listTripsForProgram, createTrip } from "@/lib/programsAdmin";
 
 export async function GET(request, { params }) {
@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   const session = await getSession();
-  if (!requireRole(session, ["direction"])) {
+  if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

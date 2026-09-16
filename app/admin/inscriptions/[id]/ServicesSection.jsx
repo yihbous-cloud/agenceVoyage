@@ -8,15 +8,13 @@ export default function ServicesSection({
   catalogServices,
   registrationServices,
   flightTicketPrice,
-  role,
+  canManage,
 }) {
   const router = useRouter();
   const [serviceId, setServiceId] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const canManage = ["direction", "ventes"].includes(role);
 
   const total = registrationServices.reduce((sum, s) => sum + Number(s.amount), 0);
 

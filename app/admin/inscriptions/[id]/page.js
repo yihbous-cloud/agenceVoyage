@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getRegistrationById } from "@/lib/registrations";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
 import { listServices, listRegistrationServices } from "@/lib/services";
 import { getRoomDetails } from "@/lib/roomAssignment";
@@ -21,16 +22,33 @@ export default async function RegistrationDetailPage({ params }) {
     notFound();
   }
 
-  const [visaTypes, visaRequest, catalogServices, registrationServices, room, payments, flightBooking] =
-    await Promise.all([
-      listVisaTypesForProgram(registration.program_id),
-      getVisaRequestByRegistration(id),
-      listServices(),
-      listRegistrationServices(id),
-      registration.room_id ? getRoomDetails(registration.room_id) : null,
-      listPaymentsForRegistration(id),
-      getFlightBookingForRegistration(id),
-    ]);
+  const [
+    visaTypes,
+    visaRequest,
+    catalogServices,
+    registrationServices,
+    room,
+    payments,
+    flightBooking,
+    canEditVoyageur,
+    canManageVisa,
+    canManageServices,
+    canManagePayments,
+    canDeleteRegistration,
+  ] = await Promise.all([
+    listVisaTypesForProgram(registration.program_id),
+    getVisaRequestByRegistration(id),
+    listServices(),
+    listRegistrationServices(id),
+    registration.room_id ? getRoomDetails(registration.room_id) : null,
+    listPaymentsForRegistration(id),
+    getFlightBookingForRegistration(id),
+    hasPermission(session, "inscriptions.edit_voyageur"),
+    hasPermission(session, "inscriptions.visa"),
+    hasPermission(session, "inscriptions.services"),
+    hasPermission(session, "paiements.manage"),
+    hasPermission(session, "inscriptions.delete"),
+  ]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -71,15 +89,19 @@ export default async function RegistrationDetailPage({ params }) {
         </dl>
       </div>
 
-      <EditTravelerForm registration={registration} role={session?.role} />
+      <EditTravelerForm registration={registration} canEdit={canEditVoyageur} />
 
-      <EditRegistrationForm registration={registration} role={session?.role} />
+      <EditRegistrationForm
+        registration={registration}
+        role={session?.role}
+        canDelete={canDeleteRegistration}
+      />
 
       <VisaSection
         registrationId={registration.id}
         visaTypes={visaTypes}
         visaRequest={visaRequest}
-        role={session?.role}
+        canManage={canManageVisa}
       />
 
       <ServicesSection
@@ -87,14 +109,14 @@ export default async function RegistrationDetailPage({ params }) {
         catalogServices={catalogServices}
         registrationServices={registrationServices}
         flightTicketPrice={registration.flight_ticket_price}
-        role={session?.role}
+        canManage={canManageServices}
       />
 
       <PaymentsSection
         registrationId={registration.id}
         payments={payments}
         totalDue={registration.total_due}
-        role={session?.role}
+        canManage={canManagePayments}
       />
     </div>
   );

@@ -1,9 +1,11 @@
 import { listAirlines } from "@/lib/airlines";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import AirlinesManager from "./AirlinesManager";
 
 export default async function AirlinesPage() {
   const [airlines, session] = await Promise.all([listAirlines(), getSession()]);
+  const canManage = await hasPermission(session, "compagnies.manage");
 
   return (
     <div className="space-y-6">
@@ -15,7 +17,7 @@ export default async function AirlinesPage() {
       </p>
       <AirlinesManager
         initialAirlines={airlines}
-        canManage={session?.role === "direction"}
+        canManage={canManage}
       />
     </div>
   );

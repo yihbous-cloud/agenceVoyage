@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { getOffer, createOrder } from "@/lib/duffel";
 import {
   buildOrderPassengers,
@@ -10,7 +10,7 @@ import {
 
 export async function POST(request) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "ventes"])) {
+  if (!(await hasPermission(session, "billets.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

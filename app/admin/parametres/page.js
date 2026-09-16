@@ -1,9 +1,11 @@
 import { getAgencySettings } from "@/lib/agencySettings";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import AgencySettingsForm from "./AgencySettingsForm";
 
 export default async function ParametresPage() {
   const [settings, session] = await Promise.all([getAgencySettings(), getSession()]);
+  const canEdit = await hasPermission(session, "parametres.edit");
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -15,7 +17,7 @@ export default async function ParametresPage() {
         </p>
       </div>
 
-      <AgencySettingsForm settings={settings} canEdit={session?.role === "direction"} />
+      <AgencySettingsForm settings={settings} canEdit={canEdit} />
     </div>
   );
 }

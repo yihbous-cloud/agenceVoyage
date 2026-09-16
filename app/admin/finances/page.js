@@ -5,6 +5,7 @@ import {
   getPaymentsByPeriod,
 } from "@/lib/payments";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import PeriodFilter from "./PeriodFilter";
 
 function money(n) {
@@ -13,7 +14,7 @@ function money(n) {
 
 export default async function FinancesPage({ searchParams }) {
   const session = await getSession();
-  if (!["direction", "comptabilite"].includes(session?.role)) {
+  if (!(await hasPermission(session, "finances.view"))) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
         Accès réservé à la direction et à la comptabilité.

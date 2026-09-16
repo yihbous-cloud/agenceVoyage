@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { getTripForBooking } from "@/lib/flightBookings";
 import { searchOffers, getDuffelMode } from "@/lib/duffel";
 
 export async function POST(request, { params }) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "ventes"])) {
+  if (!(await hasPermission(session, "billets.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

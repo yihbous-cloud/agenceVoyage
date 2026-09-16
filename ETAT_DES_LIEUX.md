@@ -75,9 +75,11 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/actualites` | CRUD des actualités publiées sur le site public | Tous (lecture) / direction (gestion) |
 | `/admin/messages` | Messages reçus via le formulaire de contact public | direction, ventes |
 | `/admin/finances` | Rapports financiers : par voyage, par programme, paiements par période | direction, comptabilité (page entière restreinte) |
-| `/admin/parametres` | Informations de l'agence (coordonnées, RC/IF/ICE) — en-tête des reçus de paiement | Tous (lecture) / direction (édition) |
+| `/admin/parametres` | Informations de l'agence (coordonnées, RC/IF/ICE, logo) — en-tête des reçus de paiement | Tous (lecture) / direction (édition) |
+| `/admin/parametres/utilisateurs` | CRUD des comptes internes (nom, email, téléphone, mot de passe, rôle, actif/inactif) | Permission `utilisateurs.manage` (direction par défaut) |
+| `/admin/parametres/roles` | Matrice rôles × permissions, création de rôles personnalisés | Permission `roles.manage` (direction par défaut) |
 
-**Ce qui n'existe PAS encore côté admin** : pas d'interface pour créer/gérer les comptes internes (`staff_users`) — uniquement via le script CLI `scripts/create-staff-user.js`. Pas d'interface pour gérer les rôles eux-mêmes (les 4 rôles sont fixes, câblés en dur dans le code de chaque route).
+**Rôles et permissions (voir CLAUDE.md §3undecies)** : les 4 rôles historiques ne sont plus câblés en dur dans le code — chaque route vérifie une permission nommée (`inscriptions.edit`, `hotels.manage`...) contre une table `role_permissions` éditable depuis `/admin/parametres/roles`. Le tableau "Rôles avec accès" ci-dessus reflète l'état **par défaut** (celui semé par la migration `007_add_permissions.sql`, identique au comportement d'avant ce système), pas une contrainte figée dans le code — direction peut créer un rôle personnalisé ou modifier ce qu'un rôle existant peut faire, sans toucher au code. Seule exception : les restrictions fines par champ sur `PUT /api/admin/registrations/[id]` (comptabilité ne modifie que le montant dû, suivi que le visa/les notes) restent câblées en dur.
 
 ---
 
@@ -163,6 +165,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 
 ```
 roles ──< staff_users
+roles ──< role_permissions >── permissions
 airlines ──< trips
 programs ──< trips ──< registrations >── travelers
 programs ──< visa_types (nullable → global si NULL)
@@ -182,7 +185,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 
 | Domaine | Tables |
 |---|---|
-| Utilisateurs internes | `roles`, `staff_users` |
+| Utilisateurs internes | `roles`, `staff_users`, `permissions`, `role_permissions` (migration 007 — permissions dynamiques, voir CLAUDE.md §3undecies) |
 | Compagnies aériennes | `airlines` |
 | Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
 | Hôtels & chambres | `hotels`, `trip_hotels`, `rooms` |
@@ -212,13 +215,13 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - Paiements et rapports financiers
 - Gestion des programmes/voyages/compagnies aériennes depuis l'admin (plus besoin de SQL manuel)
 - Gestion des actualités et des messages de contact
+- Permissions dynamiques par rôle (§3undecies) : catalogue de ~23 permissions, matrice éditable, gestion des comptes internes depuis l'admin, filet de sécurité direction, vérifié de bout en bout (octroi/retrait d'une permission à chaud sans reconnexion, garde-fous anti-auto-verrouillage, rôle personnalisé)
 
 ### 🟡 En cours / construites mais non validées en conditions réelles
 - **Intégration Duffel (achat de billets d'avion)** : code complet (schéma, client API, routes, interface), permissions et validations vérifiées, **mais recherche et achat n'ont jamais pu être testés avec de vraies réponses de l'API** faute de compte Duffel disponible. Un risque existe que la forme exacte des réponses Duffel (notamment l'extraction du numéro de billet) diffère de ce qui a été implémenté d'après la documentation. À valider avec une clé `duffel_test_` avant tout usage réel.
 
 ### ❌ Non commencées
 - **Connexion n8n + WhatsApp Business Cloud API** : le schéma existe (`whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log`) mais aucune intégration réelle, aucun webhook, aucune interface d'administration des questions/réponses ou des rappels programmés
-- **Interface d'administration des comptes internes** (`staff_users`) : création uniquement via script CLI, pas de page admin pour créer/désactiver un compte ou changer un rôle
 - Support d'une police arabe dans les exports PDF (actuellement colonne retirée du PDF, présente uniquement dans l'Excel)
 - schema.org `LocalBusiness` : bloqué faute d'adresse/téléphone réels de l'agence (voir §7)
 - Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation (restructuration des routes + traduction) volontairement différée

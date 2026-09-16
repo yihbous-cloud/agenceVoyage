@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 const ALLOWED_TYPES = {
   "image/jpeg": "jpg",
@@ -22,7 +22,7 @@ const ALLOWED_FOLDERS = ["programs", "agency"];
 // public/uploads/<folder>/, aucun service externe (S3, etc.) requis.
 export async function POST(request) {
   const session = await getSession();
-  if (!requireRole(session, ["direction"])) {
+  if (!(await hasPermission(session, "medias.upload"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

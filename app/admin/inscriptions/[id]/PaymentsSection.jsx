@@ -5,14 +5,12 @@ import { useRouter } from "next/navigation";
 
 const PAYMENT_METHODS = ["especes", "virement", "cheque", "carte", "autre"];
 
-export default function PaymentsSection({ registrationId, payments, totalDue, role }) {
+export default function PaymentsSection({ registrationId, payments, totalDue, canManage }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("especes");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const canManage = ["direction", "comptabilite"].includes(role);
 
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = Number(totalDue) - totalPaid;

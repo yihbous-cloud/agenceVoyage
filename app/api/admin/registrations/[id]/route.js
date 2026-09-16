@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { updateRegistration, deleteRegistration } from "@/lib/registrations";
 
 export async function PUT(request, { params }) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "ventes", "comptabilite", "suivi"])) {
+  if (!(await hasPermission(session, "inscriptions.edit"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 
@@ -53,7 +53,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "ventes"])) {
+  if (!(await hasPermission(session, "inscriptions.delete"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

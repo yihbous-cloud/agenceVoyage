@@ -1,10 +1,11 @@
 import { listServices } from "@/lib/services";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import ServicesManager from "./ServicesManager";
 
 export default async function ServicesPage() {
   const [services, session] = await Promise.all([listServices(), getSession()]);
-  const canManage = ["direction", "comptabilite"].includes(session?.role);
+  const canManage = await hasPermission(session, "services.manage");
 
   return (
     <div className="space-y-6">

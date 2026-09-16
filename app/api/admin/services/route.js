@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { requireRole } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { listServices, createService } from "@/lib/services";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(request) {
   const session = await getSession();
-  if (!requireRole(session, ["direction", "comptabilite"])) {
+  if (!(await hasPermission(session, "services.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 

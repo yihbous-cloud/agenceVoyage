@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "annule"];
 const VISA_OPTIONS = ["non_demande", "en_cours", "accorde", "refuse"];
 
-export default function EditRegistrationForm({ registration, role }) {
+// canEditStatus/canEditFinance/canEditVisa restent basés sur le rôle brut
+// (pas sur le système de permissions dynamique) : ce sont des restrictions
+// fines par champ sur UN SEUL endpoint (PUT .../registrations/[id]), pas des
+// permissions d'accès à une action — voir CLAUDE.md.
+export default function EditRegistrationForm({ registration, role, canDelete }) {
   const router = useRouter();
   const [status, setStatus] = useState(registration.status);
   const [visaStatus, setVisaStatus] = useState(registration.visa_status);
@@ -18,7 +22,6 @@ export default function EditRegistrationForm({ registration, role }) {
   const canEditStatus = ["direction", "ventes"].includes(role);
   const canEditFinance = ["direction", "comptabilite"].includes(role);
   const canEditVisa = ["direction", "suivi"].includes(role);
-  const canDelete = ["direction", "ventes"].includes(role);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

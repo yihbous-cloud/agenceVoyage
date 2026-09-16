@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTripFullById } from "@/lib/programsAdmin";
 import { listAirlines } from "@/lib/airlines";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
 import TripForm from "../TripForm";
 
 export default async function EditTripPage({ params }) {
@@ -17,6 +18,8 @@ export default async function EditTripPage({ params }) {
   if (!trip) {
     notFound();
   }
+
+  const canManage = await hasPermission(session, "voyages.manage");
 
   return (
     <div className="space-y-6">
@@ -42,7 +45,7 @@ export default async function EditTripPage({ params }) {
           </Link>
         </p>
       </div>
-      <TripForm trip={trip} airlines={airlines} canDelete={session?.role === "direction"} />
+      <TripForm trip={trip} airlines={airlines} canDelete={canManage} />
     </div>
   );
 }
