@@ -110,6 +110,14 @@ Le catalogue d'hôtels (`/admin/hotels`) n'est pas limité à La Mecque : un hô
 - Toujours utilisé uniquement pour la famille `omra_hajj` côté public (`lib/programs.js`), mais le nom du repère affiché vient désormais de la donnée (`landmark_name`) plutôt que d'être codé en dur "Haram" — correct même si l'hôtel le plus proche du voyage est à Médine
 - Champs Pays/Ville du formulaire (`HotelsManager.jsx`) : listes déroulantes éditables (`<input list>` + `<datalist>`, pas un `<select>` fermé) — filtrage natif du navigateur en tapant, saisie libre toujours possible pour un pays/ville absent de la liste. Référence statique `lib/worldPlaces.js` (`CITIES_BY_COUNTRY`, ~196 pays) : capitale pour tous, villes touristiques enrichies pour les destinations courantes de l'agence. ⚠️ Arabie Saoudite volontairement en "Makka"/"Madina" (pas "La Mecque"/"Médine") — demande explicite. Changer de pays réinitialise le champ ville (les suggestions précédentes ne correspondent plus)
 
+## 3nonies. Vérification du passeport (fiche inscription)
+
+Sur `EditTravelerForm.jsx` (`/admin/inscriptions/[id]`), au blur (perte de focus) des champs passeport :
+
+- **Numéro de passeport** : vérification de **forme** uniquement (6-9 caractères alphanumériques, `PASSPORT_FORMAT` dans le composant) — aucune consultation d'un registre officiel. Message de confirmation professionnel si le format est valide, avertissement sinon (le champ n'est pas vidé, juste signalé)
+- **Date d'expiration du passeport** (`travelers.passport_expiry_date`, déjà en base mais jusqu'ici jamais exposée dans ce formulaire) : doit rester valide au moins **6 mois après la date de départ du voyage** (`registration.departure_date`, pas la date du jour — c'est la règle réelle appliquée par les autorités/compagnies aériennes). Si non respectée : message d'erreur explicite et **champ vidé** (pas de valeur invalide silencieusement conservée)
+- Revalidée côté serveur dans `PUT /api/admin/registrations/[id]/traveler` (même règle, même calcul) — la validation client seule ne suffit pas, un appel API direct doit aussi être bloqué
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

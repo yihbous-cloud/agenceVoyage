@@ -27,6 +27,24 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ message: "Inscription introuvable" }, { status: 404 });
   }
 
+  // Règle passeport : doit rester valide au moins 6 mois après la date du
+  // voyage — revalidée côté serveur (le client peut être contourné).
+  if (body.passportExpiryDate) {
+    const reference = registration.departure_date
+      ? new Date(registration.departure_date)
+      : new Date();
+    const minValidUntil = new Date(reference);
+    minValidUntil.setMonth(minValidUntil.getMonth() + 6);
+    if (new Date(body.passportExpiryDate) < minValidUntil) {
+      return NextResponse.json(
+        {
+          message: `Le passeport doit rester valide au moins 6 mois après le ${reference.toLocaleDateString("fr-FR")}`,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   await updateTraveler(registration.traveler_id, body);
   return NextResponse.json({ ok: true });
 }
