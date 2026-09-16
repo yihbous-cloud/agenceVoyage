@@ -299,7 +299,6 @@ export default function HebergementManager({
                 readOnly
                 className="mt-1 w-20 rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
               />
-              <p className="mt-1 text-xs text-zinc-400">Dérivée du type</p>
             </div>
             <button
               type="submit"
