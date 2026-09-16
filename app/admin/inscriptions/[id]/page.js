@@ -7,6 +7,7 @@ import { getRoomDetails } from "@/lib/roomAssignment";
 import { listPaymentsForRegistration } from "@/lib/payments";
 import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
+import EditTravelerForm from "./EditTravelerForm";
 import VisaSection from "./VisaSection";
 import ServicesSection from "./ServicesSection";
 import PaymentsSection from "./PaymentsSection";
@@ -44,28 +45,6 @@ export default async function RegistrationDetailPage({ params }) {
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-zinc-500">WhatsApp</dt>
-            <dd className="font-medium text-zinc-900">{registration.phone_whatsapp}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Passeport</dt>
-            <dd className="font-medium text-zinc-900">
-              {registration.passport_number || "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Genre</dt>
-            <dd className="font-medium capitalize text-zinc-900">
-              {registration.gender}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Email</dt>
-            <dd className="font-medium text-zinc-900">
-              {registration.traveler_email || "—"}
-            </dd>
-          </div>
-          <div>
             <dt className="text-zinc-500">Chambre</dt>
             <dd className="font-medium text-zinc-900">
               {room
@@ -91,6 +70,8 @@ export default async function RegistrationDetailPage({ params }) {
           </div>
         </dl>
       </div>
+
+      <EditTravelerForm registration={registration} role={session?.role} />
 
       <EditRegistrationForm registration={registration} role={session?.role} />
 
