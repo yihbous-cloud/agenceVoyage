@@ -9,7 +9,6 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ro
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("especes");
-  const [receiptReference, setReceiptReference] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,7 +29,6 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ro
         body: JSON.stringify({
           amount: Number(amount),
           paymentMethod: method,
-          receiptReference: receiptReference || null,
         }),
       });
       if (!res.ok) {
@@ -38,7 +36,6 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ro
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
       setAmount("");
-      setReceiptReference("");
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -137,14 +134,6 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ro
                 </option>
               ))}
             </select>
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-sm font-medium text-zinc-700">Référence reçu</label>
-            <input
-              value={receiptReference}
-              onChange={(e) => setReceiptReference(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
           </div>
           <button
             type="submit"
