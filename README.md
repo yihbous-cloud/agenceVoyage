@@ -53,7 +53,7 @@ Rôles valides : `direction`, `ventes`, `comptabilite`, `suivi`. Connexion sur `
 ```
 app/
   (site)/layout.js                     layout racine du site public (header/nav/footer marketing, polices, JSON-LD TravelAgency) — root layout indépendant de admin/layout.js
-  (site)/page.js                       accueil (hero, programmes à la une, réassurance, actualités)
+  (site)/page.js                       accueil (slider animé ou hero statique en repli, programmes à la une, réassurance, actualités)
   (site)/a-propos/page.js              page à propos
   (site)/actualites/page.js, /[slug]/page.js  liste et détail des actualités (schema.org NewsArticle)
   (site)/faq/page.js                   questions fréquentes (schema.org FAQPage)
@@ -109,6 +109,9 @@ app/
   admin/parametres/roles/*              matrice rôles × permissions, création de rôles (permission roles.manage)
   api/admin/staff-users/*               CRUD des comptes internes
   api/admin/roles/*                     liste/création de rôles, remplacement des permissions d'un rôle
+  admin/slider/*                        CRUD + réordonnancement des diapositives du slider accueil (permission slider.manage)
+  api/admin/slides/*, /slides/[id]/move CRUD diapositives + échange d'ordre (haut/bas)
+  app/_components/HeroSlider.jsx        slider animé (fondu, autoplay, puces) — composant client, zéro dépendance tierce
   admin/programmes/*                   CRUD programmes (+ liste des voyages par programme + gestion des FAQ)
   admin/programmes/[id]/ProgramFaqManager.jsx   ajout/édition/suppression des FAQ d'un programme
   api/admin/programs/[id]/faqs, /program-faqs/[id]   CRUD des FAQ par programme
@@ -150,6 +153,7 @@ lib/
   session.js                           lecture de la session (server components)
   permissions.js                       permissions dynamiques par rôle — hasPermission(), matrice, CRUD des rôles (voir CLAUDE.md §3undecies)
   staffUsers.js                        CRUD des comptes internes (staff_users)
+  slides.js                            CRUD diapositives du slider accueil, lien dynamique vers un programme (voir CLAUDE.md §3duodecies)
 middleware.js                          protège /admin/* (redirige vers /admin/login)
 scripts/create-staff-user.js           bootstrap du tout premier compte interne (avant qu'une UI soit accessible) ; l'admin /admin/parametres/utilisateurs est le point d'entrée normal ensuite
 database/

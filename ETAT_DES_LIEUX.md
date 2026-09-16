@@ -23,7 +23,7 @@ Volume visé : minimum 24 voyages/an, avec potentiellement des centaines de voya
 
 | Route | Contenu | Rendu |
 |---|---|---|
-| `/` | Accueil : hero (2 CTA), programmes à la une par famille (Omra & Hajj / Voyages organisés), section réassurance, actualités récentes | SSR, revalidate 300s |
+| `/` | Accueil : slider animé (diapositives gérées depuis `/admin/slider`, repli sur un hero statique si aucune diapositive active), programmes à la une par famille (Omra & Hajj / Voyages organisés), section réassurance, actualités récentes | SSR, revalidate 300s |
 | `/omra-hajj` | Hub Omra & Hajj : liste filtrable par saison (`?saison=`), bandeau de réassurance | SSR, revalidate 300s |
 | `/omra-hajj/[slug]` | Détail d'un programme Omra/Hajj : description, checklist visa (documents requis), voyages ouverts avec hôtel + distance à la Haram, réservation | SSR, revalidate 300s, JSON-LD `TouristTrip` |
 | `/voyages-organises` | Hub Voyages organisés : liste filtrable par destination et par envie/thème (`?destination=`, `?envie=`) | SSR, revalidate 300s |
@@ -73,6 +73,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/services` | Catalogue générique de services facturables | Tous (lecture) / direction, comptabilité (gestion) |
 | `/admin/airlines` | Catalogue de compagnies aériennes (nom, code IATA, gabarit d'export) | Tous (lecture) / direction (gestion) |
 | `/admin/actualites` | CRUD des actualités publiées sur le site public | Tous (lecture) / direction (gestion) |
+| `/admin/slider` | Diapositives du slider animé de l'accueil (titre, sous-titre, image, lien vers un programme ou URL libre, ordre, actif/inactif) | Permission `slider.manage` (direction par défaut) |
 | `/admin/messages` | Messages reçus via le formulaire de contact public | direction, ventes |
 | `/admin/finances` | Rapports financiers : par voyage, par programme, paiements par période | direction, comptabilité (page entière restreinte) |
 | `/admin/parametres` | Informations de l'agence (coordonnées, RC/IF/ICE, logo) — en-tête des reçus de paiement | Tous (lecture) / direction (édition) |
@@ -179,6 +180,7 @@ registrations ──< flight_booking_passengers >── flight_bookings ──< 
 travelers ──< whatsapp_messages_log
 registrations ──< whatsapp_reminders
 programs (contenu) : news_posts et contact_messages sont indépendants (aucune FK vers programs/trips)
+programs ──< slides (program_id nullable — NULL si la diapositive utilise button_link)
 ```
 
 **Détail des tables** (26 tables + 2 vues, voir [database/schema.sql](database/schema.sql) pour le détail complet des colonnes ; migrations additives dans [database/migrations/](database/migrations/)) :
@@ -193,7 +195,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 | Facturation | `services`, `registration_services`, `payments` |
 | Visa | `visa_types`, `visa_type_documents`, `visa_requests`, `visa_request_documents` |
 | WhatsApp (schéma prêt, non câblé) | `whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log` |
-| Site public | `news_posts`, `contact_messages` |
+| Site public | `news_posts`, `contact_messages`, `slides` (slider accueil — migration 008) |
 | Billets d'avion (Duffel) | `flight_bookings`, `flight_booking_passengers` |
 | Vues | `v_trip_traveler_list`, `v_trip_airline_list` |
 
@@ -216,6 +218,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - Gestion des programmes/voyages/compagnies aériennes depuis l'admin (plus besoin de SQL manuel)
 - Gestion des actualités et des messages de contact
 - Permissions dynamiques par rôle (§3undecies) : catalogue de ~23 permissions, matrice éditable, gestion des comptes internes depuis l'admin, filet de sécurité direction, vérifié de bout en bout (octroi/retrait d'une permission à chaud sans reconnexion, garde-fous anti-auto-verrouillage, rôle personnalisé)
+- Slider animé de l'accueil (§3duodecies) : CRUD + réordonnancement depuis `/admin/slider`, lien dynamique vers un programme (jamais figé), 4 diapositives réelles en place liées aux programmes publiés, vérifié de bout en bout (autoplay, navigation par puces/flèches, lien CTA vers la vraie fiche programme, repli sur le hero statique si aucune diapositive active, permission refusée pour un rôle non autorisé)
 
 ### 🟡 En cours / construites mais non validées en conditions réelles
 - **Intégration Duffel (achat de billets d'avion)** : code complet (schéma, client API, routes, interface), permissions et validations vérifiées, **mais recherche et achat n'ont jamais pu être testés avec de vraies réponses de l'API** faute de compte Duffel disponible. Un risque existe que la forme exacte des réponses Duffel (notamment l'extraction du numéro de billet) diffère de ce qui a été implémenté d'après la documentation. À valider avec une clé `duffel_test_` avant tout usage réel.

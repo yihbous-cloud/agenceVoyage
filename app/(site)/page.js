@@ -2,39 +2,47 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
+import { listActiveSlides } from "@/lib/slides";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
+import HeroSlider from "@/app/_components/HeroSlider";
 
 export const revalidate = 300;
 
 export default async function Home() {
-  const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
+  const [omraHajjPrograms, voyagePrograms, news, slides] = await Promise.all([
     getProgramsByFamily("omra_hajj", { limit: 3 }).catch(() => []),
     getProgramsByFamily("voyage_organise", { limit: 3 }).catch(() => []),
     listPublishedNews().catch(() => []),
+    listActiveSlides().catch(() => []),
   ]);
 
   const latestNews = news.slice(0, 3);
 
   return (
     <main id="top" className="flex-1 bg-cream">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-ink py-28">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(200,162,74,0.16),transparent_60%)]" />
-        <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(135deg,#E9D9AE_0px,#E9D9AE_1px,transparent_1px,transparent_26px)]" />
-        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 text-center">
-          <span className="font-script text-6xl leading-none text-gold">
-            Golden Fantastic
-          </span>
-          <h1 className="font-display text-4xl font-normal text-white sm:text-5xl">
-            L&apos;Omra, le Hajj et vos voyages, réservés en toute confiance
-          </h1>
-          <p className="max-w-xl text-lg text-white/70">
-            Programmes Omra &amp; Hajj et voyages organisés, accompagnement
-            complet du départ au retour.
-          </p>
-        </div>
-      </section>
+      {/* Hero : slider animé (/admin/slider) si des diapositives actives
+          existent, sinon repli sur le hero statique historique. */}
+      {slides.length > 0 ? (
+        <HeroSlider slides={slides} />
+      ) : (
+        <section className="relative overflow-hidden bg-ink py-28">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(200,162,74,0.16),transparent_60%)]" />
+          <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(135deg,#E9D9AE_0px,#E9D9AE_1px,transparent_1px,transparent_26px)]" />
+          <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 text-center">
+            <span className="font-script text-6xl leading-none text-gold">
+              Golden Fantastic
+            </span>
+            <h1 className="font-display text-4xl font-normal text-white sm:text-5xl">
+              L&apos;Omra, le Hajj et vos voyages, réservés en toute confiance
+            </h1>
+            <p className="max-w-xl text-lg text-white/70">
+              Programmes Omra &amp; Hajj et voyages organisés, accompagnement
+              complet du départ au retour.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Accès rapide aux deux catalogues */}
       <section className="relative z-10 mx-auto -mt-14 max-w-3xl px-6">

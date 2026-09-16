@@ -36,6 +36,11 @@ const NAV_LINKS = [
   { href: "/admin/messages", label: "Messages" },
 ];
 
+// Ajouté dynamiquement dans navLinks uniquement si la permission
+// slider.manage est accordée (contenu marketing de l'accueil, direction
+// uniquement par défaut).
+const SLIDER_LINK = { href: "/admin/slider", label: "Slider accueil" };
+
 // Section réservée, séparée de la navigation principale : configuration
 // utilisée en en-tête des documents générés (reçus de paiement...) et
 // administration du personnel/des permissions.
@@ -52,15 +57,19 @@ export default async function AdminLayout({ children }) {
   let navLinks = NAV_LINKS;
 
   if (session) {
-    const [canViewFinances, canManageUsers, canManageRoles] = await Promise.all([
+    const [canViewFinances, canManageUsers, canManageRoles, canManageSlider] = await Promise.all([
       hasPermission(session, "finances.view"),
       hasPermission(session, "utilisateurs.manage"),
       hasPermission(session, "roles.manage"),
+      hasPermission(session, "slider.manage"),
     ]);
 
-    navLinks = canViewFinances
-      ? [...NAV_LINKS, { href: "/admin/finances", label: "Finances" }]
-      : NAV_LINKS;
+    navLinks = [
+      ...NAV_LINKS.slice(0, 8),
+      ...(canManageSlider ? [SLIDER_LINK] : []),
+      ...NAV_LINKS.slice(8),
+      ...(canViewFinances ? [{ href: "/admin/finances", label: "Finances" }] : []),
+    ];
 
     settingsLinks = [
       ...BASE_SETTINGS_LINKS,

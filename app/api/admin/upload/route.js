@@ -15,7 +15,7 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 // Sous-dossiers autorisés dans public/uploads/ — whitelist explicite pour
 // éviter qu'un dossier arbitraire (traversal) soit passé par le client.
-const ALLOWED_FOLDERS = ["programs", "agency"];
+const ALLOWED_FOLDERS = ["programs", "agency", "slider"];
 
 // Upload générique d'image (image de couverture d'un programme, logo de
 // l'agence...) — enregistre le fichier sur le disque du serveur dans

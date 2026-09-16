@@ -76,6 +76,7 @@ INSERT INTO permissions (code, label, category, sort_order) VALUES
     ('voyages.manage', 'Gérer les voyages (dates, prix, statut)', 'Programmes & voyages', 20),
     ('billets.manage', 'Rechercher / acheter des billets d''avion', 'Programmes & voyages', 30),
     ('actualites.manage', 'Gérer les actualités publiées', 'Contenu public', 10),
+    ('slider.manage', 'Gérer le slider de l''accueil', 'Contenu public', 15),
     ('messages.manage', 'Gérer les messages de contact', 'Contenu public', 20),
     ('parametres.edit', 'Modifier les informations de l''agence', 'Administration', 10),
     ('medias.upload', 'Uploader des images (logo, couvertures)', 'Administration', 20),
@@ -449,6 +450,25 @@ CREATE TABLE news_posts (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_news_published (is_published, published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Diapositives du slider animé de l'accueil (/admin/slider). Une diapositive
+-- liée à un programme (program_id) dérive son lien public dynamiquement
+-- (jamais figé) ; button_link n'est utilisé que pour un lien libre.
+CREATE TABLE slides (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    subtitle VARCHAR(300) NULL,
+    image_url VARCHAR(500) NULL,
+    button_text VARCHAR(50) NOT NULL DEFAULT 'Découvrir',
+    program_id BIGINT UNSIGNED NULL COMMENT 'lien dynamique vers un programme — prioritaire sur button_link',
+    button_link VARCHAR(300) NULL COMMENT 'URL libre, utilisée seulement si program_id est NULL',
+    sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE SET NULL,
+    INDEX idx_slide_active_order (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Messages soumis via le formulaire de contact public
