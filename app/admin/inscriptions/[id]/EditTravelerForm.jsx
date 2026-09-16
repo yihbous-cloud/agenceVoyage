@@ -21,8 +21,8 @@ export default function EditTravelerForm({ registration, role }) {
   const [passportWarning, setPassportWarning] = useState(null);
   const [confirmedPassportNumber, setConfirmedPassportNumber] = useState(null);
   const [pendingConfirmValue, setPendingConfirmValue] = useState(null);
-  const [passportLocked, setPassportLocked] = useState(false);
-  const [formLocked, setFormLocked] = useState(false);
+  const [passportLocked, setPassportLocked] = useState(Boolean(registration.info_confirmed));
+  const [formLocked, setFormLocked] = useState(Boolean(registration.info_confirmed));
   const [expiryError, setExpiryError] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -211,7 +211,7 @@ export default function EditTravelerForm({ registration, role }) {
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
           />
           {passportWarning && <p className="mt-1 text-xs text-red-600">{passportWarning}</p>}
-          {!passportWarning && isPassportConfirmed && (
+          {!passportWarning && (isPassportConfirmed || (passportDisabled && passportNumber)) && (
             <p className="mt-1 text-xs text-emerald-700">
               Vérification effectuée : le numéro de passeport est valide.
               {!fieldsDisabled && (

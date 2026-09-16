@@ -174,6 +174,7 @@ CREATE TABLE travelers (
     national_id VARCHAR(30) NULL COMMENT 'CIN',
     passport_number VARCHAR(30) NULL,
     passport_expiry_date DATE NULL,
+    info_confirmed BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Fiche voyageur enregistrée/vérifiée depuis l''admin — verrouille le formulaire par défaut',
     phone_whatsapp VARCHAR(30) NOT NULL COMMENT 'numéro WhatsApp — canal principal de communication',
     email VARCHAR(150) NULL,
     address VARCHAR(255) NULL,

@@ -125,7 +125,7 @@ export default async function InscriptionsPage({ searchParams }) {
                     href={`/admin/inscriptions/${reg.id}`}
                     className="text-emerald-700 hover:underline"
                   >
-                    Modifier
+                    Afficher
                   </Link>
                 </td>
               </tr>
