@@ -36,33 +36,47 @@ export default async function InscriptionsPage({ searchParams }) {
         </Link>
       </div>
 
-      {tripId && (
+      {(tripId || status) && (
         <p className="text-sm text-zinc-500">
-          Filtré par voyage #{tripId} —{" "}
+          {tripId && <>Filtré par voyage #{tripId}</>}
+          {tripId && status && " · "}
+          {status && (
+            <>
+              Filtré par statut :{" "}
+              <span className="font-medium text-zinc-700">
+                {STATUS_LABELS[status] || status}
+              </span>
+            </>
+          )}
+          {" — "}
           <Link href="/admin/inscriptions" className="text-emerald-700 hover:underline">
             réinitialiser
           </Link>
-          {" · "}
-          <Link
-            href={`/admin/voyages/${tripId}/hebergement`}
-            className="text-emerald-700 hover:underline"
-          >
-            gérer l&apos;hébergement
-          </Link>
-          {" · "}
-          <Link
-            href={`/admin/voyages/${tripId}/listes`}
-            className="text-emerald-700 hover:underline"
-          >
-            listes
-          </Link>
-          {" · "}
-          <Link
-            href={`/admin/voyages/${tripId}/billets`}
-            className="text-emerald-700 hover:underline"
-          >
-            billets d&apos;avion
-          </Link>
+          {tripId && (
+            <>
+              {" · "}
+              <Link
+                href={`/admin/voyages/${tripId}/hebergement`}
+                className="text-emerald-700 hover:underline"
+              >
+                gérer l&apos;hébergement
+              </Link>
+              {" · "}
+              <Link
+                href={`/admin/voyages/${tripId}/listes`}
+                className="text-emerald-700 hover:underline"
+              >
+                listes
+              </Link>
+              {" · "}
+              <Link
+                href={`/admin/voyages/${tripId}/billets`}
+                className="text-emerald-700 hover:underline"
+              >
+                billets d&apos;avion
+              </Link>
+            </>
+          )}
         </p>
       )}
 

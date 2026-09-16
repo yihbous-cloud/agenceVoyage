@@ -19,13 +19,14 @@ export default async function AdminDashboard() {
           ["paye_complet", "Payé complet"],
           ["annule", "Annulés"],
         ].map(([status, label]) => (
-          <div
+          <Link
             key={status}
-            className="rounded-xl border border-zinc-200 bg-white p-4 text-center"
+            href={`/admin/inscriptions?status=${status}`}
+            className="rounded-xl border border-zinc-200 bg-white p-4 text-center transition-colors hover:border-emerald-300 hover:bg-emerald-50"
           >
             <p className="text-2xl font-bold text-zinc-900">{countFor(status)}</p>
             <p className="text-xs text-zinc-500">{label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
