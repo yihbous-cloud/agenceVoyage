@@ -167,6 +167,12 @@ Grand visuel animé en haut de la page d'accueil, remplaçant le hero statique q
 - `app/_components/HeroSlider.jsx` (client component) : diapositives empilées en `absolute`, transition en fondu par opacité (`transition-opacity`, pas de bibliothèque tierce — cohérent avec le reste du projet, zéro nouvelle dépendance), autoplay 6s en pause au survol, flèches précédent/suivant, puces cliquables. Sans image (`image_url` NULL), un dégradé doré/sombre cohérent avec la charte du site sert de fond — pas d'image cassée
 - ⚠️ Saisir des caractères accentués dans un payload JSON via une commande shell (curl `-d '...'` avec du texte inline) peut corrompre l'encodage UTF-8 selon le terminal — préférer écrire le JSON dans un fichier puis `curl --data-binary @fichier.json` pour tout script/test futur insérant du contenu accentué
 
+## 3terdecies. Types de chambre à capacité fixe
+
+`rooms.room_type` (ENUM, migration `009_add_room_type_quintuple.sql`) : `simple`/`double`/`triple`/`quadruple`/`quintuple`, chacun **strictement attaché** à une capacité fixe (1 à 5 personnes respectivement) — pas une coïncidence de valeurs par défaut, une règle métier. `HebergementManager.jsx` (`ROOM_TYPE_CAPACITY`) dérive automatiquement le champ **Capacité** du type choisi et le garde **verrouillé** (lecture seule) dans le formulaire de création de chambre — impossible de saisir une capacité incohérente avec le type. Ajouter un nouveau type (ex. 6 personnes) nécessite une migration (`ALTER ... MODIFY COLUMN room_type ENUM(...)`) + une entrée dans `ROOM_TYPE_CAPACITY`.
+
+## 4. Modules fonctionnels
+
 ### a) Site public
 - Publicité des programmes de voyage (page dédiée par programme/voyage)
 - Système de réservation en ligne
@@ -226,7 +232,7 @@ Grand visuel animé en haut de la page d'accueil, remplaçant le hero statique q
 
 - Nom de domaine du site
 - Organisme(s) concerné(s) par les demandes de visa (pour construire le format requis)
-- Types de chambres standards proposés (simple/double/triple/quadruple ?)
+- ~~Types de chambres standards proposés~~ — tranché : simple/double/triple/quadruple/quintuple (1 à 5 personnes), voir §3terdecies
 - Devise(s) de facturation (MAD uniquement, ou multi-devises ?)
 - Adresse et téléphone réels de l'agence (bloque l'ajout du schema.org `LocalBusiness`, voir §3quinquies) — saisissables depuis `/admin/parametres` (voir §3septies), mais pas encore renseignés
 

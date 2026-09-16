@@ -111,7 +111,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 ### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`)
 - Catalogue d'hôtels (ville, étoiles, distance au Haram)
 - Un voyage peut être associé à plusieurs hôtels (ex. Omra : La Mecque + Médine), chacun avec ses dates de check-in/out
-- Chambres : type (simple/double/triple/quadruple) + capacité, rattachées à un hôtel-voyage
+- Chambres : type (simple/double/triple/quadruple/quintuple) + capacité **dérivée automatiquement du type et verrouillée** dans le formulaire (1 à 5 personnes respectivement, migration 009 — voir CLAUDE.md §3terdecies), rattachées à un hôtel-voyage
 - **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre
 - **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre
 
@@ -235,7 +235,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 - Hub Voyages organisés : pas de galerie photo (une seule `cover_image_url` par programme, pas de table dédiée), ni de programme "jour par jour" structuré (le contenu détaillé reste dans `full_description`, texte libre)
 - Prix barré en cas de promo sur les cartes : pas de colonne "prix avant remise" dans le schéma actuel
 - Multi-devises réelles si l'agence facture au-delà du MAD (actuellement `currency` est un champ libre par voyage/paiement, sans conversion)
-- Gestion de plusieurs types de chambre au-delà de simple/double/triple/quadruple si besoin (ENUM fixe actuellement)
+- Gestion de types de chambre au-delà de simple/double/triple/quadruple/quintuple si besoin (ENUM fixe actuellement, extensible par migration)
 - Historique/audit des modifications (qui a changé quoi et quand) au-delà de `registered_by_staff_id` / `recorded_by_staff_id` déjà présents sur certaines tables
 - Notifications automatiques (hors WhatsApp) : rappels par email par exemple
 - Déploiement effectif sur le VPS Hostinger visé par CLAUDE.md (le projet tourne uniquement en local pour l'instant)
@@ -254,7 +254,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 ### Informations encore à préciser par l'utilisateur (issues de CLAUDE.md §7, toujours ouvertes)
 - Nom de domaine définitif du site (impacte `NEXT_PUBLIC_SITE_URL`, sitemap, llms.txt)
 - Organisme(s) exact(s) concerné(s) par les demandes de visa, pour affiner le format de la liste de demande de visa
-- Confirmation des types de chambre standards (simple/double/triple/quadruple suffisent-ils ?)
+- ~~Confirmation des types de chambre standards~~ — tranché : simple/double/triple/quadruple/quintuple (1 à 5 personnes)
 - Devise(s) de facturation définitive(s) (MAD uniquement ou multi-devises réel ?)
 - Adresse et téléphone réels de l'agence (bloque le schema.org `LocalBusiness`, voir CLAUDE.md §3quinquies)
 

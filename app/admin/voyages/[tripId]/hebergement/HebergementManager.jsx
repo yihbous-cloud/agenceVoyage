@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const ROOM_TYPES = ["simple", "double", "triple", "quadruple"];
+// Chaque type de chambre est strictement attaché à une capacité fixe
+// (simple=1, double=2, triple=3, quadruple=4, quintuple=5) — le champ
+// Capacité du formulaire est dérivé automatiquement et reste verrouillé.
+const ROOM_TYPE_CAPACITY = {
+  simple: 1,
+  double: 2,
+  triple: 3,
+  quadruple: 4,
+  quintuple: 5,
+};
+const ROOM_TYPES = Object.keys(ROOM_TYPE_CAPACITY);
 
 export default function HebergementManager({
   tripId,
@@ -54,7 +64,7 @@ export default function HebergementManager({
   const [roomTripHotelId, setRoomTripHotelId] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [roomType, setRoomType] = useState("double");
-  const [capacity, setCapacity] = useState(2);
+  const capacity = ROOM_TYPE_CAPACITY[roomType];
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -284,11 +294,12 @@ export default function HebergementManager({
               <label className="block text-sm font-medium text-zinc-700">Capacité</label>
               <input
                 type="number"
-                min="1"
                 value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className="mt-1 w-20 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                disabled
+                readOnly
+                className="mt-1 w-20 rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
               />
+              <p className="mt-1 text-xs text-zinc-400">Dérivée du type</p>
             </div>
             <button
               type="submit"

@@ -228,7 +228,7 @@ CREATE TABLE rooms (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     trip_hotel_id BIGINT UNSIGNED NOT NULL,
     room_number VARCHAR(20) NULL,
-    room_type ENUM('simple', 'double', 'triple', 'quadruple') NOT NULL,
+    room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NOT NULL,
     capacity TINYINT UNSIGNED NOT NULL COMMENT 'nombre de lits/places',
     FOREIGN KEY (trip_hotel_id) REFERENCES trip_hotels(id) ON DELETE CASCADE,
     INDEX idx_room_type (room_type)
