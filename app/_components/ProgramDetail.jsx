@@ -181,8 +181,10 @@ export default function ProgramDetail({
                     {isOmraHajj && trip.hotel_names && (
                       <p className="text-sm text-muted">
                         Hébergement : {trip.hotel_names}
-                        {trip.min_distance_to_haram_m != null &&
-                          ` (à ${trip.min_distance_to_haram_m} m de la Haram)`}
+                        {trip.min_landmark_distance_m != null &&
+                          ` (à ${trip.min_landmark_distance_m} m${
+                            trip.nearest_landmark_name ? ` du ${trip.nearest_landmark_name}` : ""
+                          })`}
                       </p>
                     )}
                   </div>

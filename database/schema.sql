@@ -130,10 +130,11 @@ CREATE TABLE program_faqs (
 CREATE TABLE hotels (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
-    city VARCHAR(100) NOT NULL COMMENT 'ex: La Mecque, Médine',
+    city VARCHAR(100) NOT NULL COMMENT 'ex: La Mecque, Médine, Istanbul, Paris',
+    landmark_name VARCHAR(100) NULL COMMENT 'point de repère de proximité (ex: Haram, Masjid Nabawi, Tour Eiffel)',
     country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
     star_rating TINYINT UNSIGNED NULL,
-    distance_to_haram_m INT UNSIGNED NULL COMMENT 'distance en mètres, pertinent pour Omra/Hajj',
+    landmark_distance_m INT UNSIGNED NULL COMMENT 'distance en mètres jusqu''à landmark_name',
     contact_info VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -97,7 +97,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - CRUD complet des deux depuis l'admin ; suppression protégée par les FK (un programme avec des voyages, ou un voyage avec des inscriptions, ne peuvent pas être supprimés — message d'erreur clair)
 - Génération automatique du slug depuis le titre (`slugify`)
 - Le site public ne lit que les programmes `is_published = TRUE` et les voyages `status IN (ouvert, planifie)` avec date future
-- `getProgramsByFamily(family, filters)` : requête publique commune aux deux hubs (`/omra-hajj`, `/voyages-organises`) et à l'accueil, apparie chaque programme à son voyage ouvert le plus proche (dates, aéroport de départ, places restantes) et, pour `omra_hajj`, calcule la distance à la Haram de l'hôtel associé (`hotels.distance_to_haram_m`, jamais exposée avant cette fonctionnalité)
+- `getProgramsByFamily(family, filters)` : requête publique commune aux deux hubs (`/omra-hajj`, `/voyages-organises`) et à l'accueil, apparie chaque programme à son voyage ouvert le plus proche (dates, aéroport de départ, places restantes) et, pour `omra_hajj`, calcule la distance au point de repère de l'hôtel le plus proche de son propre repère (`hotels.landmark_name` + `landmark_distance_m`, généralisé — voir §3octies de CLAUDE.md)
 
 ### 4.3 Inscriptions (`lib/registrations.js`)
 - Une inscription (`registration`) relie un `traveler` à un `trip`, avec un statut (`inscrit → confirme → paye_partiel/paye_complet`, ou `annule`)

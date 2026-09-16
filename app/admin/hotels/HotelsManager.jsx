@@ -8,7 +8,8 @@ const initialForm = {
   city: "",
   country: "Arabie Saoudite",
   starRating: "",
-  distanceToHaramM: "",
+  landmarkName: "",
+  landmarkDistanceM: "",
   contactInfo: "",
 };
 
@@ -32,8 +33,8 @@ export default function HotelsManager({ initialHotels, canManage }) {
         body: JSON.stringify({
           ...form,
           starRating: form.starRating === "" ? null : Number(form.starRating),
-          distanceToHaramM:
-            form.distanceToHaramM === "" ? null : Number(form.distanceToHaramM),
+          landmarkDistanceM:
+            form.landmarkDistanceM === "" ? null : Number(form.landmarkDistanceM),
         }),
       });
       if (!res.ok) {
@@ -64,7 +65,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
               <th className="px-4 py-3">Nom</th>
               <th className="px-4 py-3">Ville</th>
               <th className="px-4 py-3">Étoiles</th>
-              <th className="px-4 py-3">Distance Haram</th>
+              <th className="px-4 py-3">Point de repère</th>
               {canManage && <th className="px-4 py-3" />}
             </tr>
           </thead>
@@ -79,7 +80,9 @@ export default function HotelsManager({ initialHotels, canManage }) {
                   {h.star_rating ? `${h.star_rating} ★` : "—"}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">
-                  {h.distance_to_haram_m != null ? `${h.distance_to_haram_m} m` : "—"}
+                  {h.landmark_distance_m != null
+                    ? `${h.landmark_distance_m} m${h.landmark_name ? ` du ${h.landmark_name}` : ""}`
+                    : "—"}
                 </td>
                 {canManage && (
                   <td className="px-4 py-3 text-right">
@@ -149,12 +152,24 @@ export default function HotelsManager({ initialHotels, canManage }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700">
-              Distance du Haram (m)
+              Point de repère à proximité
             </label>
             <input
+              value={form.landmarkName}
+              onChange={set("landmarkName")}
+              placeholder="ex : Haram, Masjid Nabawi, Tour Eiffel..."
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <p className="mt-1 text-xs text-zinc-400">
+              Laisser vide si la proximité à un lieu précis n&apos;est pas pertinente.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Distance (m)</label>
+            <input
               type="number"
-              value={form.distanceToHaramM}
-              onChange={set("distanceToHaramM")}
+              value={form.landmarkDistanceM}
+              onChange={set("landmarkDistanceM")}
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
           </div>

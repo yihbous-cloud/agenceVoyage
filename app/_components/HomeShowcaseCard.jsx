@@ -62,8 +62,11 @@ export default function HomeShowcaseCard({ program }) {
                 {duration && ` · ${duration.days}j / ${duration.nights}n`}
               </p>
             )}
-            {program.distance_haram_m != null && (
-              <p>À {program.distance_haram_m} m de la Haram</p>
+            {program.landmark_distance_m != null && (
+              <p>
+                À {program.landmark_distance_m} m
+                {program.landmark_name ? ` du ${program.landmark_name}` : ""}
+              </p>
             )}
           </div>
         </div>

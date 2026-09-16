@@ -59,7 +59,7 @@ app/
   (site)/faq/page.js                   questions fréquentes (schema.org FAQPage)
   (site)/contact/page.js, ContactForm.jsx     formulaire de contact public
   (site)/mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
-  (site)/omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram, FAQ)
+  (site)/omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance au point de repère, FAQ)
   (site)/voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail (FAQ)
   (site)/villes-depart/[ville]/page.js hub pSEO par ville de départ (agrège les deux familles, maillage interne depuis le détail programme)
   (site)/programmes/page.js            ancienne URL : page de bascule vers les deux hubs (pas de 404)
