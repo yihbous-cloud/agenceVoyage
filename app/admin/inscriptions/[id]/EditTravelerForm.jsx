@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Format générique observé sur la plupart des passeports : lettres et
@@ -18,28 +18,44 @@ export default function EditTravelerForm({ registration, role }) {
     registration.passport_expiry_date || ""
   );
   const [email, setEmail] = useState(registration.traveler_email || "");
-  const [passportCheck, setPassportCheck] = useState(null);
+  const [passportWarning, setPassportWarning] = useState(null);
+  const [confirmedPassportNumber, setConfirmedPassportNumber] = useState(null);
+  const [pendingConfirmValue, setPendingConfirmValue] = useState(null);
   const [expiryError, setExpiryError] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const passportInputRef = useRef(null);
 
   const canEdit = ["direction", "ventes"].includes(role);
+  const isPassportConfirmed =
+    confirmedPassportNumber != null && confirmedPassportNumber === passportNumber.trim();
 
   const handlePassportBlur = () => {
     const value = passportNumber.trim();
     if (!value) {
-      setPassportCheck(null);
+      setPassportWarning(null);
       return;
     }
-    setPassportCheck(
-      PASSPORT_FORMAT.test(value)
-        ? { ok: true, message: "Vérification effectuée : le numéro de passeport est valide." }
-        : {
-            ok: false,
-            message:
-              "Le numéro de passeport semble incorrect (6 à 9 lettres/chiffres attendus). Merci de vérifier la saisie.",
-          }
-    );
+    if (!PASSPORT_FORMAT.test(value)) {
+      setPassportWarning(
+        "Le numéro de passeport semble incorrect (6 à 9 lettres/chiffres attendus). Merci de vérifier la saisie."
+      );
+      return;
+    }
+    setPassportWarning(null);
+    if (value !== confirmedPassportNumber) {
+      setPendingConfirmValue(value);
+    }
+  };
+
+  const handleConfirmPassport = () => {
+    setConfirmedPassportNumber(pendingConfirmValue);
+    setPendingConfirmValue(null);
+  };
+
+  const handleCorrectPassport = () => {
+    setPendingConfirmValue(null);
+    passportInputRef.current?.focus();
   };
 
   const handleExpiryBlur = () => {
@@ -96,6 +112,7 @@ export default function EditTravelerForm({ registration, role }) {
   };
 
   return (
+    <>
     <form
       onSubmit={handleSubmit}
       className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
@@ -151,18 +168,20 @@ export default function EditTravelerForm({ registration, role }) {
             Passeport
           </label>
           <input
+            ref={passportInputRef}
             disabled={!canEdit}
             value={passportNumber}
             onChange={(e) => {
               setPassportNumber(e.target.value);
-              setPassportCheck(null);
+              setPassportWarning(null);
             }}
             onBlur={handlePassportBlur}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
           />
-          {passportCheck && (
-            <p className={`mt-1 text-xs ${passportCheck.ok ? "text-emerald-700" : "text-red-600"}`}>
-              {passportCheck.message}
+          {passportWarning && <p className="mt-1 text-xs text-red-600">{passportWarning}</p>}
+          {!passportWarning && isPassportConfirmed && (
+            <p className="mt-1 text-xs text-emerald-700">
+              Vérification effectuée : le numéro de passeport est valide.
             </p>
           )}
         </div>
@@ -207,5 +226,35 @@ export default function EditTravelerForm({ registration, role }) {
         </button>
       )}
     </form>
+
+    {pendingConfirmValue && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+          <h3 className="text-sm font-semibold text-zinc-900">
+            Vérification du numéro de passeport
+          </h3>
+          <p className="mt-3 text-sm text-zinc-700">
+            Vérifiez que le N° de Passeport est : <span className="font-bold">{pendingConfirmValue}</span> — Exact ?
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCorrectPassport}
+              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              Corriger
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPassport}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              Valider
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
