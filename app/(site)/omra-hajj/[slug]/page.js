@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getProgramBySlug, getOpenTripsForProgram } from "@/lib/programs";
 import { listVisaTypesForProgram, getVisaTypeWithDocuments } from "@/lib/visaTypes";
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
-import ProgramDetail from "../../_components/ProgramDetail";
+import ProgramDetail from "@/app/_components/ProgramDetail";
 
 export const revalidate = 300;
 

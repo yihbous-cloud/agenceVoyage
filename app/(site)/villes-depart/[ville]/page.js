@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProgramsByDepartureCity } from "@/lib/programs";
 import { getIataBySlug, getCityByIata } from "@/lib/airports";
-import ProgramCard from "../../_components/ProgramCard";
-import BreadcrumbJsonLd from "../../_components/BreadcrumbJsonLd";
+import ProgramCard from "@/app/_components/ProgramCard";
+import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
 
 export const revalidate = 300;
 

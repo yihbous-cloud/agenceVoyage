@@ -52,30 +52,31 @@ Rôles valides : `direction`, `ventes`, `comptabilite`, `suivi`. Connexion sur `
 
 ```
 app/
-  page.js                              accueil (hero, programmes à la une, réassurance, actualités)
-  a-propos/page.js                     page à propos
-  actualites/page.js, /[slug]/page.js  liste et détail des actualités (schema.org NewsArticle)
-  faq/page.js                          questions fréquentes (schema.org FAQPage)
-  contact/page.js, ContactForm.jsx     formulaire de contact public
-  mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
-  sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots avec bots IA explicites, citabilité IA)
+  (site)/layout.js                     layout racine du site public (header/nav/footer marketing, polices, JSON-LD TravelAgency) — root layout indépendant de admin/layout.js
+  (site)/page.js                       accueil (hero, programmes à la une, réassurance, actualités)
+  (site)/a-propos/page.js              page à propos
+  (site)/actualites/page.js, /[slug]/page.js  liste et détail des actualités (schema.org NewsArticle)
+  (site)/faq/page.js                   questions fréquentes (schema.org FAQPage)
+  (site)/contact/page.js, ContactForm.jsx     formulaire de contact public
+  (site)/mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
+  (site)/omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram, FAQ)
+  (site)/voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail (FAQ)
+  (site)/villes-depart/[ville]/page.js hub pSEO par ville de départ (agrège les deux familles, maillage interne depuis le détail programme)
+  (site)/programmes/page.js            ancienne URL : page de bascule vers les deux hubs (pas de 404)
+  (site)/programmes/[slug]/page.js     ancienne URL : redirection 308 vers /omra-hajj/[slug] ou /voyages-organises/[slug]
+  sitemap.js, robots.js, llms.txt/route.js   SEO technique (sitemap dynamique, robots avec bots IA explicites, citabilité IA) — hors du groupe (site), non concernés par les layouts
   feed.xml/route.js                    flux RSS des actualités (AIO)
   api/public/programs/route.js         API JSON publique en lecture seule des programmes (AIO)
   api/contact/route.js                 API publique : enregistre un message de contact
-  omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance Haram, FAQ)
-  voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail (FAQ)
-  villes-depart/[ville]/page.js        hub pSEO par ville de départ (agrège les deux familles, maillage interne depuis le détail programme)
-  _components/ProgramCard.jsx          carte de programme, habillage conditionné par `family` (pas de duplication)
+  _components/ProgramCard.jsx          carte de programme, habillage conditionné par `family` (pas de duplication) — importé via l'alias `@/app/_components/...` depuis les pages du groupe (site)
   _components/ProgramDetail.jsx        gabarit de détail partagé par les deux hubs (`family` en prop), FAQ + JSON-LD BreadcrumbList/FAQPage
   _components/BreadcrumbJsonLd.jsx     JSON-LD BreadcrumbList réutilisable (hubs, détail programme, villes de départ)
   _components/ReassuranceBanner.jsx    bandeau de confiance commun (accueil + deux hubs)
   _components/ReservationForm.jsx      formulaire d'inscription public (client), partagé par les deux familles
-  programmes/page.js                   ancienne URL : page de bascule vers les deux hubs (pas de 404)
-  programmes/[slug]/page.js            ancienne URL : redirection 308 vers /omra-hajj/[slug] ou /voyages-organises/[slug]
   api/reservations/route.js            API publique : crée un voyageur + une inscription (identique pour les deux familles)
   api/auth/login, /logout              connexion / déconnexion interne
   admin/login/page.js                  page de connexion interne
-  admin/layout.js                      layout protégé (nav + session)
+  admin/layout.js                      layout racine de l'espace interne (root layout indépendant, sans header/footer marketing — nav interne + session)
   admin/page.js                        tableau de bord (stats, prochains départs)
   admin/inscriptions/page.js           liste des inscrits (filtrable par voyage)
   admin/inscriptions/new/page.js       création manuelle d'une inscription
@@ -226,3 +227,4 @@ forme exacte des réponses Duffel diffère de ce qui a été supposé
 - Le `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle CSS hors des cascade layers de Tailwind, qui écrasait silencieusement les classes `bg-zinc-50`/`text-zinc-900` du `<body>`) — nettoyé ; le site garde un thème clair unique quel que soit le réglage du navigateur.
 - Renseignez `NEXT_PUBLIC_SITE_URL` en production (utilisé par le sitemap, `llms.txt` et le schema.org `TravelAgency`) — sinon ces éléments pointent vers `http://localhost:3000`.
 - Les images de couverture des programmes sont uploadées directement depuis l'admin (`/admin/programmes/new`) et stockées sur le disque du serveur dans `public/uploads/` (non versionné, réservé au rôle direction, 5 Mo max, JPG/PNG/WEBP/GIF). En production sur le VPS Hostinger, ce dossier doit être conservé entre les déploiements (ou migré vers un stockage objet type S3 si le volume d'images devient important).
+- **Deux layouts racine indépendants** : le site public (`app/(site)/layout.js`) et l'espace interne (`app/admin/layout.js`) définissent chacun leur propre `<html>`/`<body>` (pattern Next.js "multiple root layouts" via route group) — l'admin n'hérite plus du header/footer marketing, il a sa propre navigation interne uniquement. Conséquence attendue : naviguer entre le site public et `/admin` déclenche un rechargement complet de page (comportement normal pour deux root layouts distincts, pas un bug). Les fichiers hors page (`sitemap.js`, `robots.js`, `llms.txt/route.js`, `feed.xml/route.js`, tout `api/**`) ne sont pas concernés par les layouts et restent à la racine de `app/`.

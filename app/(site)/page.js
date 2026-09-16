@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
-import HomeShowcaseCard from "./_components/HomeShowcaseCard";
+import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 
 export const revalidate = 300;
 

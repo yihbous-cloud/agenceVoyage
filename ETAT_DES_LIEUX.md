@@ -255,6 +255,7 @@ programs (contenu) : news_posts et contact_messages sont indépendants (aucune F
 - `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle hors des cascade layers Tailwind, écrasant silencieusement les classes de thème clair) — nettoyé, le site garde un thème clair unique
 - Algorithme de répartition automatique des chambres : traiter systématiquement les hommes avant les femmes pouvait gâcher une place dans une chambre mixte-libre — corrigé pour traiter le genre le plus nombreux en premier
 - Connexion MySQL avec `localhost` provoquait un crash Node (AggregateError) sur Windows en l'absence de serveur — corrigé en utilisant `127.0.0.1`
+- Le header/footer marketing du site public s'affichait aussi en haut de toutes les pages `/admin/*` (un seul `app/layout.js` enveloppait tout le site) — corrigé en séparant deux layouts racine indépendants via le pattern Next.js "multiple root layouts" : pages publiques déplacées dans `app/(site)/` avec leur propre layout, `app/admin/layout.js` devenu root layout indépendant sans aucune trace du header public (voir CLAUDE.md §3sexies)
 
 ### Environnement de développement
 - Base de données testée via un conteneur Docker MySQL 8.0 local (voir README pour la commande complète)

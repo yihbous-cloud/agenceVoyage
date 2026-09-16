@@ -1,7 +1,7 @@
 import { getProgramsByFamily } from "@/lib/programs";
-import ProgramCard from "../_components/ProgramCard";
-import ReassuranceBanner from "../_components/ReassuranceBanner";
-import BreadcrumbJsonLd from "../_components/BreadcrumbJsonLd";
+import ProgramCard from "@/app/_components/ProgramCard";
+import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
+import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
 
 export const metadata = {
   title: "Voyages organisés",
