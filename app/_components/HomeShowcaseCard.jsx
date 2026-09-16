@@ -2,11 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { SEASON_LABELS, formatDate, computeDuration } from "./formatTrip";
 
-// Carte "vitrine" utilisée uniquement sur l'accueil (habillage doré/sombre du
-// style de référence) — distincte de ProgramCard (utilisée sur les hubs
-// /omra-hajj et /voyages-organises), dont l'habillage reste inchangé.
-// Un seul composant, `program.family` pilote l'habillage, comme pour
-// ProgramCard/ProgramDetail.
+// Carte "vitrine" (habillage doré/sombre) utilisée sur l'accueil et sur tous
+// les hubs publics (/omra-hajj, /voyages-organises, /villes-depart) pour une
+// identité visuelle unique sur tout le site. Un seul composant,
+// `program.family` pilote l'habillage, comme pour ProgramDetail.
 export default function HomeShowcaseCard({ program }) {
   const href =
     program.family === "omra_hajj"

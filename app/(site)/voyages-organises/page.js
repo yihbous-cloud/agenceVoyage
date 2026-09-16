@@ -1,5 +1,5 @@
 import { getProgramsByFamily } from "@/lib/programs";
-import ProgramCard from "@/app/_components/ProgramCard";
+import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
 
@@ -36,26 +36,30 @@ export default async function VoyagesOrganisesPage({ searchParams }) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   return (
-    <main className="flex-1">
+    <main className="flex-1 bg-ink">
       <BreadcrumbJsonLd
         items={[{ name: "Accueil", item: baseUrl }, { name: "Voyages organisés" }]}
       />
-      <section className="mx-auto max-w-5xl px-6 pb-6 pt-12 text-center">
-        <h1 className="text-3xl font-bold text-zinc-900 sm:text-4xl">
+
+      <section className="mx-auto max-w-3xl px-6 pt-16 pb-6 text-center">
+        <h1 className="font-script text-6xl leading-none text-gold">
           Voyages organisés
         </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-zinc-600">
+        <p className="mt-2 font-display text-sm tracking-[0.28em] text-white/60 uppercase">
+          Par destination, par envie
+        </p>
+        <p className="mx-auto mt-4 max-w-2xl text-white/70">
           Envie d&apos;évasion ? Découvrez nos séjours organisés vers de
           nouvelles destinations, par envie ou par destination.
         </p>
       </section>
 
-      <ReassuranceBanner compact />
+      <ReassuranceBanner compact dark />
 
-      <section className="mx-auto max-w-5xl px-6 pb-12">
-        <form className="mb-8 flex flex-wrap items-end gap-3" method="get">
+      <section className="mx-auto max-w-6xl px-6 pt-8 pb-20">
+        <form className="mb-10 flex flex-wrap items-end justify-center gap-3" method="get">
           <div>
-            <label className="block text-xs font-medium text-zinc-600">
+            <label className="block text-xs tracking-widest text-white/60 uppercase">
               Destination
             </label>
             <input
@@ -63,17 +67,17 @@ export default async function VoyagesOrganisesPage({ searchParams }) {
               name="destination"
               defaultValue={destination || ""}
               placeholder="ex: Turquie"
-              className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 border border-gold/30 bg-ink-soft px-3 py-2.5 text-sm text-white placeholder:text-white/40"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-600">
+            <label className="block text-xs tracking-widest text-white/60 uppercase">
               Envie
             </label>
             <select
               name="envie"
               defaultValue={envie || ""}
-              className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 border border-gold/30 bg-ink-soft px-3 py-2.5 text-sm text-white"
             >
               <option value="">Toutes les envies</option>
               {ENVIES.map((e) => (
@@ -85,36 +89,33 @@ export default async function VoyagesOrganisesPage({ searchParams }) {
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+            className="bg-gold px-6 py-2.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
           >
             Filtrer
           </button>
           {(destination || envie) && (
-            <a
-              href="/voyages-organises"
-              className="text-sm text-zinc-500 hover:text-zinc-700"
-            >
+            <a href="/voyages-organises" className="text-sm text-white/60 hover:text-white">
               Réinitialiser
             </a>
           )}
         </form>
 
         {dbError && (
-          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          <p className="border border-red-500/30 bg-red-950/40 p-4 text-sm text-red-300">
             Impossible de charger les programmes depuis la base de données (
             {dbError}). Vérifiez la configuration MySQL (.env).
           </p>
         )}
 
         {!dbError && programs.length === 0 && (
-          <p className="text-zinc-600">
+          <p className="text-center text-white/60">
             Aucun voyage organisé publié pour ces critères.
           </p>
         )}
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} />
+            <HomeShowcaseCard key={program.id} program={program} />
           ))}
         </div>
       </section>

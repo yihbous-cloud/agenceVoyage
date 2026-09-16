@@ -42,7 +42,7 @@ export default function ReservationForm({ tripId }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 rounded-full bg-emerald-700 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+        className="mt-4 bg-gold px-5 py-2 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light"
       >
         S&apos;inscrire
       </button>
@@ -87,14 +87,14 @@ export default function ReservationForm({ tripId }) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-full bg-emerald-700 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="bg-gold px-5 py-2 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light disabled:opacity-60"
         >
           {submitting ? "Envoi..." : "Confirmer l'inscription"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-sm text-zinc-500 hover:text-zinc-700"
+          className="text-sm text-muted hover:text-ink"
         >
           Annuler
         </button>
@@ -102,7 +102,7 @@ export default function ReservationForm({ tripId }) {
       {status && (
         <p
           className={`text-sm ${
-            status.type === "success" ? "text-emerald-700" : "text-red-600"
+            status.type === "success" ? "text-[#A8863C]" : "text-red-600"
           }`}
         >
           {status.message}

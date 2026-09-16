@@ -16,24 +16,29 @@ const REASSURANCE = [
   },
 ];
 
-// Bandeau de confiance commun aux deux familles de catalogue (Omra & Hajj /
-// Voyages organisés) et à l'accueil — ne pas dupliquer ce contenu ailleurs.
-export default function ReassuranceBanner({ compact = false }) {
+// Bandeau de confiance commun à l'accueil et aux hubs de catalogue (Omra &
+// Hajj / Voyages organisés) — ne pas dupliquer ce contenu ailleurs.
+// `dark` adapte les couleurs de texte quand le bandeau est posé sur un fond
+// sombre (bg-ink/bg-ink-soft), `compact` retire le fond et le padding pour
+// s'intégrer directement sous un titre de page.
+export default function ReassuranceBanner({ compact = false, dark = false }) {
+  const wrapperClass = compact
+    ? "py-8"
+    : `py-14 ${dark ? "bg-ink-soft" : "bg-cream-card"}`;
+  const titleClass = dark ? "text-white" : "text-ink";
+  const descClass = dark ? "text-white/60" : "text-muted";
+
   return (
-    <section className={compact ? "py-8" : "bg-white py-14"}>
+    <section className={wrapperClass}>
       <div className="mx-auto max-w-5xl px-6">
-        {!compact && (
-          <h2 className="text-2xl font-bold text-zinc-900">
-            Pourquoi choisir Golden Fantastic
-          </h2>
-        )}
-        <div
-          className={`grid gap-6 sm:grid-cols-3 ${compact ? "" : "mt-6 gap-8"}`}
-        >
+        <div className="grid gap-10 sm:grid-cols-3">
           {REASSURANCE.map((item) => (
-            <div key={item.title}>
-              <h3 className="font-semibold text-zinc-900">{item.title}</h3>
-              <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
+            <div key={item.title} className="text-center">
+              <div className="mx-auto h-px w-10 bg-gold" />
+              <h3 className={`mt-4 font-display text-lg font-normal ${titleClass}`}>
+                {item.title}
+              </h3>
+              <p className={`mt-2 text-sm ${descClass}`}>{item.description}</p>
             </div>
           ))}
         </div>

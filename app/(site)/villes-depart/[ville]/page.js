@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProgramsByDepartureCity } from "@/lib/programs";
 import { getIataBySlug, getCityByIata } from "@/lib/airports";
-import ProgramCard from "@/app/_components/ProgramCard";
+import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
 
 export const revalidate = 300;
@@ -48,7 +48,7 @@ export default async function DepartureCityPage({ params, searchParams }) {
   ];
 
   return (
-    <main className="flex-1">
+    <main className="flex-1 bg-cream">
       <BreadcrumbJsonLd
         items={[
           { name: "Accueil", item: baseUrl },
@@ -56,11 +56,11 @@ export default async function DepartureCityPage({ params, searchParams }) {
         ]}
       />
 
-      <section className="mx-auto max-w-5xl px-6 pb-6 pt-12 text-center">
-        <h1 className="text-3xl font-bold text-zinc-900 sm:text-4xl">
-          Voyages au départ de {city.city}
+      <section className="mx-auto max-w-3xl px-6 pt-16 pb-6 text-center">
+        <h1 className="font-script text-6xl leading-none text-gold">
+          Départ de {city.city}
         </h1>
-        <p className="mx-auto mt-3 max-w-2xl text-zinc-600">
+        <p className="mx-auto mt-4 max-w-2xl text-zinc-600">
           {programs.length > 0 ? (
             <>
               {programs.length} programme{programs.length > 1 ? "s" : ""} avec un
@@ -78,16 +78,16 @@ export default async function DepartureCityPage({ params, searchParams }) {
         </p>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-12">
-        <form className="mb-8 flex flex-wrap items-end gap-3" method="get">
+      <section className="mx-auto max-w-6xl px-6 pt-8 pb-20">
+        <form className="mb-10 flex flex-wrap items-end justify-center gap-3" method="get">
           <div>
-            <label className="block text-xs font-medium text-zinc-600">
+            <label className="block text-xs tracking-widest text-muted uppercase">
               Famille
             </label>
             <select
               name="famille"
               defaultValue={famille || ""}
-              className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 border border-gold-pale bg-cream-card px-3 py-2.5 text-sm text-ink"
             >
               <option value="">Toutes</option>
               <option value="omra_hajj">Omra &amp; Hajj</option>
@@ -96,29 +96,29 @@ export default async function DepartureCityPage({ params, searchParams }) {
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+            className="bg-gold px-6 py-2.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
           >
             Filtrer
           </button>
         </form>
 
         {dbError && (
-          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          <p className="border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             Impossible de charger les programmes depuis la base de données (
             {dbError}). Vérifiez la configuration MySQL (.env).
           </p>
         )}
 
         {!dbError && programs.length === 0 && (
-          <p className="text-zinc-600">
+          <p className="text-center text-muted">
             Aucun programme avec un départ ouvert depuis {city.city} pour le
             moment.
           </p>
         )}
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} />
+            <HomeShowcaseCard key={program.id} program={program} />
           ))}
         </div>
       </section>

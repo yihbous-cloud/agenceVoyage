@@ -3,26 +3,9 @@ import Image from "next/image";
 import { getProgramsByFamily } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
+import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 
 export const revalidate = 300;
-
-const REASSURANCE = [
-  {
-    title: "Accompagnement complet",
-    description:
-      "Vols, hébergement, transport et visa pris en charge du premier jour au retour.",
-  },
-  {
-    title: "Hôtels proches des lieux saints",
-    description:
-      "Une sélection d'hôtels à proximité du Haram pour l'Omra et le Hajj.",
-  },
-  {
-    title: "Suivi personnalisé",
-    description:
-      "Une équipe joignable par WhatsApp pour répondre à vos questions avant et pendant le voyage.",
-  },
-];
 
 export default async function Home() {
   const [omraHajjPrograms, voyagePrograms, news] = await Promise.all([
@@ -147,22 +130,7 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Réassurance */}
-      <section className="bg-cream-card py-20">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="grid gap-10 sm:grid-cols-3">
-            {REASSURANCE.map((item) => (
-              <div key={item.title} className="text-center">
-                <div className="mx-auto h-px w-10 bg-gold" />
-                <h3 className="mt-4 font-display text-lg font-normal text-ink">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm text-muted">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ReassuranceBanner />
 
       {/* Actualités */}
       {latestNews.length > 0 && (
