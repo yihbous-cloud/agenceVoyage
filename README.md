@@ -100,8 +100,11 @@ app/
   api/admin/trips/[tripId]/auto-assign répartition automatique
   api/admin/trips/[tripId]/lists/{travelers,visa,airline}   export Excel/PDF des listes
   admin/finances/page.js               rapports financiers (par voyage, par programme, par période)
-  admin/inscriptions/[id]/PaymentsSection.jsx   paiements d'une inscription (dû/payé/solde)
+  admin/inscriptions/[id]/PaymentsSection.jsx   paiements d'une inscription (dû/payé/solde) + lien reçu imprimable par versement
   api/admin/registrations/[id]/payments, /payments/[id]     CRUD paiements
+  api/admin/payments/[id]/recu          reçu de paiement PDF (format A5), un reçu par versement
+  admin/parametres/page.js              informations de l'agence (nom, adresse, contact, RC/IF/ICE) — en-tête des reçus
+  api/admin/agency-settings             GET (tout rôle) / PUT (direction) des informations de l'agence
   admin/programmes/*                   CRUD programmes (+ liste des voyages par programme + gestion des FAQ)
   admin/programmes/[id]/ProgramFaqManager.jsx   ajout/édition/suppression des FAQ d'un programme
   api/admin/programs/[id]/faqs, /program-faqs/[id]   CRUD des FAQ par programme
@@ -130,7 +133,9 @@ lib/
   listGenerators.js                    requêtes des 3 listes (voyageurs, visas, compagnie)
   airlineTemplates.js                  gabarit de colonnes par compagnie (RAM/Saudia/Turkish/générique)
   exporters/excel.js, exporters/pdf.js génération des fichiers .xlsx / .pdf
-  payments.js                          paiements + rapports financiers (par voyage/programme/période)
+  payments.js                          paiements + rapports financiers (par voyage/programme/période) — inclut getPaymentById (données du reçu)
+  agencySettings.js                    informations de l'agence (ligne unique) — en-tête des reçus
+  exporters/receiptPdf.js              génération du reçu de paiement PDF (format A5)
   programsAdmin.js                     CRUD programmes + voyages (interne)
   airlines.js                          catalogue de compagnies aériennes
   news.js                              actualités (public + admin)

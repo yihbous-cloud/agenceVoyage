@@ -87,6 +87,14 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ro
             </span>
             <div className="flex items-center gap-3">
               <span className="font-medium text-zinc-900">{p.amount} {p.currency}</span>
+              <a
+                href={`/api/admin/payments/${p.id}/recu`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-emerald-700 hover:underline"
+              >
+                Reçu
+              </a>
               {canManage && (
                 <button
                   onClick={() => handleDelete(p.id)}

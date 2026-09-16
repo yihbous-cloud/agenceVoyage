@@ -75,6 +75,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/actualites` | CRUD des actualités publiées sur le site public | Tous (lecture) / direction (gestion) |
 | `/admin/messages` | Messages reçus via le formulaire de contact public | direction, ventes |
 | `/admin/finances` | Rapports financiers : par voyage, par programme, paiements par période | direction, comptabilité (page entière restreinte) |
+| `/admin/parametres` | Informations de l'agence (coordonnées, RC/IF/ICE) — en-tête des reçus de paiement | Tous (lecture) / direction (édition) |
 
 **Ce qui n'existe PAS encore côté admin** : pas d'interface pour créer/gérer les comptes internes (`staff_users`) — uniquement via le script CLI `scripts/create-staff-user.js`. Pas d'interface pour gérer les rôles eux-mêmes (les 4 rôles sont fixes, câblés en dur dans le code de chaque route).
 
@@ -126,6 +127,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Calcul dû/payé/solde à 3 niveaux : par inscription, par voyage, par programme
 - Filtrage des paiements par période avec total
 - Page `/admin/finances` entièrement réservée à direction/comptabilité (contrôle d'accès au niveau de la page, pas seulement des actions)
+- Reçu de paiement PDF imprimable (format A5) par versement, `GET /api/admin/payments/[id]/recu` (`lib/exporters/receiptPdf.js`) — en-tête tiré de `lib/agencySettings.js` (table `agency_settings`, éditable depuis `/admin/parametres`), détail du versement + rappel dû/payé/solde de l'inscription
 
 ### 4.8 Listes exportables (`lib/listGenerators.js`, `lib/airlineTemplates.js`, `lib/exporters/`)
 - 3 listes par voyage : voyageurs complets (vue `v_trip_traveler_list`), demandes de visa (avec documents), compagnie aérienne (vue `v_trip_airline_list`, uniquement statuts confirmé/payé)

@@ -35,6 +35,10 @@ const NAV_LINKS = [
   { href: "/admin/messages", label: "Messages" },
 ];
 
+// Section réservée, séparée de la navigation principale : configuration
+// utilisée en en-tête des documents générés (reçus de paiement...).
+const SETTINGS_LINKS = [{ href: "/admin/parametres", label: "Infos agence" }];
+
 // Layout racine de l'espace interne — indépendant de app/(site)/layout.js.
 // Volontairement séparé du header/footer marketing du site public.
 // Navigation en barre latérale gauche (plutôt qu'une barre horizontale en
@@ -65,6 +69,11 @@ export default async function AdminLayout({ children }) {
                       : NAV_LINKS
                   }
                 />
+
+                <p className="mt-6 mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Paramètres
+                </p>
+                <AdminSidebarNav links={SETTINGS_LINKS} />
               </div>
 
               <div className="border-t border-zinc-200 px-5 py-4">

@@ -92,6 +92,14 @@ Le header/footer marketing (doré) s'affichait auparavant en haut de **toutes** 
 - `app/_components/*` (composants partagés) n'a pas bougé — les pages du groupe `(site)` l'importent via l'alias `@/app/_components/...` plutôt que des chemins relatifs, pour rester valides quelle que soit la profondeur du groupe de routes
 - Conséquence attendue et documentée : naviguer entre le site public et `/admin` déclenche un rechargement complet de page (comportement normal pour deux root layouts distincts, pas une régression)
 
+## 3septies. Paramètres agence & reçus de paiement imprimables
+
+- Table `agency_settings` (ligne unique, `id=1`) : nom, adresse, ville, téléphone, WhatsApp, email, site web, RC, IF (`tax_id`), ICE, note de bas de reçu — voir migration `003_add_agency_settings.sql`
+- Interface admin dédiée `/admin/parametres`, section **réservée** dans la barre latérale gauche (séparée de la navigation principale par un intitulé "Paramètres") — lecture pour tous les rôles, édition réservée à `direction`
+- Reçu de paiement PDF au format A5 (`lib/exporters/receiptPdf.js`, `pdfkit`), généré à la demande via `GET /api/admin/payments/[id]/recu` — **un reçu par versement** (pas un cumul) : en-tête agence, identité du client, programme/voyage, détail du versement (montant/mode/référence/saisi par), puis rappel du montant total du voyage, total payé à ce jour et solde restant
+- Accessible depuis la fiche inscription (`PaymentsSection.jsx`) via un lien "Reçu" à côté de chaque paiement, ouvert dans un nouvel onglet (`Content-Disposition: inline`, prêt à imprimer)
+- ⚠️ `toLocaleString("fr-FR")` insère un espace fine insécable (U+202F) comme séparateur de milliers — absent des polices standard de pdfkit (Helvetica), il se rend en glyphe corrompu. Toujours le remplacer par un espace normal dans tout nouveau texte PDF formatant un montant (voir `formatAmount` dans `receiptPdf.js`)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
@@ -155,7 +163,7 @@ Le header/footer marketing (doré) s'affichait auparavant en haut de **toutes** 
 - Organisme(s) concerné(s) par les demandes de visa (pour construire le format requis)
 - Types de chambres standards proposés (simple/double/triple/quadruple ?)
 - Devise(s) de facturation (MAD uniquement, ou multi-devises ?)
-- Adresse et téléphone réels de l'agence (bloque l'ajout du schema.org `LocalBusiness`, voir §3quinquies)
+- Adresse et téléphone réels de l'agence (bloque l'ajout du schema.org `LocalBusiness`, voir §3quinquies) — saisissables depuis `/admin/parametres` (voir §3septies), mais pas encore renseignés
 
 <!-- BEGIN:nextjs-agent-rules -->
 
