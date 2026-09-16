@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AIRLINES, getIataByName, getNameByIata } from "@/lib/airlinesReference";
+import { AIRLINES, getAirlineByName } from "@/lib/airlinesReference";
 
 const TEMPLATE_KEYS = [
   "ram_template",
@@ -19,20 +19,21 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Sélectionner un nom/code connu remplit automatiquement l'autre champ
-  // (compagnie absente de la liste : saisie libre, aucun remplissage).
+  // Le nom est le seul champ actif : une correspondance exacte avec la
+  // référence remplit et verrouille IATA + Gabarit (dérivés, pas de saisie
+  // manuelle possible). Sans correspondance (nouvelle compagnie), les deux
+  // se déverrouillent pour une saisie 100% manuelle.
+  const matchedAirline = getAirlineByName(name);
+  const isKnownAirline = matchedAirline !== null;
+
   const handleNameChange = (e) => {
     const value = e.target.value;
     setName(value);
-    const matchedIata = getIataByName(value);
-    if (matchedIata) setIataCode(matchedIata);
-  };
-
-  const handleIataChange = (e) => {
-    const value = e.target.value.toUpperCase();
-    setIataCode(value);
-    const matchedName = getNameByIata(value);
-    if (matchedName) setName(matchedName);
+    const matched = getAirlineByName(value);
+    if (matched) {
+      setIataCode(matched.iata);
+      setExportTemplateKey(matched.template);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -52,6 +53,7 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
       }
       setName("");
       setIataCode("");
+      setExportTemplateKey("generic_template");
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -136,27 +138,21 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
           <div className="w-28">
             <label className="block text-sm font-medium text-zinc-700">IATA</label>
             <input
-              list="airline-iata-codes"
+              disabled={isKnownAirline}
               maxLength={3}
               value={iataCode}
-              onChange={handleIataChange}
+              onChange={(e) => setIataCode(e.target.value.toUpperCase())}
               placeholder="ex : AT"
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
             />
-            <datalist id="airline-iata-codes">
-              {AIRLINES.map((a) => (
-                <option key={a.iata} value={a.iata}>
-                  {a.name}
-                </option>
-              ))}
-            </datalist>
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700">Gabarit</label>
             <select
+              disabled={isKnownAirline}
               value={exportTemplateKey}
               onChange={(e) => setExportTemplateKey(e.target.value)}
-              className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
             >
               {TEMPLATE_KEYS.map((k) => (
                 <option key={k} value={k}>

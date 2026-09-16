@@ -121,7 +121,11 @@ Sur `EditTravelerForm.jsx` (`/admin/inscriptions/[id]`), au blur (perte de focus
 
 ## 3decies. Champs Nom/IATA des compagnies aériennes (listes déroulantes éditables)
 
-Même pattern que Pays/Ville des hôtels (§3octies) : `AirlinesManager.jsx` (`/admin/airlines`) utilise `<input list>` + `<datalist>` pour les champs **Nom** et **Code IATA**, référence statique `lib/airlinesReference.js` (`AIRLINES`, ~40 compagnies courantes pour un marché marocain/Omra-Hajj/voyages organisés — RAM/Saudia/Turkish déjà partenaires, voir §3). Particularité par rapport aux hôtels : les deux champs sont **synchronisés dans les deux sens** — sélectionner un nom connu remplit automatiquement son code IATA (`getIataByName`) et inversement (`getNameByIata`). Une compagnie absente de la liste reste ajoutable librement : sans correspondance exacte, l'autre champ n'est jamais écrasé, saisie 100% manuelle des deux côtés.
+Même pattern que Pays/Ville des hôtels (§3octies) : `AirlinesManager.jsx` (`/admin/airlines`) utilise `<input list>` + `<datalist>` pour le champ **Nom**, référence statique `lib/airlinesReference.js` (`AIRLINES`, ~40 compagnies courantes pour un marché marocain/Omra-Hajj/voyages organisés — RAM/Saudia/Turkish déjà partenaires, voir §3, chacune avec son gabarit dédié `ram_template`/`saudia_template`/`turkish_template`, les autres en `generic_template`).
+
+**Le nom est le seul champ actif** (demande explicite) : IATA et Gabarit sont des champs **dérivés**, pas des entrées indépendantes.
+- Nom reconnu (correspondance exacte avec `AIRLINES`) : IATA et Gabarit se remplissent automatiquement (`getAirlineByName`) et se **verrouillent** (`disabled`, grisés) — aucune saisie manuelle possible tant que le nom correspond
+- Nom non reconnu (nouvelle compagnie) : IATA et Gabarit se **déverrouillent** pour une saisie 100% manuelle ; leur valeur précédente n'est pas effacée automatiquement (évite un vidage à chaque frappe pendant la saisie d'un nom qui finira par correspondre)
 
 ## 4. Modules fonctionnels
 
