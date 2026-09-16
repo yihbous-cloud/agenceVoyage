@@ -119,6 +119,10 @@ Sur `EditTravelerForm.jsx` (`/admin/inscriptions/[id]`), au blur (perte de focus
 - Revalidée côté serveur dans `PUT /api/admin/registrations/[id]/traveler` (même règle, même calcul) — la validation client seule ne suffit pas, un appel API direct doit aussi être bloqué
 - **Verrouillage progressif** (état client uniquement, `passportLocked`/`formLocked` dans `EditTravelerForm.jsx`, pas de colonne dédiée en base) : cliquer "Valider" dans le dialogue verrouille (grise) immédiatement le champ passeport, avant même l'enregistrement du reste du formulaire ; cliquer "Enregistrer" verrouille alors **tous** les champs de la section (y compris passeport) une fois la sauvegarde réussie. Un bouton "Modifier" (à côté du titre de section, et un autre local à côté de la confirmation passeport) redéverrouille — sans "Modifier", impossible de corriger un champ après coup
 
+## 3decies. Champs Nom/IATA des compagnies aériennes (listes déroulantes éditables)
+
+Même pattern que Pays/Ville des hôtels (§3octies) : `AirlinesManager.jsx` (`/admin/airlines`) utilise `<input list>` + `<datalist>` pour les champs **Nom** et **Code IATA**, référence statique `lib/airlinesReference.js` (`AIRLINES`, ~40 compagnies courantes pour un marché marocain/Omra-Hajj/voyages organisés — RAM/Saudia/Turkish déjà partenaires, voir §3). Particularité par rapport aux hôtels : les deux champs sont **synchronisés dans les deux sens** — sélectionner un nom connu remplit automatiquement son code IATA (`getIataByName`) et inversement (`getNameByIata`). Une compagnie absente de la liste reste ajoutable librement : sans correspondance exacte, l'autre champ n'est jamais écrasé, saisie 100% manuelle des deux côtés.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

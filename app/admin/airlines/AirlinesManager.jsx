@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AIRLINES, getIataByName, getNameByIata } from "@/lib/airlinesReference";
 
 const TEMPLATE_KEYS = [
   "ram_template",
@@ -17,6 +18,22 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
   const [exportTemplateKey, setExportTemplateKey] = useState("generic_template");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Sélectionner un nom/code connu remplit automatiquement l'autre champ
+  // (compagnie absente de la liste : saisie libre, aucun remplissage).
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setName(value);
+    const matchedIata = getIataByName(value);
+    if (matchedIata) setIataCode(matchedIata);
+  };
+
+  const handleIataChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    setIataCode(value);
+    const matchedName = getNameByIata(value);
+    if (matchedName) setName(matchedName);
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -104,19 +121,35 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
             <label className="block text-sm font-medium text-zinc-700">Nom</label>
             <input
               required
+              list="airline-names"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={handleNameChange}
+              placeholder="Taper pour rechercher..."
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
+            <datalist id="airline-names">
+              {AIRLINES.map((a) => (
+                <option key={a.iata} value={a.name} />
+              ))}
+            </datalist>
           </div>
-          <div className="w-24">
+          <div className="w-28">
             <label className="block text-sm font-medium text-zinc-700">IATA</label>
             <input
+              list="airline-iata-codes"
               maxLength={3}
               value={iataCode}
-              onChange={(e) => setIataCode(e.target.value.toUpperCase())}
+              onChange={handleIataChange}
+              placeholder="ex : AT"
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
+            <datalist id="airline-iata-codes">
+              {AIRLINES.map((a) => (
+                <option key={a.iata} value={a.iata}>
+                  {a.name}
+                </option>
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700">Gabarit</label>
