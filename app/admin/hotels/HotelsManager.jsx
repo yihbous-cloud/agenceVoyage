@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
 
 const initialForm = {
   name: "",
@@ -20,6 +21,14 @@ export default function HotelsManager({ initialHotels, canManage }) {
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  // Changer de pays remet la ville à zéro : ses suggestions ne
+  // correspondent plus (la ville reste saisissable librement).
+  const handleCountryChange = (e) => {
+    setForm((f) => ({ ...f, country: e.target.value, city: "" }));
+  };
+
+  const cityOptions = getCitiesForCountry(form.country);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -122,22 +131,38 @@ export default function HotelsManager({ initialHotels, canManage }) {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-zinc-700">Pays</label>
+            <input
+              list="hotel-countries"
+              value={form.country}
+              onChange={handleCountryChange}
+              placeholder="Taper pour rechercher..."
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <datalist id="hotel-countries">
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-zinc-700">Ville</label>
             <input
               required
+              list="hotel-cities"
               value={form.city}
               onChange={set("city")}
-              placeholder="ex: La Mecque, Médine"
+              placeholder={cityOptions.length ? "Taper pour rechercher..." : "ex : Makka, Madina"}
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Pays</label>
-            <input
-              value={form.country}
-              onChange={set("country")}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
+            <datalist id="hotel-cities">
+              {cityOptions.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-zinc-400">
+              Choisir un pays pour suggérer ses villes, ou saisir librement.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-zinc-700">Étoiles</label>

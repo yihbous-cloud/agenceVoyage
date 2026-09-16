@@ -85,7 +85,7 @@ app/
   admin/inscriptions/[id]/ServicesSection.jsx  services facturés (billet avion, autres)
   admin/visa-types/*                   catalogue des types de visa (documents + prix)
   admin/services/*                     catalogue générique de services extensible
-  admin/hotels/*                       catalogue des hôtels partenaires
+  admin/hotels/*                       catalogue des hôtels partenaires (pays/ville en listes déroulantes éditables, lib/worldPlaces.js)
   admin/voyages/[tripId]/hebergement   répartition hôtels/chambres pour un voyage
   admin/voyages/[tripId]/listes        génération des listes (voyageurs, visas, compagnie)
   api/admin/registrations/*            CRUD inscriptions, avec permissions par rôle
