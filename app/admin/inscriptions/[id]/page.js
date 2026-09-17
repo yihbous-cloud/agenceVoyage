@@ -5,6 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
 import { listServices, listRegistrationServices } from "@/lib/services";
 import { getRoomDetails, listTripHotels } from "@/lib/roomAssignment";
+import { listGroupsForTrip } from "@/lib/registrationGroups";
 import { listPaymentsForRegistration } from "@/lib/payments";
 import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
@@ -29,6 +30,7 @@ export default async function RegistrationDetailPage({ params }) {
     registrationServices,
     room,
     tripHotels,
+    tripGroups,
     payments,
     flightBooking,
     canEditVoyageur,
@@ -43,6 +45,7 @@ export default async function RegistrationDetailPage({ params }) {
     listRegistrationServices(id),
     registration.room_id ? getRoomDetails(registration.room_id) : null,
     listTripHotels(registration.trip_id),
+    listGroupsForTrip(registration.trip_id),
     listPaymentsForRegistration(id),
     getFlightBookingForRegistration(id),
     hasPermission(session, "inscriptions.edit_voyageur"),
@@ -85,6 +88,23 @@ export default async function RegistrationDetailPage({ params }) {
             </dd>
           </div>
           <div>
+            <dt className="text-zinc-500">Groupe / binôme</dt>
+            <dd className="font-medium text-zinc-900">
+              {registration.group_label ? (
+                <>
+                  {registration.group_label}
+                  {registration.allow_mixed_gender_room && (
+                    <span className="ml-1 text-xs font-normal text-emerald-700">
+                      (couple/famille)
+                    </span>
+                  )}
+                </>
+              ) : (
+                "Voyageur seul"
+              )}
+            </dd>
+          </div>
+          <div>
             <dt className="text-zinc-500">Billet d&apos;avion</dt>
             <dd className="font-medium text-zinc-900">
               {flightBooking ? (
@@ -110,6 +130,7 @@ export default async function RegistrationDetailPage({ params }) {
         role={session?.role}
         canDelete={canDeleteRegistration}
         tripHotels={tripHotels}
+        tripGroups={tripGroups}
       />
 
       <VisaSection

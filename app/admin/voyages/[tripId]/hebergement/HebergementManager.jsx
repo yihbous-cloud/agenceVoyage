@@ -97,6 +97,41 @@ export default function HebergementManager({
     router.refresh();
   };
 
+  // Assigne tous les membres d'un groupe (binôme/famille) à la même chambre,
+  // pour les garder ensemble en un clic plutôt que d'assigner un par un.
+  const handleAssignGroup = async (members, roomIdValue) => {
+    if (!roomIdValue) return;
+    setError(null);
+    for (const member of members) {
+      const res = await fetch(`/api/admin/registrations/${member.id}/room`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId: roomIdValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(`${member.full_name} : ${data.message}`);
+        router.refresh();
+        return;
+      }
+    }
+    router.refresh();
+  };
+
+  // Une chambre est compatible si elle a de la place et si elle n'est pas
+  // déjà occupée par l'autre genre — sauf pour un couple/famille du même
+  // groupe (allow_mixed_gender_room), seule exception à la non-mixité. Le
+  // serveur reste la source de vérité (voir assignRegistrationToRoom).
+  const isRoomCompatible = (room, traveler) => {
+    if (room.occupants_count >= room.capacity) return false;
+    if (!room.occupants_gender) return true;
+    const otherGenderPresent = room.occupants_gender
+      .split(" + ")
+      .some((g) => g !== traveler.gender);
+    if (!otherGenderPresent) return true;
+    return Boolean(traveler.group_id && traveler.allow_mixed_gender_room);
+  };
+
   // --- Répartition automatique ---
   const handleAutoAssign = async () => {
     setError(null);
@@ -110,6 +145,22 @@ export default function HebergementManager({
     setAutoAssignResult(data);
     router.refresh();
   };
+
+  // Regroupe les voyageurs non affectés par groupe d'inscription (binôme/
+  // famille) pour les afficher et les assigner ensemble.
+  const soloUnassigned = unassigned.filter((u) => !u.group_id);
+  const groupedUnassigned = [];
+  const seenGroupIds = new Set();
+  for (const u of unassigned) {
+    if (!u.group_id || seenGroupIds.has(u.group_id)) continue;
+    seenGroupIds.add(u.group_id);
+    groupedUnassigned.push({
+      groupId: u.group_id,
+      label: u.group_label,
+      allowMixed: Boolean(u.allow_mixed_gender_room),
+      members: unassigned.filter((x) => x.group_id === u.group_id),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -324,9 +375,62 @@ export default function HebergementManager({
           </p>
         )}
 
-        <ul className="mt-3 divide-y divide-zinc-100">
-          {unassigned.map((u) => (
-            <li key={u.id} className="flex items-center justify-between py-2 text-sm">
+        <ul className="mt-3 space-y-2">
+          {groupedUnassigned.map((g) => {
+            const compatibleRooms = rooms.filter((r) => {
+              const remaining = r.capacity - r.occupants_count;
+              if (remaining < g.members.length) return false;
+              return g.members.every((m) => isRoomCompatible(r, m));
+            });
+            return (
+              <li
+                key={g.groupId}
+                className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900">
+                      {g.label}
+                      {g.allowMixed && (
+                        <span className="ml-2 text-xs font-normal text-emerald-700">
+                          (couple/famille — chambre mixte autorisée)
+                        </span>
+                      )}
+                    </p>
+                    <ul className="mt-1 space-y-0.5 divide-y-0 text-sm text-zinc-700">
+                      {g.members.map((m) => (
+                        <li key={m.id}>
+                          {m.full_name}{" "}
+                          <span className="capitalize text-zinc-500">({m.gender})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {canManage && (
+                    <select
+                      defaultValue=""
+                      onChange={(e) => handleAssignGroup(g.members, e.target.value)}
+                      className="rounded-lg border border-zinc-300 px-2 py-1 text-xs"
+                    >
+                      <option value="">Assigner le groupe à...</option>
+                      {compatibleRooms.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.hotel_name} — {r.room_type} {r.room_number} (
+                          {r.occupants_count}/{r.capacity})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+
+          {soloUnassigned.map((u) => (
+            <li
+              key={u.id}
+              className="flex items-center justify-between border-b border-zinc-100 py-2 text-sm last:border-0"
+            >
               <span>
                 {u.full_name} <span className="capitalize text-zinc-500">({u.gender})</span>
                 {(u.preferred_hotel_name || u.preferred_room_type) && (
@@ -344,11 +448,7 @@ export default function HebergementManager({
                 >
                   <option value="">Assigner à...</option>
                   {rooms
-                    .filter(
-                      (r) =>
-                        r.occupants_count < r.capacity &&
-                        (!r.occupants_gender || r.occupants_gender === u.gender)
-                    )
+                    .filter((r) => isRoomCompatible(r, u))
                     .map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.hotel_name} — {r.room_type} {r.room_number} (
@@ -359,6 +459,7 @@ export default function HebergementManager({
               )}
             </li>
           ))}
+
           {unassigned.length === 0 && (
             <li className="py-2 text-sm text-zinc-500">
               Tous les voyageurs sont affectés.

@@ -257,6 +257,21 @@ CREATE TABLE travelers (
     INDEX idx_traveler_passport (passport_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Un groupe lie plusieurs inscriptions du même voyage (binôme/couple, famille,
+-- groupe d'amis) sans fusionner leurs dossiers individuels (documents,
+-- passeport, visa restent par voyageur). allow_mixed_gender_room : coché
+-- uniquement pour un couple/famille — seule exception à la non-mixité des
+-- chambres, et seulement entre membres de CE groupe (voir migration 011).
+CREATE TABLE registration_groups (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT UNSIGNED NOT NULL,
+    label VARCHAR(150) NOT NULL COMMENT 'ex. "Famille Alaoui", "M. et Mme Idrissi"',
+    allow_mixed_gender_room BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id),
+    INDEX idx_reg_group_trip (trip_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- L'inscription est l'entité centrale : un voyageur inscrit à un voyage précis
 CREATE TABLE registrations (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -267,6 +282,7 @@ CREATE TABLE registrations (
     room_id BIGINT UNSIGNED NULL COMMENT 'chambre assignée (peut être NULL avant répartition)',
     preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'hôtel souhaité par le voyageur (préférence, pas l’affectation réelle, voir migration 010)',
     preferred_room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NULL COMMENT 'type de chambre souhaité par le voyageur',
+    group_id BIGINT UNSIGNED NULL COMMENT 'groupe d’inscription (binôme/famille/groupe), voir registration_groups',
     visa_status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
     total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'montant total dû pour cette inscription',
     registration_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -276,6 +292,7 @@ CREATE TABLE registrations (
     FOREIGN KEY (registered_by_staff_id) REFERENCES staff_users(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id),
     FOREIGN KEY (preferred_hotel_id) REFERENCES hotels(id),
+    FOREIGN KEY (group_id) REFERENCES registration_groups(id),
     UNIQUE KEY uq_traveler_per_trip (trip_id, traveler_id),
     INDEX idx_reg_status (status),
     INDEX idx_reg_visa_status (visa_status)
