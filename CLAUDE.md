@@ -234,12 +234,13 @@ Un client peut demander une aide visa **indépendamment de tout voyage réservé
 - Le **reçu PDF** détecte `payment.isVisaService` et affiche "Service : {type de visa} ({pays})" à la place de "Programme"/"Voyage" (aucun voyage associé) ; `getPaymentsByPeriod` (page Finances) ajoute une 3ᵉ branche `UNION ALL` pour lister aussi ces paiements, avec "Service visa" en guise de programme — mais un service visa autonome **n'entre jamais** dans les totaux "Par voyage"/"Par programme" (aucun lien avec un `trip_id`, ça n'aurait pas de sens)
 - ⚠️ Les libellés de champ du reçu PDF doivent tenir sur une ligne dans `labelWidth` (110pt) : "Montant total dû (service visa)" débordait sur deux lignes et chevauchait le champ suivant (`drawField` avance d'une hauteur fixe, pas proportionnelle au nombre de lignes) — préférer des libellés courts ("Montant dû (visa)") plutôt que de complexifier `drawField` pour un cas rare
 
-## 3septendecies. Montant dû pré-rempli au prix du voyage
+## 3septendecies. Montant dû pré-rempli au prix
 
-Une inscription (individuelle ou groupe) démarre désormais avec `total_due` déjà rempli au prix du voyage — pas 0 — pour que le personnel n'ait pas à ressaisir un montant qu'il vient de voir affiché à l'écran (voir §3quindecies/§3sedecies pour le contexte). Reste **modifiable** ensuite comme avant (tarif négocié, remise...), rien n'est verrouillé.
+Une inscription (individuelle ou groupe) démarre désormais avec `total_due` déjà rempli au prix du voyage — pas 0 — pour que le personnel n'ait pas à ressaisir un montant qu'il vient de voir affiché à l'écran (voir §3quindecies/§3sedecies pour le contexte). Même principe pour un service visa autonome, avec le prix du type de visa choisi. Reste **modifiable** ensuite comme avant (tarif négocié, remise...), rien n'est verrouillé.
 
 - Individuel : `createRegistration()` (`lib/registrations.js`) regarde `trips.price_per_person` du voyage choisi quand `data.totalDue` n'est pas fourni — un appelant peut toujours forcer un montant différent en le passant explicitement (ex. tarif négocié dès la création)
 - Groupe/binôme : `NewRegistrationForm.jsx` calcule prix × nombre de voyageurs et fait un `PUT /api/admin/groups/[id]` juste après la création du groupe (le prix par personne n'est connu qu'au moment du choix du voyage, avant que les inscriptions individuelles existent)
+- Service visa autonome : `createVisaServiceRequest()` (`lib/visaServices.js`) regarde `visa_types.price` du type choisi, même mécanique que `createRegistration`
 - ⚠️ Piège React rencontré en implémentant ceci : `{group.allow_mixed_gender_room && (<span>...)}` affichait un **"0" visible à l'écran** quand la case n'était pas cochée — `mysql2` renvoie un `TINYINT(1)` comme `0`/`1` (nombre), pas `false`/`true`, et React rend `0` comme texte littéral (contrairement à `false`/`null`/`undefined`, silencieux). Toujours écrire `{Boolean(champ_booleen_mysql) && (...)}` (ou `!!`) pour un flag venant directement d'une requête SQL, jamais `{champ && (...)}` nu.
 
 ## 4. Modules fonctionnels
