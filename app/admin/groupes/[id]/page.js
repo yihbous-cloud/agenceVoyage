@@ -44,7 +44,7 @@ export default async function GroupDetailPage({ params }) {
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">
           {group.label}
-          {group.allow_mixed_gender_room && (
+          {Boolean(group.allow_mixed_gender_room) && (
             <span className="ml-2 text-sm font-normal text-emerald-700">
               (couple/famille)
             </span>

@@ -103,6 +103,18 @@ export default function NewRegistrationForm({ trips }) {
           throw new Error(groupData.message || "Erreur lors de la création du groupe");
         }
         groupId = groupData.id;
+
+        // Montant dû par défaut = prix du voyage × nombre de voyageurs, pour
+        // ne pas partir de 0 — reste modifiable ensuite (page du groupe).
+        if (selectedTrip?.price_per_person != null) {
+          await fetch(`/api/admin/groups/${groupId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              totalDue: Number(selectedTrip.price_per_person) * travelers.length,
+            }),
+          });
+        }
       }
 
       for (const traveler of travelers) {

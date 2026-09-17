@@ -78,7 +78,7 @@ export default async function RegistrationDetailPage({ params }) {
               {registration.group_label ? (
                 <>
                   {registration.group_label}
-                  {registration.allow_mixed_gender_room && (
+                  {Boolean(registration.allow_mixed_gender_room) && (
                     <span className="ml-1 text-xs font-normal text-emerald-700">
                       (couple/famille)
                     </span>
