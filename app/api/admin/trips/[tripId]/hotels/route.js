@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { listTripHotels, addTripHotel } from "@/lib/roomAssignment";
+import { listTripHotels, addTripHotel, getTripSummary } from "@/lib/roomAssignment";
 
 export async function GET(request, { params }) {
   const session = await getSession();
@@ -25,6 +25,28 @@ export async function POST(request, { params }) {
   if (!hotelId || !checkInDate || !checkOutDate) {
     return NextResponse.json(
       { message: "hotelId, checkInDate et checkOutDate sont requis" },
+      { status: 400 }
+    );
+  }
+
+  // Les dates du séjour à l'hôtel ne doivent pas sortir des dates du voyage
+  // — revalidé côté serveur (le client peut être contourné), même règle
+  // que HebergementManager.jsx (voir CLAUDE.md).
+  const trip = await getTripSummary(tripId);
+  if (!trip) {
+    return NextResponse.json({ message: "Voyage introuvable" }, { status: 404 });
+  }
+  if (checkInDate < trip.departure_date || checkOutDate > trip.return_date) {
+    return NextResponse.json(
+      {
+        message: `Les dates de l'hôtel doivent rester entre le ${trip.departure_date} et le ${trip.return_date} (dates du voyage)`,
+      },
+      { status: 400 }
+    );
+  }
+  if (checkInDate >= checkOutDate) {
+    return NextResponse.json(
+      { message: "La date de check-out doit être après la date de check-in" },
       { status: 400 }
     );
   }

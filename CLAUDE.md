@@ -243,6 +243,10 @@ Une inscription (individuelle ou groupe) démarre désormais avec `total_due` d�
 - Service visa autonome : `createVisaServiceRequest()` (`lib/visaServices.js`) regarde `visa_types.price` du type choisi, même mécanique que `createRegistration`
 - ⚠️ Piège React rencontré en implémentant ceci : `{group.allow_mixed_gender_room && (<span>...)}` affichait un **"0" visible à l'écran** quand la case n'était pas cochée — `mysql2` renvoie un `TINYINT(1)` comme `0`/`1` (nombre), pas `false`/`true`, et React rend `0` comme texte littéral (contrairement à `false`/`null`/`undefined`, silencieux). Toujours écrire `{Boolean(champ_booleen_mysql) && (...)}` (ou `!!`) pour un flag venant directement d'une requête SQL, jamais `{champ && (...)}` nu.
 
+## 3octodecies. Dates d'hôtel bornées aux dates du voyage
+
+`/admin/voyages/[tripId]/hebergement` : les dates de check-in/check-out d'un hôtel ajouté au voyage doivent rester **dans** les dates du voyage (`trips.departure_date`/`return_date`) — auparavant non vérifié, un hôtel avait pu être ajouté avec des dates totalement hors du voyage (trouvé et corrigé en base). Validé côté client (`min`/`max` sur les `<input type="date">`, plus message d'erreur explicite si contourné) **et** côté serveur (`POST /api/admin/trips/[tripId]/hotels`, source de vérité) — le check-in doit aussi précéder le check-out.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

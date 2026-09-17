@@ -6,6 +6,8 @@ import { ROOM_TYPE_CAPACITY, ROOM_TYPES } from "@/lib/roomTypes";
 
 export default function HebergementManager({
   tripId,
+  tripDepartureDate,
+  tripReturnDate,
   hotels,
   tripHotels,
   rooms,
@@ -24,6 +26,25 @@ export default function HebergementManager({
   const handleAddHotel = async (e) => {
     e.preventDefault();
     setError(null);
+
+    // Les dates de séjour à l'hôtel ne doivent pas sortir des dates du
+    // voyage — vérifié aussi côté serveur (source de vérité), voir
+    // CLAUDE.md.
+    if (checkIn < tripDepartureDate || checkOut > tripReturnDate) {
+      setError(
+        `Les dates de l'hôtel doivent rester entre le ${new Date(
+          tripDepartureDate
+        ).toLocaleDateString("fr-FR")} et le ${new Date(tripReturnDate).toLocaleDateString(
+          "fr-FR"
+        )} (dates du voyage).`
+      );
+      return;
+    }
+    if (checkIn >= checkOut) {
+      setError("La date de check-out doit être après la date de check-in.");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/admin/trips/${tripId}/hotels`, {
         method: "POST",
@@ -217,6 +238,8 @@ export default function HebergementManager({
               <input
                 type="date"
                 required
+                min={tripDepartureDate}
+                max={tripReturnDate}
                 value={checkIn}
                 onChange={(e) => setCheckIn(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
@@ -227,6 +250,8 @@ export default function HebergementManager({
               <input
                 type="date"
                 required
+                min={tripDepartureDate}
+                max={tripReturnDate}
                 value={checkOut}
                 onChange={(e) => setCheckOut(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"

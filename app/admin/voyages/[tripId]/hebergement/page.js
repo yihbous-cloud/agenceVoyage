@@ -43,6 +43,8 @@ export default async function HebergementPage({ params }) {
 
       <HebergementManager
         tripId={trip.id}
+        tripDepartureDate={trip.departure_date}
+        tripReturnDate={trip.return_date}
         hotels={hotels}
         tripHotels={tripHotels}
         rooms={rooms}
