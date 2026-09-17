@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { getProgramBySlug, getOpenTripsForProgram } from "@/lib/programs";
-import { listVisaTypesForProgram, getVisaTypeWithDocuments } from "@/lib/visaTypes";
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
 import ProgramDetail from "@/app/_components/ProgramDetail";
 
@@ -34,22 +33,16 @@ export default async function OmraHajjDetailPage({ params }) {
     notFound();
   }
 
-  const [trips, visaTypesBase, faqs] = await Promise.all([
+  const [trips, faqs] = await Promise.all([
     getOpenTripsForProgram(program.id).catch(() => []),
-    listVisaTypesForProgram(program.id).catch(() => []),
     listPublishedFaqsForProgram(program.id).catch(() => []),
   ]);
-
-  const visaTypes = await Promise.all(
-    visaTypesBase.map((vt) => getVisaTypeWithDocuments(vt.id))
-  );
 
   return (
     <ProgramDetail
       program={program}
       trips={trips}
       family="omra_hajj"
-      visaTypes={visaTypes.filter(Boolean)}
       faqs={faqs}
     />
   );

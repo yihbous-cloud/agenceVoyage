@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
   }
 
   const buffer = await buildReceiptPdfBuffer({ agency, payment });
-  const filename = `recu-${payment.reference_code}-${payment.id}.pdf`;
+  const filename = `recu-${payment.receipt_reference || payment.id}.pdf`;
 
   return new NextResponse(buffer, {
     headers: {

@@ -62,15 +62,13 @@ INSERT INTO permissions (code, label, category, sort_order) VALUES
     ('inscriptions.edit', 'Modifier une inscription (statut, notes...)', 'Inscriptions & voyageurs', 20),
     ('inscriptions.delete', 'Supprimer une inscription', 'Inscriptions & voyageurs', 30),
     ('inscriptions.edit_voyageur', 'Corriger les informations du voyageur (nom, passeport...)', 'Inscriptions & voyageurs', 40),
-    ('inscriptions.visa', 'Gérer le visa d''un inscrit', 'Inscriptions & voyageurs', 50),
-    ('inscriptions.services', 'Gérer les services facturés d''un inscrit', 'Inscriptions & voyageurs', 60),
     ('paiements.manage', 'Enregistrer / supprimer un paiement', 'Paiements & finances', 10),
     ('finances.view', 'Consulter les rapports financiers', 'Paiements & finances', 20),
     ('hebergement.manage', 'Affecter hôtels/chambres sur un voyage', 'Hébergement', 10),
     ('hotels.manage', 'Gérer le catalogue d''hôtels', 'Hébergement', 20),
     ('visa_types.manage', 'Gérer le catalogue des types de visa', 'Catalogues', 10),
-    ('visa_documents.manage', 'Gérer les documents de visa d''un inscrit', 'Catalogues', 20),
     ('services.manage', 'Gérer le catalogue de services', 'Catalogues', 30),
+    ('visa_services.manage', 'Gérer les demandes de visa autonomes (hors voyage)', 'Visa autonome', 10),
     ('compagnies.manage', 'Gérer les compagnies aériennes', 'Catalogues', 40),
     ('programmes.manage', 'Gérer les programmes et leurs FAQ', 'Programmes & voyages', 10),
     ('voyages.manage', 'Gérer les voyages (dates, prix, statut)', 'Programmes & voyages', 20),
@@ -94,21 +92,21 @@ JOIN (
     SELECT 'ventes', 'inscriptions.edit' UNION ALL
     SELECT 'ventes', 'inscriptions.delete' UNION ALL
     SELECT 'ventes', 'inscriptions.edit_voyageur' UNION ALL
-    SELECT 'ventes', 'inscriptions.services' UNION ALL
     SELECT 'ventes', 'billets.manage' UNION ALL
     SELECT 'ventes', 'messages.manage' UNION ALL
+    SELECT 'ventes', 'visa_services.manage' UNION ALL
 
     SELECT 'comptabilite', 'inscriptions.edit' UNION ALL
     SELECT 'comptabilite', 'paiements.manage' UNION ALL
     SELECT 'comptabilite', 'finances.view' UNION ALL
     SELECT 'comptabilite', 'services.manage' UNION ALL
+    SELECT 'comptabilite', 'visa_services.manage' UNION ALL
 
     SELECT 'suivi', 'inscriptions.edit' UNION ALL
-    SELECT 'suivi', 'inscriptions.visa' UNION ALL
-    SELECT 'suivi', 'visa_documents.manage' UNION ALL
     SELECT 'suivi', 'hebergement.manage' UNION ALL
     SELECT 'suivi', 'hotels.manage' UNION ALL
-    SELECT 'suivi', 'visa_types.manage'
+    SELECT 'suivi', 'visa_types.manage' UNION ALL
+    SELECT 'suivi', 'visa_services.manage'
 ) x ON x.role_name = r.name;
 
 -- =====================================================================
@@ -312,7 +310,11 @@ CREATE TABLE services (
     default_price DECIMAL(10,2) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Détail des services facturés par inscription (permet le calcul du "restant dû")
+-- ⚠️ Non utilisée depuis la migration 013 : le prix des services est
+-- désormais inclus dans le prix global du programme (trips.price_per_person),
+-- plus facturé séparément par inscription. Table conservée (vide) pour ne
+-- pas casser une éventuelle réutilisation future, mais plus alimentée par
+-- l'admin — voir CLAUDE.md.
 CREATE TABLE registration_services (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     registration_id BIGINT UNSIGNED NOT NULL,
@@ -323,13 +325,15 @@ CREATE TABLE registration_services (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Un paiement cible SOIT une inscription individuelle (registration_id),
--- SOIT un groupe (group_id) — jamais les deux, jamais aucun des deux
--- (CHECK). Les inscriptions faisant partie d'un groupe n'ont plus de
--- paiement individuel : le suivi se fait via group_id (voir migration 012).
+-- SOIT un groupe (group_id), SOIT une demande de visa autonome
+-- (visa_service_id, migration 013) — jamais deux à la fois, jamais aucun
+-- des trois (CHECK). Les inscriptions faisant partie d'un groupe n'ont
+-- plus de paiement individuel : le suivi se fait via group_id (migration 012).
 CREATE TABLE payments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     registration_id BIGINT UNSIGNED NULL,
     group_id BIGINT UNSIGNED NULL,
+    visa_service_id BIGINT UNSIGNED NULL,
     amount DECIMAL(10,2) NOT NULL,
     currency CHAR(3) NOT NULL DEFAULT 'MAD',
     payment_method ENUM('especes', 'virement', 'cheque', 'carte', 'autre') NOT NULL DEFAULT 'especes',
@@ -339,11 +343,13 @@ CREATE TABLE payments (
     notes VARCHAR(255) NULL,
     FOREIGN KEY (registration_id) REFERENCES registrations(id),
     FOREIGN KEY (group_id) REFERENCES registration_groups(id),
+    FOREIGN KEY (visa_service_id) REFERENCES visa_service_requests(id),
     FOREIGN KEY (recorded_by_staff_id) REFERENCES staff_users(id),
     INDEX idx_payment_date (payment_date),
     CONSTRAINT chk_payment_target CHECK (
-        (registration_id IS NOT NULL AND group_id IS NULL) OR
-        (registration_id IS NULL AND group_id IS NOT NULL)
+        (registration_id IS NOT NULL AND group_id IS NULL AND visa_service_id IS NULL) OR
+        (registration_id IS NULL AND group_id IS NOT NULL AND visa_service_id IS NULL) OR
+        (registration_id IS NULL AND group_id IS NULL AND visa_service_id IS NOT NULL)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -412,6 +418,10 @@ CREATE TABLE visa_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Suivi document par document, par voyageur (checklist "fourni / manquant")
+-- ⚠️ visa_requests/visa_request_documents : non utilisées depuis la
+-- migration 013 (visa désormais inclus dans le prix du programme, plus
+-- géré par inscription) — tables conservées vides, remplacées par
+-- visa_service_requests ci-dessous pour le service visa autonome.
 CREATE TABLE visa_request_documents (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     visa_request_id BIGINT UNSIGNED NOT NULL,
@@ -421,6 +431,40 @@ CREATE TABLE visa_request_documents (
     FOREIGN KEY (visa_request_id) REFERENCES visa_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (visa_type_document_id) REFERENCES visa_type_documents(id) ON DELETE CASCADE,
     UNIQUE KEY uq_request_document (visa_request_id, visa_type_document_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Service visa autonome (migration 013) : un client peut demander une
+-- aide visa indépendamment de tout voyage réservé chez l'agence — suivi
+-- financier propre (total_due, payments.visa_service_id).
+CREATE TABLE visa_service_requests (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    traveler_id BIGINT UNSIGNED NOT NULL,
+    visa_type_id BIGINT UNSIGNED NOT NULL COMMENT 'détermine la destination, le prix et les documents requis',
+    status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
+    total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    submitted_date DATE NULL,
+    consulate_or_authority VARCHAR(150) NULL,
+    visa_number VARCHAR(50) NULL,
+    issue_date DATE NULL,
+    expiry_date DATE NULL,
+    notes VARCHAR(255) NULL,
+    registered_by_staff_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (traveler_id) REFERENCES travelers(id),
+    FOREIGN KEY (visa_type_id) REFERENCES visa_types(id),
+    FOREIGN KEY (registered_by_staff_id) REFERENCES staff_users(id),
+    INDEX idx_visa_service_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE visa_service_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    visa_service_request_id BIGINT UNSIGNED NOT NULL,
+    visa_type_document_id BIGINT UNSIGNED NOT NULL,
+    status ENUM('manquant', 'fourni') NOT NULL DEFAULT 'manquant',
+    provided_at DATETIME NULL,
+    FOREIGN KEY (visa_service_request_id) REFERENCES visa_service_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (visa_type_document_id) REFERENCES visa_type_documents(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_service_document (visa_service_request_id, visa_type_document_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================

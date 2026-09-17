@@ -24,21 +24,23 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const NAV_LINKS = [
+const NAV_BEFORE_VISA_SERVICES = [
   { href: "/admin", label: "Tableau de bord" },
   { href: "/admin/inscriptions", label: "Inscrits" },
   { href: "/admin/programmes", label: "Programmes" },
   { href: "/admin/hotels", label: "Hôtels" },
   { href: "/admin/visa-types", label: "Types de visa" },
+];
+const NAV_AFTER_VISA_SERVICES = [
   { href: "/admin/services", label: "Services" },
   { href: "/admin/airlines", label: "Compagnies" },
   { href: "/admin/actualites", label: "Actualités" },
-  { href: "/admin/messages", label: "Messages" },
 ];
+const NAV_AFTER_SLIDER = [{ href: "/admin/messages", label: "Messages" }];
 
-// Ajouté dynamiquement dans navLinks uniquement si la permission
-// slider.manage est accordée (contenu marketing de l'accueil, direction
-// uniquement par défaut).
+// Ajoutés dynamiquement dans navLinks uniquement si la permission associée
+// est accordée.
+const VISA_SERVICES_LINK = { href: "/admin/visa-services", label: "Service visa" };
 const SLIDER_LINK = { href: "/admin/slider", label: "Slider accueil" };
 
 // Section réservée, séparée de la navigation principale : configuration
@@ -54,20 +56,28 @@ export default async function AdminLayout({ children }) {
   const session = await getSession();
 
   let settingsLinks = BASE_SETTINGS_LINKS;
-  let navLinks = NAV_LINKS;
+  let navLinks = [
+    ...NAV_BEFORE_VISA_SERVICES,
+    ...NAV_AFTER_VISA_SERVICES,
+    ...NAV_AFTER_SLIDER,
+  ];
 
   if (session) {
-    const [canViewFinances, canManageUsers, canManageRoles, canManageSlider] = await Promise.all([
-      hasPermission(session, "finances.view"),
-      hasPermission(session, "utilisateurs.manage"),
-      hasPermission(session, "roles.manage"),
-      hasPermission(session, "slider.manage"),
-    ]);
+    const [canViewFinances, canManageUsers, canManageRoles, canManageSlider, canManageVisaServices] =
+      await Promise.all([
+        hasPermission(session, "finances.view"),
+        hasPermission(session, "utilisateurs.manage"),
+        hasPermission(session, "roles.manage"),
+        hasPermission(session, "slider.manage"),
+        hasPermission(session, "visa_services.manage"),
+      ]);
 
     navLinks = [
-      ...NAV_LINKS.slice(0, 8),
+      ...NAV_BEFORE_VISA_SERVICES,
+      ...(canManageVisaServices ? [VISA_SERVICES_LINK] : []),
+      ...NAV_AFTER_VISA_SERVICES,
       ...(canManageSlider ? [SLIDER_LINK] : []),
-      ...NAV_LINKS.slice(8),
+      ...NAV_AFTER_SLIDER,
       ...(canViewFinances ? [{ href: "/admin/finances", label: "Finances" }] : []),
     ];
 

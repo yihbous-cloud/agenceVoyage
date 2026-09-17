@@ -33,6 +33,8 @@ Ce fichier décrit le projet pour Claude Code, afin qu'il travaille avec la mêm
 
 ## 3bis. Catalogue de services facturés
 
+⚠️ **Mise à jour** : les points 2 (visa) et 4 (autres services) ci-dessous décrivent la décision **initiale** du projet. Depuis, le visa et les services facturés par voyageur ont été retirés de l'inscription liée à un voyage — **inclus dans le prix global du programme** (`trips.price_per_person`), plus itemisés à part. Le visa reste utilisé, mais uniquement comme **service autonome** (hors voyage), voir §3sedecies. Section conservée pour l'historique de la décision "type de visa ≠ prix unique", toujours vraie pour le catalogue `visa_types`.
+
 L'agence facture, par inscription/voyageur, des **services** distincts du prix du voyage lui-même :
 
 1. **Programme Omra / Hajj / tourisme** — le voyage organisé (déjà modélisé : `trips.price_per_person`)
@@ -215,6 +217,22 @@ Un groupe (binôme ou groupe) a **un seul montant dû et un seul historique de v
 - **`/admin/groupes/[id]`** (nouvelle page) : liste des membres (nom, genre, statut, statut visa — chacun avec un lien vers sa fiche individuelle pour le détail non-financier), formulaire montant dû partagé (`GroupDueForm.jsx`), et `PaymentsSection.jsx` (rendue générique via une prop `apiBasePath` plutôt qu'un `registrationId` figé, réutilisée telle quelle entre une inscription individuelle et un groupe)
 - Le **reçu de paiement PDF** (`lib/exporters/receiptPdf.js`) détecte un paiement de groupe (`payment.members` présent) et affiche "Groupe : {nom}" + la liste de tous les voyageurs du groupe, à la place du champ "Client" individuel — le reste du reçu (détail du versement, montant total dû, solde) est inchangé
 - Les rapports financiers (`lib/payments.js` : `getFinancialSummaryByTrip`/`ByProgram`, `getPaymentsByPeriod`) additionnent explicitement le volet individuel (`group_id IS NULL`) et le volet groupe (`registration_groups.total_due`/`payments.group_id`) pour ne rien compter deux fois ni rien oublier ; calculés via des sous-requêtes corrélées plutôt que des `LEFT JOIN` agrégés, pour éviter un double-comptage par fan-out (un voyage avec plusieurs inscriptions/paiements gonflait `SUM(total_due)` dans l'ancienne version)
+
+## 3sedecies. Visa et services retirés de l'inscription ; service visa autonome (migration `013_add_standalone_visa_service.sql`)
+
+Le visa et les services facturés (§3bis) ne sont **plus gérés par inscription liée à un voyage** — leur prix est désormais **inclus dans le prix global du programme** (`trips.price_per_person`), plus itemisé à part. `VisaSection.jsx`/`ServicesSection.jsx` et leurs routes API ont été supprimés de `/admin/inscriptions/[id]` ; `registration_services` et `visa_requests`/`visa_request_documents` restent en base (vidées) mais ne sont plus alimentées — conservées pour ne pas casser une éventuelle réutilisation future, pas pour un usage actif. Le champ rapide **"Statut visa"** sur `EditRegistrationForm.jsx` (`registrations.visa_status`) reste néanmoins disponible : c'est un simple indicateur manuel, indépendant du catalogue/de la facturation, jugé assez léger pour être conservé.
+
+La page publique de détail programme (`ProgramDetail.jsx`) n'affiche donc plus la section "Visa et documents à prévoir" (prix par type de visa) : ce prix est déjà dans le total affiché, l'afficher à part aurait été trompeur.
+
+### Service visa autonome (hors voyage)
+
+Un client peut demander une aide visa **indépendamment de tout voyage réservé chez l'agence** (ex. quelqu'un qui a besoin d'un visa Omra ou touristique sans passer par un programme Golden Fantastic) :
+
+- Table dédiée `visa_service_requests` (voyageur, type de visa — détermine destination/prix/documents via `visa_types`, statut, `total_due`) + `visa_service_documents` (checklist, même mécanique que l'ancien `visa_request_documents` : générée automatiquement depuis `visa_type_documents` à la création, voir `createVisaServiceRequest` dans `lib/visaServices.js`)
+- **Suivi financier propre**, comme un groupe d'inscription : `payments.visa_service_id` (nullable) est un **troisième** cible possible pour un paiement, en plus de `registration_id`/`group_id` — le `CHECK chk_payment_target` exige désormais exactement un des trois, jamais deux ni aucun
+- `/admin/visa-services` (liste, permission `visa_services.manage` — direction/ventes/suivi/comptabilite par défaut) → `/admin/visa-services/new` (création : type de visa par **destination**, nom, genre, WhatsApp, email — réutilise le voyageur existant par numéro WhatsApp comme `createRegistration`) → `/admin/visa-services/[id]` (statut + checklist documents via `VisaServiceManager.jsx`, montant dû via `GroupDueForm.jsx` généralisé — même composant que pour un groupe, `apiBasePath` variable —, et `PaymentsSection.jsx` réutilisé tel quel)
+- Le **reçu PDF** détecte `payment.isVisaService` et affiche "Service : {type de visa} ({pays})" à la place de "Programme"/"Voyage" (aucun voyage associé) ; `getPaymentsByPeriod` (page Finances) ajoute une 3ᵉ branche `UNION ALL` pour lister aussi ces paiements, avec "Service visa" en guise de programme — mais un service visa autonome **n'entre jamais** dans les totaux "Par voyage"/"Par programme" (aucun lien avec un `trip_id`, ça n'aurait pas de sens)
+- ⚠️ Les libellés de champ du reçu PDF doivent tenir sur une ligne dans `labelWidth` (110pt) : "Montant total dû (service visa)" débordait sur deux lignes et chevauchait le champ suivant (`drawField` avance d'une hauteur fixe, pas proportionnelle au nombre de lignes) — préférer des libellés courts ("Montant dû (visa)") plutôt que de complexifier `drawField` pour un cas rare
 
 ## 4. Modules fonctionnels
 

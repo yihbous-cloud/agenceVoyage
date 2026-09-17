@@ -13,7 +13,6 @@ export default function ProgramDetail({
   program,
   trips,
   family,
-  visaTypes = [],
   faqs = [],
 }) {
   const isOmraHajj = family === "omra_hajj";
@@ -113,30 +112,6 @@ export default function ProgramDetail({
         <p className="mt-4 whitespace-pre-line text-muted">
           {program.full_description || program.short_description}
         </p>
-
-        {isOmraHajj && visaTypes.length > 0 && (
-          <section className="mt-8 border border-gold-pale/60 bg-cream-card p-6">
-            <h2 className="font-display text-lg font-normal text-ink">
-              Visa et documents à prévoir
-            </h2>
-            <ul className="mt-3 space-y-3">
-              {visaTypes.map((vt) => (
-                <li key={vt.id} className="text-sm text-muted">
-                  <p className="font-medium text-ink">
-                    {vt.name} — {vt.price} MAD
-                  </p>
-                  {vt.documents?.length > 0 && (
-                    <ul className="ml-4 mt-1 list-disc text-muted">
-                      {vt.documents.map((doc) => (
-                        <li key={doc.id}>{doc.document_name}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         <h2 className="mt-10 font-display text-xl font-normal text-ink">
           Prochains départs

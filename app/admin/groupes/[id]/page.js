@@ -93,7 +93,12 @@ export default async function GroupDetailPage({ params }) {
           Partagé par tout le groupe — pas un montant par personne.
         </p>
         <div className="mt-3">
-          <GroupDueForm groupId={group.id} totalDue={group.total_due} canManage={canManagePayments} />
+          <GroupDueForm
+            apiBasePath={`/api/admin/groups/${group.id}`}
+            totalDue={group.total_due}
+            canManage={canManagePayments}
+            label="Montant dû du groupe (MAD)"
+          />
         </div>
       </div>
 

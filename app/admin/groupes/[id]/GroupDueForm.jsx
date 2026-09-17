@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Montant dû partagé par tout le groupe (pas un montant par membre) — voir
-// CLAUDE.md §3quindecies.
-export default function GroupDueForm({ groupId, totalDue, canManage }) {
+// Montant dû partagé (groupe d'inscription ou service visa autonome — pas
+// un montant par personne), voir CLAUDE.md §3quindecies. `apiBasePath`
+// permet de réutiliser ce composant tel quel pour les deux contextes
+// (mêmes API PUT { totalDue }), à la manière de PaymentsSection.
+export default function GroupDueForm({ apiBasePath, totalDue, canManage, label = "Montant dû du groupe (MAD)" }) {
   const router = useRouter();
   const [value, setValue] = useState(totalDue);
   const [error, setError] = useState(null);
@@ -16,7 +18,7 @@ export default function GroupDueForm({ groupId, totalDue, canManage }) {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/groups/${groupId}`, {
+      const res = await fetch(apiBasePath, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ totalDue: Number(value) }),
@@ -36,9 +38,7 @@ export default function GroupDueForm({ groupId, totalDue, canManage }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
       <div>
-        <label className="block text-sm font-medium text-zinc-700">
-          Montant dû du groupe (MAD)
-        </label>
+        <label className="block text-sm font-medium text-zinc-700">{label}</label>
         <input
           type="number"
           step="0.01"

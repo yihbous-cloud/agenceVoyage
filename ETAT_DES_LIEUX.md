@@ -118,15 +118,14 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - **Préférence hébergement à l'inscription** (`registrations.preferred_hotel_id`/`preferred_room_type`, migration 010) : le voyageur peut indiquer un hôtel (parmi ceux du voyage) et un type de chambre souhaités dès `/admin/inscriptions/new` ou en modifiant une inscription existante — affiché comme indication au personnel sur la page Hébergement, pas comme affectation automatique
 - **Groupes d'inscription** (`registration_groups`, migrations 011/012, voir CLAUDE.md §3quindecies) : lie plusieurs inscriptions du même voyage (binôme/couple, famille) sans fusionner leurs dossiers. Un groupe marqué "couple/famille" est la seule exception à la non-mixité des chambres. La page Hébergement regroupe visuellement ces voyageurs et propose "Assigner le groupe à..." pour les affecter tous à la même chambre en un clic. Un groupe partage aussi **un seul montant dû et un seul suivi de paiement** (page dédiée `/admin/groupes/[id]`), avec reçu PDF listant chaque membre — voir §4.7
 
-### 4.5 Visa (`lib/visaTypes.js`)
-- Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme
-- Chaque type a son propre prix et sa propre liste de documents requis (avec indicateur obligatoire/optionnel)
-- Une inscription peut se voir assigner un type de visa → génère automatiquement une checklist de documents (statut fourni/manquant, horodatage)
+### 4.5 Visa (`lib/visaTypes.js`, `lib/visaServices.js`)
+- Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme — chaque type a son propre prix et sa propre liste de documents requis
+- ⚠️ Depuis la migration 013, le visa n'est **plus géré par inscription liée à un voyage** (prix inclus dans `trips.price_per_person`, voir CLAUDE.md §3sedecies) : `VisaSection.jsx` et les routes associées ont été retirés de `/admin/inscriptions/[id]`
+- **Service visa autonome** (`/admin/visa-services`, hors voyage) : un client peut demander uniquement une aide visa, avec son propre suivi financier (`visa_service_requests.total_due`, `payments.visa_service_id`) et sa propre checklist de documents (`visa_service_documents`, générée automatiquement à la création)
 
 ### 4.6 Services facturés (`lib/services.js`)
-- Catalogue générique de services (nom + prix par défaut) — extensible sans changement de schéma
-- Chaque inscription peut avoir plusieurs lignes de service avec un montant propre
-- Cas particulier "Billet avion" : le montant se pré-remplit automatiquement depuis `trips.flight_ticket_price` du voyage concerné
+- Catalogue générique de services (nom + prix par défaut) — extensible sans changement de schéma, géré depuis `/admin/services`
+- ⚠️ Depuis la migration 013, plus facturés par inscription (inclus dans le prix global du programme) — `registration_services` reste en base (vidée) mais n'est plus alimentée
 
 ### 4.7 Paiements & finances (`lib/payments.js`)
 - Paiements enregistrés par inscription **ou par groupe d'inscription** (montant, devise, mode, référence de reçu, qui l'a saisi) — `payments.registration_id`/`group_id`, mutuellement exclusifs (`CHECK`, migration 012). Un groupe (binôme/famille, CLAUDE.md §3quindecies) a un montant dû et un historique de versements partagés pour tous ses membres, gérés depuis `/admin/groupes/[id]`

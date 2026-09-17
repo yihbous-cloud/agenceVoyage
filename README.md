@@ -59,7 +59,7 @@ app/
   (site)/faq/page.js                   questions fréquentes (schema.org FAQPage)
   (site)/contact/page.js, ContactForm.jsx     formulaire de contact public
   (site)/mentions-legales/page.js, confidentialite/page.js   pages légales (noindex)
-  (site)/omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (checklist visa, distance au point de repère, FAQ)
+  (site)/omra-hajj/page.js, /[slug]/page.js   hub public Omra & Hajj (filtre saison) + détail (distance au point de repère, FAQ)
   (site)/voyages-organises/page.js, /[slug]/page.js   hub public Voyages organisés (filtre destination/envie) + détail (FAQ)
   (site)/villes-depart/[ville]/page.js hub pSEO par ville de départ (agrège les deux familles, maillage interne depuis le détail programme)
   (site)/programmes/page.js            ancienne URL : page de bascule vers les deux hubs (pas de 404)
@@ -80,19 +80,22 @@ app/
   admin/page.js                        tableau de bord (stats, prochains départs)
   admin/inscriptions/page.js           liste des inscrits (filtrable par voyage)
   admin/inscriptions/new/page.js       création manuelle d'une inscription
-  admin/inscriptions/[id]/page.js      détail / édition (statut, visa, montant dû, services)
-  admin/inscriptions/[id]/VisaSection.jsx      assignation type de visa + checklist documents
-  admin/inscriptions/[id]/ServicesSection.jsx  services facturés (billet avion, autres)
+  admin/inscriptions/[id]/page.js      détail / édition (statut, montant dû individuel ou lien vers le groupe)
+  admin/groupes/[id]/page.js           groupe d'inscription (binôme/famille) : membres, montant dû partagé, paiements
+  admin/groupes/[id]/GroupDueForm.jsx  montant dû partagé (généralisé, réutilisé aussi par le service visa autonome)
   admin/visa-types/*                   catalogue des types de visa (documents + prix)
-  admin/services/*                     catalogue générique de services extensible
+  admin/visa-services/*                service visa autonome (hors voyage) : liste, création, suivi + paiement
+  admin/services/*                     catalogue générique de services extensible (non facturé par inscription, voir CLAUDE.md §3sedecies)
   admin/hotels/*                       catalogue des hôtels partenaires (pays/ville en listes déroulantes éditables, lib/worldPlaces.js)
   admin/voyages/[tripId]/hebergement   répartition hôtels/chambres pour un voyage
   admin/voyages/[tripId]/listes        génération des listes (voyageurs, visas, compagnie)
   api/admin/registrations/*            CRUD inscriptions, avec permissions par rôle
+  api/admin/groups/[id], /[id]/payments   groupe d'inscription : montant dû partagé, paiements
+  api/admin/trips/[tripId]/groups      liste/création des groupes d'un voyage
   api/admin/visa-types/*               CRUD types de visa
-  api/admin/visa-documents/[id]        bascule statut d'un document (fourni/manquant)
+  api/admin/visa-services/*, /[id], /[id]/payments   service visa autonome : CRUD, paiements
+  api/admin/visa-service-documents/[id]   bascule statut d'un document du service visa (fourni/manquant)
   api/admin/services/*                 CRUD catalogue de services
-  api/admin/registrations/[id]/services, /registration-services/[id]   lignes de facturation
   api/admin/hotels/*                   CRUD catalogue d'hôtels
   api/admin/trips/[tripId]/hotels, /trip-hotels/[id]   hôtels associés à un voyage
   api/admin/trip-hotels/[id]/rooms, /rooms/[id]        chambres
@@ -133,8 +136,12 @@ lib/
   programFaqs.js                       FAQ par programme (public + admin)
   airports.js                          correspondance IATA → ville (liste statique, pSEO + maillage interne)
   registrations.js                     requêtes inscriptions / stats (interne)
-  visaTypes.js                         catalogue visa + suivi documents par voyageur
-  services.js                          catalogue de services + lignes de facturation
+  registrationGroups.js                groupes d'inscription (binôme/famille) — voir CLAUDE.md §3quindecies
+  passportValidation.js                règle de vérification du passeport, partagée client/serveur (voir CLAUDE.md §3nonies)
+  roomTypes.js                         capacité fixe par type de chambre, partagée (voir CLAUDE.md §3terdecies)
+  visaTypes.js                         catalogue des types de visa (documents + prix)
+  visaServices.js                      service visa autonome (hors voyage) — voir CLAUDE.md §3sedecies
+  services.js                          catalogue de services (non facturé par inscription, voir CLAUDE.md §3sedecies)
   hotels.js                            catalogue d'hôtels
   roomAssignment.js                    hôtels/chambres par voyage + affectation (manuelle et auto)
   listGenerators.js                    requêtes des 3 listes (voyageurs, visas, compagnie)
@@ -168,7 +175,9 @@ database/
 - [x] Structure Next.js + connexion MySQL
 - [x] Page programme (SEO/GEO : meta tags dynamiques, JSON-LD `TouristTrip`) + réservation en ligne basique
 - [x] Authentification interne (JWT en cookie httpOnly) + tableau de bord + CRUD des inscrits, avec permissions par rôle (direction/ventes accès complet, comptabilité limité au montant dû, suivi limité au visa/notes)
-- [x] Catalogue de services : types de visa (réutilisables ou spécifiques à un programme, avec documents requis et prix), suivi document par document par voyageur, billet d'avion au prix du voyage, catalogue générique extensible pour les autres services
+- [x] Catalogue de types de visa (réutilisables ou spécifiques à un programme, avec documents requis et prix) et catalogue générique de services — ~~facturés par inscription~~ : depuis la migration 013, inclus dans le prix global du programme, plus itemisés à part (CLAUDE.md §3sedecies)
+- [x] Service visa autonome (hors voyage, `/admin/visa-services`) : un client peut demander uniquement une aide visa, avec son propre suivi financier et sa propre checklist de documents
+- [x] Inscription individuelle, binôme ou groupe (`/admin/inscriptions/new`) : un binôme/groupe partage un seul montant dû et un seul historique de paiements (`/admin/groupes/[id]`), un couple/famille peut partager une chambre entre genres différents (seule exception à la non-mixité) — voir CLAUDE.md §3quindecies
 - [x] Répartition hôtels/chambres : catalogue d'hôtels, association hôtel(s)↔voyage avec dates, gestion des chambres (type/capacité), affectation manuelle avec anti-conflit (capacité, non-mixité de genre) et répartition automatique (regroupe le genre le plus nombreux en premier pour minimiser les places perdues)
 - [x] Générateur de listes, exportables en Excel et PDF, par voyage : liste complète des voyageurs (identité, passeport, hôtel, chambre, statut, finances), liste de demande de visa (type, organisme, statut, documents fournis), liste compagnie aérienne (gabarit de colonnes différent par compagnie — RAM/Saudia/Turkish/générique — piloté par `airlines.export_template_key`, aucun changement de code pour une nouvelle compagnie)
 - [x] Suivi des paiements et rapports financiers : paiements par inscription (montant/mode/référence, calcul dû/payé/solde), rapports par voyage, par programme et par période, réservé aux rôles direction/comptabilité

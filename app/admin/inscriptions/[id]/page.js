@@ -3,16 +3,12 @@ import Link from "next/link";
 import { getRegistrationById } from "@/lib/registrations";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
-import { listServices, listRegistrationServices } from "@/lib/services";
 import { getRoomDetails, listTripHotels } from "@/lib/roomAssignment";
 import { listGroupsForTrip } from "@/lib/registrationGroups";
 import { listPaymentsForRegistration } from "@/lib/payments";
 import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
 import EditTravelerForm from "./EditTravelerForm";
-import VisaSection from "./VisaSection";
-import ServicesSection from "./ServicesSection";
 import PaymentsSection from "./PaymentsSection";
 
 export default async function RegistrationDetailPage({ params }) {
@@ -25,33 +21,21 @@ export default async function RegistrationDetailPage({ params }) {
   }
 
   const [
-    visaTypes,
-    visaRequest,
-    catalogServices,
-    registrationServices,
     room,
     tripHotels,
     tripGroups,
     payments,
     flightBooking,
     canEditVoyageur,
-    canManageVisa,
-    canManageServices,
     canManagePayments,
     canDeleteRegistration,
   ] = await Promise.all([
-    listVisaTypesForProgram(registration.program_id),
-    getVisaRequestByRegistration(id),
-    listServices(),
-    listRegistrationServices(id),
     registration.room_id ? getRoomDetails(registration.room_id) : null,
     listTripHotels(registration.trip_id),
     listGroupsForTrip(registration.trip_id),
     listPaymentsForRegistration(id),
     getFlightBookingForRegistration(id),
     hasPermission(session, "inscriptions.edit_voyageur"),
-    hasPermission(session, "inscriptions.visa"),
-    hasPermission(session, "inscriptions.services"),
     hasPermission(session, "paiements.manage"),
     hasPermission(session, "inscriptions.delete"),
   ]);
@@ -139,21 +123,6 @@ export default async function RegistrationDetailPage({ params }) {
         canDelete={canDeleteRegistration}
         tripHotels={tripHotels}
         tripGroups={tripGroups}
-      />
-
-      <VisaSection
-        registrationId={registration.id}
-        visaTypes={visaTypes}
-        visaRequest={visaRequest}
-        canManage={canManageVisa}
-      />
-
-      <ServicesSection
-        registrationId={registration.id}
-        catalogServices={catalogServices}
-        registrationServices={registrationServices}
-        flightTicketPrice={registration.flight_ticket_price}
-        canManage={canManageServices}
       />
 
       {registration.group_id ? (
