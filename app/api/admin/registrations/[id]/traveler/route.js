@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getRegistrationById, updateTraveler } from "@/lib/registrations";
+import { isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
 
 // Corrige les informations du voyageur (nom, WhatsApp, genre, passeport,
 // email) — utile quand l'inscrit les a saisies lui-même via le formulaire
@@ -29,20 +30,14 @@ export async function PUT(request, { params }) {
 
   // Règle passeport : doit rester valide au moins 6 mois après la date du
   // voyage — revalidée côté serveur (le client peut être contourné).
-  if (body.passportExpiryDate) {
-    const reference = registration.departure_date
-      ? new Date(registration.departure_date)
-      : new Date();
-    const minValidUntil = new Date(reference);
-    minValidUntil.setMonth(minValidUntil.getMonth() + 6);
-    if (new Date(body.passportExpiryDate) < minValidUntil) {
-      return NextResponse.json(
-        {
-          message: `Le passeport doit rester valide au moins 6 mois après le ${reference.toLocaleDateString("fr-FR")}`,
-        },
-        { status: 400 }
-      );
-    }
+  if (body.passportExpiryDate && !isPassportExpiryValid(body.passportExpiryDate, registration.departure_date)) {
+    const { reference } = getMinPassportValidUntil(registration.departure_date);
+    return NextResponse.json(
+      {
+        message: `Le passeport doit rester valide au moins 6 mois après le ${reference.toLocaleDateString("fr-FR")}`,
+      },
+      { status: 400 }
+    );
   }
 
   await updateTraveler(registration.traveler_id, body);

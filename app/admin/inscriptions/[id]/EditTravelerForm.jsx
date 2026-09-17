@@ -2,11 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-// Format générique observé sur la plupart des passeports : lettres et
-// chiffres, 6 à 9 caractères. Vérification de forme uniquement — aucune
-// consultation d'un registre officiel.
-const PASSPORT_FORMAT = /^[A-Za-z0-9]{6,9}$/;
+import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
 
 export default function EditTravelerForm({ registration, canEdit }) {
   const router = useRouter();
@@ -72,13 +68,9 @@ export default function EditTravelerForm({ registration, canEdit }) {
       setExpiryError(null);
       return;
     }
-    const reference = registration.departure_date
-      ? new Date(registration.departure_date)
-      : new Date();
-    const minValidUntil = new Date(reference);
-    minValidUntil.setMonth(minValidUntil.getMonth() + 6);
+    const { reference } = getMinPassportValidUntil(registration.departure_date);
 
-    if (new Date(passportExpiryDate) < minValidUntil) {
+    if (!isPassportExpiryValid(passportExpiryDate, registration.departure_date)) {
       setExpiryError(
         `Passeport non valide pour ce voyage : il doit rester valide au moins 6 mois après le ${reference.toLocaleDateString(
           "fr-FR"

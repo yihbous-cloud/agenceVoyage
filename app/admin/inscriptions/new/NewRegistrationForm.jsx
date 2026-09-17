@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROOM_TYPES } from "@/lib/roomTypes";
+import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
 
 const initialState = {
   tripId: "",
@@ -36,6 +37,22 @@ export default function NewRegistrationForm({ trips }) {
   const [allowMixedGenderRoom, setAllowMixedGenderRoom] = useState(false);
   const [existingGroupId, setExistingGroupId] = useState("");
 
+  // Vérification du passeport (même règle qu'EditTravelerForm.jsx, voir
+  // CLAUDE.md §3nonies) : format au blur, dialogue de confirmation si
+  // valide, verrouillage du champ une fois confirmé, expiration validée
+  // par rapport à la date de départ du voyage sélectionné.
+  const [passportWarning, setPassportWarning] = useState(null);
+  const [confirmedPassportNumber, setConfirmedPassportNumber] = useState(null);
+  const [pendingConfirmValue, setPendingConfirmValue] = useState(null);
+  const [passportLocked, setPassportLocked] = useState(false);
+  const [expiryError, setExpiryError] = useState(null);
+  const passportInputRef = useRef(null);
+
+  const selectedTrip = trips.find((t) => String(t.id) === String(form.tripId));
+  const isPassportConfirmed =
+    confirmedPassportNumber != null &&
+    confirmedPassportNumber === form.passportNumber.trim();
+
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   const handleTripChange = async (e) => {
@@ -55,6 +72,58 @@ export default function NewRegistrationForm({ trips }) {
       if (groupsRes.ok) setTripGroups(await groupsRes.json());
     } catch {
       // pas bloquant : préférence d'hôtel et groupe restent optionnels
+    }
+  };
+
+  const handlePassportBlur = () => {
+    const value = form.passportNumber.trim();
+    if (!value) {
+      setPassportWarning(null);
+      return;
+    }
+    if (!PASSPORT_FORMAT.test(value)) {
+      setPassportWarning(
+        "Le numéro de passeport semble incorrect (6 à 9 lettres/chiffres attendus). Merci de vérifier la saisie."
+      );
+      return;
+    }
+    setPassportWarning(null);
+    if (value !== confirmedPassportNumber) {
+      setPendingConfirmValue(value);
+    }
+  };
+
+  const handleConfirmPassport = () => {
+    setConfirmedPassportNumber(pendingConfirmValue);
+    setPendingConfirmValue(null);
+    setPassportLocked(true);
+  };
+
+  const handleCorrectPassport = () => {
+    setPendingConfirmValue(null);
+    passportInputRef.current?.focus();
+  };
+
+  const handleUnlockPassport = () => {
+    setPassportLocked(false);
+    setConfirmedPassportNumber(null);
+  };
+
+  const handleExpiryBlur = () => {
+    if (!form.passportExpiryDate) {
+      setExpiryError(null);
+      return;
+    }
+    if (!isPassportExpiryValid(form.passportExpiryDate, selectedTrip?.departure_date)) {
+      const { reference } = getMinPassportValidUntil(selectedTrip?.departure_date);
+      setExpiryError(
+        `Passeport non valide pour ce voyage : il doit rester valide au moins 6 mois après le ${reference.toLocaleDateString(
+          "fr-FR"
+        )}. Merci de vérifier la date ou de renouveler le passeport.`
+      );
+      setForm((f) => ({ ...f, passportExpiryDate: "" }));
+    } else {
+      setExpiryError(null);
     }
   };
 
@@ -106,6 +175,7 @@ export default function NewRegistrationForm({ trips }) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Voyage</label>
@@ -258,14 +328,47 @@ export default function NewRegistrationForm({ trips }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">N° Passeport</label>
-          <input value={form.passportNumber} onChange={set("passportNumber")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+          <input
+            ref={passportInputRef}
+            disabled={passportLocked}
+            value={form.passportNumber}
+            onChange={(e) => {
+              setForm({ ...form, passportNumber: e.target.value });
+              setPassportWarning(null);
+            }}
+            onBlur={handlePassportBlur}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+          {passportWarning && <p className="mt-1 text-xs text-red-600">{passportWarning}</p>}
+          {!passportWarning && (isPassportConfirmed || (passportLocked && form.passportNumber)) && (
+            <p className="mt-1 text-xs text-emerald-700">
+              Vérification effectuée : le numéro de passeport est valide.
+              <button
+                type="button"
+                onClick={handleUnlockPassport}
+                className="ml-2 font-medium text-zinc-500 hover:underline"
+              >
+                Modifier
+              </button>
+            </p>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">Expiration passeport</label>
-          <input type="date" value={form.passportExpiryDate} onChange={set("passportExpiryDate")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+          <input
+            type="date"
+            value={form.passportExpiryDate}
+            onChange={(e) => {
+              setForm({ ...form, passportExpiryDate: e.target.value });
+              setExpiryError(null);
+            }}
+            onBlur={handleExpiryBlur}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+          {expiryError && <p className="mt-1 text-xs text-red-600">{expiryError}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">WhatsApp</label>
@@ -294,5 +397,35 @@ export default function NewRegistrationForm({ trips }) {
         {submitting ? "Création..." : "Créer l'inscription"}
       </button>
     </form>
+
+    {pendingConfirmValue && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+          <h3 className="text-sm font-semibold text-zinc-900">
+            Vérification du numéro de passeport
+          </h3>
+          <p className="mt-3 text-sm text-zinc-700">
+            Vérifiez que le N° de Passeport est : <span className="font-bold">{pendingConfirmValue}</span> — Exact ?
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleCorrectPassport}
+              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              Corriger
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPassport}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              Valider
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
