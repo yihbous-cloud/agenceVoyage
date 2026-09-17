@@ -80,7 +80,13 @@ export default function TripsList({ trips, canManage }) {
           {trips.length === 0 && (
             <tr>
               <td className="px-4 py-3 text-zinc-500" colSpan={6}>
-                Aucun voyage pour ce programme.
+                Aucun voyage pour ce programme — le prix et les dates se
+                définissent par voyage (un même programme peut avoir plusieurs
+                départs à des prix différents), pas sur le programme lui-même.
+                Cliquez sur « + Nouveau voyage » ci-dessus pour en ajouter un ;
+                tant qu&apos;aucun voyage n&apos;existe, ce programme n&apos;est
+                pas réservable et n&apos;apparaît pas dans le formulaire
+                d&apos;inscription.
               </td>
             </tr>
           )}

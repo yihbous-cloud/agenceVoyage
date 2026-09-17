@@ -156,6 +156,31 @@ export default function NewRegistrationForm({ trips }) {
             </option>
           ))}
         </select>
+        {selectedTrip && (
+          <p className="mt-1 text-sm text-zinc-600">
+            Prix : <span className="font-semibold text-zinc-900">
+              {Number(selectedTrip.price_per_person).toLocaleString("fr-FR", {
+                minimumFractionDigits: 2,
+              })}{" "}
+              {selectedTrip.currency}
+            </span>{" "}
+            par personne
+            {travelers.length > 1 && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="font-semibold text-zinc-900">
+                  {(Number(selectedTrip.price_per_person) * travelers.length).toLocaleString(
+                    "fr-FR",
+                    { minimumFractionDigits: 2 }
+                  )}{" "}
+                  {selectedTrip.currency}
+                </span>{" "}
+                pour {travelers.length} voyageurs
+              </>
+            )}
+          </p>
+        )}
       </div>
 
       <div>
