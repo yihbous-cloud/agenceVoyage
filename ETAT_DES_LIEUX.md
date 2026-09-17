@@ -158,7 +158,8 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - **Maillage interne** : sur la fiche programme, le code IATA du voyage devient un lien vers la ville de départ correspondante quand elle est mappée
 - **JSON-LD enrichi** : `BreadcrumbList` (composant partagé `app/_components/BreadcrumbJsonLd.jsx`) sur les hubs, le détail programme et les villes de départ ; `datePublished`/`dateModified` sur `TouristTrip` (depuis `programs.created_at`/`updated_at`)
 - **AIO** : `next/image` sur toutes les images publiques (Core Web Vitals), flux RSS (`/feed.xml`), API JSON publique en lecture seule (`/api/public/programs`), `robots.txt` avec bots IA listés explicitement
-- **Non implémenté** (voir §7) : schema.org `LocalBusiness` (adresse/téléphone réels manquants), architecture multilingue AR/FR (décision documentée dans CLAUDE.md §3quinquies, implémentation différée)
+- **`LocalBusiness`** (schema.org) : implémenté dans `app/(site)/layout.js`, à partir des vraies coordonnées `agency_settings` (adresse/téléphone désormais renseignés) — actif uniquement quand les deux sont présents. Coordonnées aussi affichées sur `/a-propos` et `/contact`
+- **Non implémenté** (voir §7) : architecture multilingue AR/FR (décision documentée dans CLAUDE.md §3quinquies, implémentation différée)
 
 ---
 
@@ -226,7 +227,6 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 ### ❌ Non commencées
 - **Connexion n8n + WhatsApp Business Cloud API** : le schéma existe (`whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log`) mais aucune intégration réelle, aucun webhook, aucune interface d'administration des questions/réponses ou des rappels programmés
 - Support d'une police arabe dans les exports PDF (actuellement colonne retirée du PDF, présente uniquement dans l'Excel)
-- schema.org `LocalBusiness` : bloqué faute d'adresse/téléphone réels de l'agence (voir §7)
 - Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation (restructuration des routes + traduction) volontairement différée
 - Actions hors-code du plan SEO (§9 du plan) : Google Business Profile, Search Console/Bing Webmaster Tools, netlinking/presse/Wikidata, statistiques propriétaires chiffrées, articles de guide/pilier, pipeline Lighthouse CI
 
@@ -256,7 +256,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 - Organisme(s) exact(s) concerné(s) par les demandes de visa, pour affiner le format de la liste de demande de visa
 - ~~Confirmation des types de chambre standards~~ — tranché : simple/double/triple/quadruple/quintuple (1 à 5 personnes)
 - Devise(s) de facturation définitive(s) (MAD uniquement ou multi-devises réel ?)
-- Adresse et téléphone réels de l'agence (bloque le schema.org `LocalBusiness`, voir CLAUDE.md §3quinquies)
+- ~~Adresse et téléphone réels de l'agence~~ — tranché : renseignés, `LocalBusiness` actif (voir CLAUDE.md §3quinquies)
 
 ### Bugs réels trouvés et corrigés pendant le développement (pour référence)
 - `mysql2` : `pool.execute()` (requêtes préparées) ne supporte pas l'expansion de tableau dans une clause `IN (?)`, contrairement à `pool.query()` — corrigé en générant les points d'interrogation manuellement partout où c'était utilisé

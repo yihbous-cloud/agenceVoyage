@@ -1,4 +1,5 @@
 import ContactForm from "./ContactForm";
+import { getAgencySettings } from "@/lib/agencySettings";
 
 export const metadata = {
   title: "Contact",
@@ -6,7 +7,9 @@ export const metadata = {
     "Contactez Golden Fantastic pour toute question sur nos programmes Omra, Hajj et séjours touristiques.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const agency = await getAgencySettings().catch(() => null);
+
   return (
     <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
       <h1 className="text-3xl font-bold text-zinc-900">Contact</h1>
@@ -18,13 +21,18 @@ export default function ContactPage() {
       <div className="mt-8 grid gap-8 sm:grid-cols-2">
         <div className="space-y-3 text-sm text-zinc-700">
           <p>
-            <strong>WhatsApp :</strong> +212 6XX XXX XXX
+            <strong>WhatsApp :</strong>{" "}
+            {agency?.whatsapp || "[à compléter dans /admin/parametres]"}
           </p>
           <p>
-            <strong>Email :</strong> contact@goldenfantastic.example
+            <strong>Email :</strong>{" "}
+            {agency?.email || "[à compléter dans /admin/parametres]"}
           </p>
           <p>
-            <strong>Adresse :</strong> [Adresse de l&apos;agence à compléter]
+            <strong>Adresse :</strong>{" "}
+            {agency?.address
+              ? `${agency.address}${agency.city ? `, ${agency.city}` : ""}`
+              : "[à compléter dans /admin/parametres]"}
           </p>
         </div>
 

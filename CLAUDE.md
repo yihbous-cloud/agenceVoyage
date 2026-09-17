@@ -79,7 +79,7 @@ Suite à `PLAN-SEO-GEO-AIO.md` (fourni par l'utilisateur). La Phase 1 (fondation
 - **pSEO — villes de départ** (`/villes-depart/[ville]`) : dimension orthogonale aux deux hubs existants, n'a **pas** remplacé leur structure d'URL. Correspondance IATA → ville dans `lib/airports.js` (liste statique, pas de table SQL) ; pages générées uniquement pour les codes IATA mappés
 - **FAQ par programme** (table `program_faqs`, migration `002_add_program_faqs.sql`) : structure et interface admin en place, **contenu vide au départ** — à rédiger par l'agence (10-15 questions/programme recommandé par le plan)
 - **AIO** : flux RSS (`/feed.xml`) et API JSON publique en lecture seule (`/api/public/programs`)
-- **`LocalBusiness`** (schema.org) : non implémenté, en attente de l'adresse/téléphone réels de l'agence (voir §7)
+- **`LocalBusiness`** (schema.org) : implémenté dans `app/(site)/layout.js` (`@type: ["TravelAgency", "LocalBusiness"]`, `address`/`telephone`), à partir des vraies coordonnées saisies dans `agency_settings` (§3septies) — n'apparaît dans le JSON-LD que si adresse **et** téléphone sont renseignés, pas de valeur inventée. Coordonnées aussi affichées sur `/a-propos` et `/contact` (remplace les anciens placeholders)
 - **Multilingue AR/FR** : architecture cible documentée (URLs `/fr/...` et `/ar/...`, `hreflang` réciproque, RTL via Tailwind) mais **implémentation différée** — restructurer les routes maintenant sans contenu arabe réel créerait des pages vides, contraire à la propre règle anti-contenu-fin du plan. À déclencher dans une session dédiée une fois une traduction arabe des pages cœur prête
 
 ## 3sexies. Séparation des layouts racine (site public / espace interne)
@@ -234,7 +234,7 @@ Grand visuel animé en haut de la page d'accueil, remplaçant le hero statique q
 - Organisme(s) concerné(s) par les demandes de visa (pour construire le format requis)
 - ~~Types de chambres standards proposés~~ — tranché : simple/double/triple/quadruple/quintuple (1 à 5 personnes), voir §3terdecies
 - Devise(s) de facturation (MAD uniquement, ou multi-devises ?)
-- Adresse et téléphone réels de l'agence (bloque l'ajout du schema.org `LocalBusiness`, voir §3quinquies) — saisissables depuis `/admin/parametres` (voir §3septies), mais pas encore renseignés
+- ~~Adresse et téléphone réels de l'agence~~ — tranché : renseignés depuis `/admin/parametres` (§3septies), `LocalBusiness` actif (§3quinquies)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

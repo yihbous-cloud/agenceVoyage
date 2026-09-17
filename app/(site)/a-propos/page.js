@@ -1,10 +1,14 @@
+import { getAgencySettings } from "@/lib/agencySettings";
+
 export const metadata = {
   title: "À propos",
   description:
     "Golden Fantastic, agence de voyages spécialisée dans l'organisation d'Omra, de Hajj et de séjours touristiques.",
 };
 
-export default function AProposPage() {
+export default async function AProposPage() {
+  const agency = await getAgencySettings().catch(() => null);
+
   return (
     <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
       <h1 className="text-3xl font-bold text-zinc-900">À propos de Golden Fantastic</h1>
@@ -36,6 +40,35 @@ export default function AProposPage() {
         <li>— Accompagnement humain, joignable par WhatsApp</li>
         <li>— Sélection rigoureuse des hôtels et compagnies partenaires</li>
       </ul>
+
+      {agency && (agency.address || agency.phone || agency.email) && (
+        <>
+          <h2 className="mt-10 text-xl font-semibold text-zinc-900">Coordonnées</h2>
+          <ul className="mt-4 space-y-2 text-zinc-700">
+            {agency.address && (
+              <li>
+                <strong>Adresse :</strong> {agency.address}
+                {agency.city ? `, ${agency.city}` : ""}
+              </li>
+            )}
+            {agency.phone && (
+              <li>
+                <strong>Téléphone :</strong> {agency.phone}
+              </li>
+            )}
+            {agency.whatsapp && (
+              <li>
+                <strong>WhatsApp :</strong> {agency.whatsapp}
+              </li>
+            )}
+            {agency.email && (
+              <li>
+                <strong>Email :</strong> {agency.email}
+              </li>
+            )}
+          </ul>
+        </>
+      )}
     </main>
   );
 }

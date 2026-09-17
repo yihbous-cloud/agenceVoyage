@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Geist, Geist_Mono, Italianno, Marcellus, Jost } from "next/font/google";
+import { getAgencySettings } from "@/lib/agencySettings";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -44,20 +45,43 @@ export const metadata = {
   },
 };
 
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "TravelAgency",
-  name: "Golden Fantastic",
-  description:
-    "Agence de voyages spécialisée dans l'organisation d'Omra, de Hajj et de séjours touristiques.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-};
+// LocalBusiness n'est ajouté que si l'adresse/téléphone réels de l'agence
+// sont renseignés (agency_settings, saisis depuis /admin/parametres) — pas
+// de coordonnées inventées (voir CLAUDE.md §3quinquies/§7).
+function buildOrganizationJsonLd(agency) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TravelAgency",
+    name: "Golden Fantastic",
+    description:
+      "Agence de voyages spécialisée dans l'organisation d'Omra, de Hajj et de séjours touristiques.",
+    url: baseUrl,
+  };
+
+  if (agency?.address && agency?.phone) {
+    jsonLd["@type"] = ["TravelAgency", "LocalBusiness"];
+    jsonLd.telephone = agency.phone.split("/")[0].trim();
+    jsonLd.address = {
+      "@type": "PostalAddress",
+      streetAddress: agency.address,
+      addressLocality: agency.city || undefined,
+      addressCountry: "MA",
+    };
+    if (agency.email) jsonLd.email = agency.email;
+  }
+
+  return jsonLd;
+}
 
 // Layout racine du site public — indépendant de app/admin/layout.js (voir
 // celui-ci). Les deux sont des "root layouts" distincts (route group
 // (site) ci-contre) : l'espace interne n'hérite plus du header/footer
 // marketing, qui ne doit apparaître que sur les pages publiques.
-export default function SiteLayout({ children }) {
+export default async function SiteLayout({ children }) {
+  const agency = await getAgencySettings().catch(() => null);
+  const organizationJsonLd = buildOrganizationJsonLd(agency);
+
   return (
     <html
       lang="fr"

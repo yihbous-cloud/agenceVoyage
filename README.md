@@ -182,7 +182,7 @@ Reste à construire (sessions suivantes) :
 
 - [ ] Tester l'intégration Duffel de bout en bout avec une clé de test réelle (voir section dédiée) et ajuster si le format des réponses Duffel diffère de ce qui a été implémenté d'après la documentation
 - [ ] Connexion n8n + WhatsApp Cloud API
-- [ ] `LocalBusiness` (schema.org) : en attente de l'adresse/téléphone réels de l'agence
+- [x] `LocalBusiness` (schema.org) : implémenté, actif depuis que l'adresse/téléphone réels de l'agence sont renseignés
 - [ ] Rédiger le contenu des FAQ par programme (structure prête, vide au départ)
 - [ ] Actions hors-code du plan SEO : Google Business Profile, Search Console/Bing Webmaster Tools, netlinking, statistiques propriétaires, articles de guide
 - [ ] Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation différée jusqu'à disposer d'un vrai contenu arabe
