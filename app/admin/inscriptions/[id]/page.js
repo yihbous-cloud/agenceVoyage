@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listVisaTypesForProgram, getVisaRequestByRegistration } from "@/lib/visaTypes";
 import { listServices, listRegistrationServices } from "@/lib/services";
-import { getRoomDetails } from "@/lib/roomAssignment";
+import { getRoomDetails, listTripHotels } from "@/lib/roomAssignment";
 import { listPaymentsForRegistration } from "@/lib/payments";
 import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
@@ -28,6 +28,7 @@ export default async function RegistrationDetailPage({ params }) {
     catalogServices,
     registrationServices,
     room,
+    tripHotels,
     payments,
     flightBooking,
     canEditVoyageur,
@@ -41,6 +42,7 @@ export default async function RegistrationDetailPage({ params }) {
     listServices(),
     listRegistrationServices(id),
     registration.room_id ? getRoomDetails(registration.room_id) : null,
+    listTripHotels(registration.trip_id),
     listPaymentsForRegistration(id),
     getFlightBookingForRegistration(id),
     hasPermission(session, "inscriptions.edit_voyageur"),
@@ -71,6 +73,18 @@ export default async function RegistrationDetailPage({ params }) {
             </dd>
           </div>
           <div>
+            <dt className="text-zinc-500">Préférence hébergement</dt>
+            <dd className="font-medium text-zinc-900">
+              {registration.preferred_hotel_name || registration.preferred_room_type
+                ? `${registration.preferred_hotel_name || "—"}${
+                    registration.preferred_room_type
+                      ? ` — ${registration.preferred_room_type}`
+                      : ""
+                  }`
+                : "Aucune"}
+            </dd>
+          </div>
+          <div>
             <dt className="text-zinc-500">Billet d&apos;avion</dt>
             <dd className="font-medium text-zinc-900">
               {flightBooking ? (
@@ -95,6 +109,7 @@ export default async function RegistrationDetailPage({ params }) {
         registration={registration}
         role={session?.role}
         canDelete={canDeleteRegistration}
+        tripHotels={tripHotels}
       />
 
       <VisaSection

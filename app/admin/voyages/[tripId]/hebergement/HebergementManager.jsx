@@ -2,18 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-// Chaque type de chambre est strictement attaché à une capacité fixe
-// (simple=1, double=2, triple=3, quadruple=4, quintuple=5) — le champ
-// Capacité du formulaire est dérivé automatiquement et reste verrouillé.
-const ROOM_TYPE_CAPACITY = {
-  simple: 1,
-  double: 2,
-  triple: 3,
-  quadruple: 4,
-  quintuple: 5,
-};
-const ROOM_TYPES = Object.keys(ROOM_TYPE_CAPACITY);
+import { ROOM_TYPE_CAPACITY, ROOM_TYPES } from "@/lib/roomTypes";
 
 export default function HebergementManager({
   tripId,
@@ -340,6 +329,12 @@ export default function HebergementManager({
             <li key={u.id} className="flex items-center justify-between py-2 text-sm">
               <span>
                 {u.full_name} <span className="capitalize text-zinc-500">({u.gender})</span>
+                {(u.preferred_hotel_name || u.preferred_room_type) && (
+                  <span className="ml-2 text-xs text-emerald-700">
+                    souhaite : {u.preferred_hotel_name || "—"}
+                    {u.preferred_room_type ? ` — ${u.preferred_room_type}` : ""}
+                  </span>
+                )}
               </span>
               {canManage && (
                 <select

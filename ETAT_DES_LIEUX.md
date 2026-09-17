@@ -113,7 +113,8 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Un voyage peut être associé à plusieurs hôtels (ex. Omra : La Mecque + Médine), chacun avec ses dates de check-in/out
 - Chambres : type (simple/double/triple/quadruple/quintuple) + capacité **dérivée automatiquement du type et verrouillée** dans le formulaire (1 à 5 personnes respectivement, migration 009 — voir CLAUDE.md §3terdecies), rattachées à un hôtel-voyage
 - **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre
-- **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre
+- **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre ; priorise désormais une chambre correspondant à la préférence hébergement du voyageur avant de retomber sur l'heuristique de remplissage (voir CLAUDE.md §3quaterdecies)
+- **Préférence hébergement à l'inscription** (`registrations.preferred_hotel_id`/`preferred_room_type`, migration 010) : le voyageur peut indiquer un hôtel (parmi ceux du voyage) et un type de chambre souhaités dès `/admin/inscriptions/new` ou en modifiant une inscription existante — affiché comme indication au personnel sur la page Hébergement, pas comme affectation automatique
 
 ### 4.5 Visa (`lib/visaTypes.js`)
 - Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme

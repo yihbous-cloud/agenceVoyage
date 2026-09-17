@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ROOM_TYPES } from "@/lib/roomTypes";
 
 const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "annule"];
 const VISA_OPTIONS = ["non_demande", "en_cours", "accorde", "refuse"];
@@ -9,13 +10,20 @@ const VISA_OPTIONS = ["non_demande", "en_cours", "accorde", "refuse"];
 // canEditStatus/canEditFinance/canEditVisa restent basés sur le rôle brut
 // (pas sur le système de permissions dynamique) : ce sont des restrictions
 // fines par champ sur UN SEUL endpoint (PUT .../registrations/[id]), pas des
-// permissions d'accès à une action — voir CLAUDE.md.
-export default function EditRegistrationForm({ registration, role, canDelete }) {
+// permissions d'accès à une action — voir CLAUDE.md. La préférence
+// hébergement suit le même groupe que "status" (ventes/direction).
+export default function EditRegistrationForm({ registration, role, canDelete, tripHotels = [] }) {
   const router = useRouter();
   const [status, setStatus] = useState(registration.status);
   const [visaStatus, setVisaStatus] = useState(registration.visa_status);
   const [totalDue, setTotalDue] = useState(registration.total_due);
   const [notes, setNotes] = useState(registration.notes || "");
+  const [preferredHotelId, setPreferredHotelId] = useState(
+    registration.preferred_hotel_id || ""
+  );
+  const [preferredRoomType, setPreferredRoomType] = useState(
+    registration.preferred_room_type || ""
+  );
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,7 +37,11 @@ export default function EditRegistrationForm({ registration, role, canDelete }) 
     setError(null);
 
     const payload = {};
-    if (canEditStatus) payload.status = status;
+    if (canEditStatus) {
+      payload.status = status;
+      payload.preferredHotelId = preferredHotelId || null;
+      payload.preferredRoomType = preferredRoomType || null;
+    }
     if (canEditVisa) payload.visaStatus = visaStatus;
     if (canEditFinance) payload.totalDue = Number(totalDue);
     payload.notes = notes;
@@ -93,6 +105,45 @@ export default function EditRegistrationForm({ registration, role, canDelete }) 
           </select>
         </div>
       </div>
+
+      {canEditStatus && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Hôtel souhaité
+            </label>
+            <select
+              value={preferredHotelId}
+              onChange={(e) => setPreferredHotelId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">Aucune préférence</option>
+              {tripHotels.map((th) => (
+                <option key={th.hotel_id} value={th.hotel_id}>
+                  {th.hotel_name} ({th.city})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Type de chambre souhaité
+            </label>
+            <select
+              value={preferredRoomType}
+              onChange={(e) => setPreferredRoomType(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">Aucune préférence</option>
+              {ROOM_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">Montant dû (MAD)</label>

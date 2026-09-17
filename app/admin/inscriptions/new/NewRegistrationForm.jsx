@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ROOM_TYPES } from "@/lib/roomTypes";
 
 const initialState = {
   tripId: "",
@@ -15,6 +16,8 @@ const initialState = {
   phoneWhatsapp: "",
   email: "",
   address: "",
+  preferredHotelId: "",
+  preferredRoomType: "",
 };
 
 export default function NewRegistrationForm({ trips }) {
@@ -22,8 +25,22 @@ export default function NewRegistrationForm({ trips }) {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [tripHotels, setTripHotels] = useState([]);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  const handleTripChange = async (e) => {
+    const tripId = e.target.value;
+    setForm({ ...form, tripId, preferredHotelId: "" });
+    setTripHotels([]);
+    if (!tripId) return;
+    try {
+      const res = await fetch(`/api/admin/trips/${tripId}/hotels`);
+      if (res.ok) setTripHotels(await res.json());
+    } catch {
+      // pas bloquant : la préférence d'hôtel reste optionnelle
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,7 +51,11 @@ export default function NewRegistrationForm({ trips }) {
       const res = await fetch("/api/admin/registrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          preferredHotelId: form.preferredHotelId || null,
+          preferredRoomType: form.preferredRoomType || null,
+        }),
       });
       const data = await res.json();
 
@@ -58,7 +79,7 @@ export default function NewRegistrationForm({ trips }) {
         <select
           required
           value={form.tripId}
-          onChange={set("tripId")}
+          onChange={handleTripChange}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         >
           <option value="">Sélectionner un voyage</option>
@@ -69,6 +90,46 @@ export default function NewRegistrationForm({ trips }) {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Hôtel souhaité (optionnel)
+          </label>
+          <select
+            value={form.preferredHotelId}
+            onChange={set("preferredHotelId")}
+            disabled={!form.tripId}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          >
+            <option value="">
+              {form.tripId ? "Aucune préférence" : "Choisir un voyage d'abord"}
+            </option>
+            {tripHotels.map((th) => (
+              <option key={th.hotel_id} value={th.hotel_id}>
+                {th.hotel_name} ({th.city})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Type de chambre souhaité (optionnel)
+          </label>
+          <select
+            value={form.preferredRoomType}
+            onChange={set("preferredRoomType")}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          >
+            <option value="">Aucune préférence</option>
+            {ROOM_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

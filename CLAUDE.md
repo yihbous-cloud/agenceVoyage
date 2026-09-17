@@ -169,7 +169,17 @@ Grand visuel animé en haut de la page d'accueil, remplaçant le hero statique q
 
 ## 3terdecies. Types de chambre à capacité fixe
 
-`rooms.room_type` (ENUM, migration `009_add_room_type_quintuple.sql`) : `simple`/`double`/`triple`/`quadruple`/`quintuple`, chacun **strictement attaché** à une capacité fixe (1 à 5 personnes respectivement) — pas une coïncidence de valeurs par défaut, une règle métier. `HebergementManager.jsx` (`ROOM_TYPE_CAPACITY`) dérive automatiquement le champ **Capacité** du type choisi et le garde **verrouillé** (lecture seule) dans le formulaire de création de chambre — impossible de saisir une capacité incohérente avec le type. Ajouter un nouveau type (ex. 6 personnes) nécessite une migration (`ALTER ... MODIFY COLUMN room_type ENUM(...)`) + une entrée dans `ROOM_TYPE_CAPACITY`.
+`rooms.room_type` (ENUM, migration `009_add_room_type_quintuple.sql`) : `simple`/`double`/`triple`/`quadruple`/`quintuple`, chacun **strictement attaché** à une capacité fixe (1 à 5 personnes respectivement) — pas une coïncidence de valeurs par défaut, une règle métier. `HebergementManager.jsx` (`ROOM_TYPE_CAPACITY`) dérive automatiquement le champ **Capacité** du type choisi et le garde **verrouillé** (lecture seule) dans le formulaire de création de chambre — impossible de saisir une capacité incohérente avec le type. Ajouter un nouveau type (ex. 6 personnes) nécessite une migration (`ALTER ... MODIFY COLUMN room_type ENUM(...)`) + une entrée dans `ROOM_TYPE_CAPACITY`. La constante est désormais partagée (`lib/roomTypes.js`) plutôt que dupliquée, car aussi utilisée par la préférence hébergement (§3quaterdecies).
+
+## 3quaterdecies. Préférence hébergement à l'inscription
+
+Le voyageur peut exprimer un **hôtel et un type de chambre souhaités** dès l'inscription (`registrations.preferred_hotel_id`/`preferred_room_type`, migration `010_add_registration_room_preference.sql`) — champs optionnels sur `NewRegistrationForm.jsx` (nouvelle inscription) et `EditRegistrationForm.jsx` (inscription existante), réservés au même groupe de rôles que `status` (`direction`/`ventes`, voir §3undecies).
+
+⚠️ **C'est une préférence, pas l'affectation réelle** : `registrations.room_id` (chambre effectivement occupée) reste distinct et n'est renseigné que depuis `/admin/voyages/[tripId]/hebergement`, seul endroit qui applique les contraintes réelles (place disponible, non-mixité par chambre). La liste "Voyageurs non affectés" de cette page affiche la préférence à côté de chaque voyageur pour guider le personnel.
+
+- Le choix d'hôtel est limité aux hôtels **déjà rattachés à ce voyage précis** (`trip_hotels`, via `GET /api/admin/trips/[tripId]/hotels`) — pas le catalogue hôtel global — cohérent avec le fait qu'un voyageur ne peut réellement loger que dans un hôtel du voyage auquel il est inscrit. Si l'hébergement du voyage n'est pas encore configuré, le menu reste vide et la préférence est simplement laissée de côté (non bloquant).
+- **Répartition automatique** (`autoAssignTrip`) : priorise désormais une chambre correspondant à la préférence via un score (hôtel + type = 3, un seul des deux = 1 ou 2, aucun = 0), avant de retomber sur l'heuristique de remplissage existante (comble les chambres partielles en premier) en cas d'égalité — une chambre qui ne matche que l'hôtel ne doit jamais battre une chambre qui matche hôtel **et** type.
+- Volontairement **pas** ajouté au formulaire de réservation publique (`ReservationForm.jsx`) : ce formulaire reste minimal par choix (nom/WhatsApp/email), le reste des informations étant complété par le personnel — cohérent avec le fait que les hôtels d'un voyage peuvent ne pas encore être configurés au moment où un visiteur réserve en ligne.
 
 ## 4. Modules fonctionnels
 

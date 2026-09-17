@@ -265,6 +265,8 @@ CREATE TABLE registrations (
     registered_by_staff_id BIGINT UNSIGNED NULL COMMENT 'employé ayant saisi l’inscription',
     status ENUM('inscrit', 'confirme', 'paye_partiel', 'paye_complet', 'annule') NOT NULL DEFAULT 'inscrit',
     room_id BIGINT UNSIGNED NULL COMMENT 'chambre assignée (peut être NULL avant répartition)',
+    preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'hôtel souhaité par le voyageur (préférence, pas l’affectation réelle, voir migration 010)',
+    preferred_room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NULL COMMENT 'type de chambre souhaité par le voyageur',
     visa_status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
     total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'montant total dû pour cette inscription',
     registration_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -273,6 +275,7 @@ CREATE TABLE registrations (
     FOREIGN KEY (traveler_id) REFERENCES travelers(id),
     FOREIGN KEY (registered_by_staff_id) REFERENCES staff_users(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id),
+    FOREIGN KEY (preferred_hotel_id) REFERENCES hotels(id),
     UNIQUE KEY uq_traveler_per_trip (trip_id, traveler_id),
     INDEX idx_reg_status (status),
     INDEX idx_reg_visa_status (visa_status)
