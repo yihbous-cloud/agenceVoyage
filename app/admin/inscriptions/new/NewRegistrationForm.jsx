@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROOM_TYPES } from "@/lib/roomTypes";
-import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
+import TravelerFields from "./TravelerFields";
 
-const initialState = {
-  tripId: "",
+const emptyTraveler = () => ({
   fullName: "",
   fullNameArabic: "",
   gender: "homme",
@@ -17,114 +16,70 @@ const initialState = {
   phoneWhatsapp: "",
   email: "",
   address: "",
-  preferredHotelId: "",
-  preferredRoomType: "",
+});
+
+const TRAVELER_COUNT_LABELS = {
+  individuel: "Voyageur",
+  binome: ["Premier voyageur", "Deuxième voyageur"],
 };
 
 export default function NewRegistrationForm({ trips }) {
   const router = useRouter();
-  const [form, setForm] = useState(initialState);
+  const [tripId, setTripId] = useState("");
+  const [tripHotels, setTripHotels] = useState([]);
+
+  // Type d'inscription : individuel (1 voyageur), binôme (exactement 2,
+  // ex. un couple) ou groupe (1 à N, extensible via "+ Ajouter un
+  // voyageur") — voir CLAUDE.md §3quindecies.
+  const [inscriptionType, setInscriptionType] = useState("individuel");
+  const [travelers, setTravelers] = useState([emptyTraveler()]);
+  const [groupLabel, setGroupLabel] = useState("");
+  const [allowMixedGenderRoom, setAllowMixedGenderRoom] = useState(false);
+
+  const [preferredHotelId, setPreferredHotelId] = useState("");
+  const [preferredRoomType, setPreferredRoomType] = useState("");
+
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [tripHotels, setTripHotels] = useState([]);
-  const [tripGroups, setTripGroups] = useState([]);
 
-  // Groupe / binôme : "aucun" (voyageur seul), "nouveau" (créer un groupe,
-  // ex. un couple qui s'inscrit ensemble) ou "existant" (rejoindre un
-  // groupe déjà créé pour ce voyage, ex. le conjoint inscrit juste avant).
-  const [groupMode, setGroupMode] = useState("aucun");
-  const [newGroupLabel, setNewGroupLabel] = useState("");
-  const [allowMixedGenderRoom, setAllowMixedGenderRoom] = useState(false);
-  const [existingGroupId, setExistingGroupId] = useState("");
-
-  // Vérification du passeport (même règle qu'EditTravelerForm.jsx, voir
-  // CLAUDE.md §3nonies) : format au blur, dialogue de confirmation si
-  // valide, verrouillage du champ une fois confirmé, expiration validée
-  // par rapport à la date de départ du voyage sélectionné.
-  const [passportWarning, setPassportWarning] = useState(null);
-  const [confirmedPassportNumber, setConfirmedPassportNumber] = useState(null);
-  const [pendingConfirmValue, setPendingConfirmValue] = useState(null);
-  const [passportLocked, setPassportLocked] = useState(false);
-  const [expiryError, setExpiryError] = useState(null);
-  const passportInputRef = useRef(null);
-
-  const selectedTrip = trips.find((t) => String(t.id) === String(form.tripId));
-  const isPassportConfirmed =
-    confirmedPassportNumber != null &&
-    confirmedPassportNumber === form.passportNumber.trim();
-
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const selectedTrip = trips.find((t) => String(t.id) === String(tripId));
 
   const handleTripChange = async (e) => {
-    const tripId = e.target.value;
-    setForm({ ...form, tripId, preferredHotelId: "" });
+    const value = e.target.value;
+    setTripId(value);
+    setPreferredHotelId("");
     setTripHotels([]);
-    setTripGroups([]);
-    setGroupMode("aucun");
-    setExistingGroupId("");
-    if (!tripId) return;
+    if (!value) return;
     try {
-      const [hotelsRes, groupsRes] = await Promise.all([
-        fetch(`/api/admin/trips/${tripId}/hotels`),
-        fetch(`/api/admin/trips/${tripId}/groups`),
-      ]);
-      if (hotelsRes.ok) setTripHotels(await hotelsRes.json());
-      if (groupsRes.ok) setTripGroups(await groupsRes.json());
+      const res = await fetch(`/api/admin/trips/${value}/hotels`);
+      if (res.ok) setTripHotels(await res.json());
     } catch {
-      // pas bloquant : préférence d'hôtel et groupe restent optionnels
+      // pas bloquant : la préférence d'hôtel reste optionnelle
     }
   };
 
-  const handlePassportBlur = () => {
-    const value = form.passportNumber.trim();
-    if (!value) {
-      setPassportWarning(null);
-      return;
+  const handleTypeChange = (type) => {
+    setInscriptionType(type);
+    if (type === "individuel") {
+      setTravelers((prev) => [prev[0] || emptyTraveler()]);
+    } else if (type === "binome") {
+      setTravelers((prev) => [prev[0] || emptyTraveler(), prev[1] || emptyTraveler()]);
     }
-    if (!PASSPORT_FORMAT.test(value)) {
-      setPassportWarning(
-        "Le numéro de passeport semble incorrect (6 à 9 lettres/chiffres attendus). Merci de vérifier la saisie."
-      );
-      return;
-    }
-    setPassportWarning(null);
-    if (value !== confirmedPassportNumber) {
-      setPendingConfirmValue(value);
-    }
+    // "groupe" : on garde la liste actuelle telle quelle (au moins 1)
   };
 
-  const handleConfirmPassport = () => {
-    setConfirmedPassportNumber(pendingConfirmValue);
-    setPendingConfirmValue(null);
-    setPassportLocked(true);
+  const updateTravelerAt = (index, updated) => {
+    setTravelers((prev) => prev.map((t, i) => (i === index ? updated : t)));
   };
 
-  const handleCorrectPassport = () => {
-    setPendingConfirmValue(null);
-    passportInputRef.current?.focus();
-  };
+  const handleAddTraveler = () => setTravelers((prev) => [...prev, emptyTraveler()]);
+  const handleRemoveTraveler = (index) =>
+    setTravelers((prev) => prev.filter((_, i) => i !== index));
 
-  const handleUnlockPassport = () => {
-    setPassportLocked(false);
-    setConfirmedPassportNumber(null);
-  };
-
-  const handleExpiryBlur = () => {
-    if (!form.passportExpiryDate) {
-      setExpiryError(null);
-      return;
-    }
-    if (!isPassportExpiryValid(form.passportExpiryDate, selectedTrip?.departure_date)) {
-      const { reference } = getMinPassportValidUntil(selectedTrip?.departure_date);
-      setExpiryError(
-        `Passeport non valide pour ce voyage : il doit rester valide au moins 6 mois après le ${reference.toLocaleDateString(
-          "fr-FR"
-        )}. Merci de vérifier la date ou de renouveler le passeport.`
-      );
-      setForm((f) => ({ ...f, passportExpiryDate: "" }));
-    } else {
-      setExpiryError(null);
-    }
+  const travelerLabel = (index) => {
+    if (inscriptionType === "binome") return TRAVELER_COUNT_LABELS.binome[index];
+    if (inscriptionType === "groupe") return `Voyageur ${index + 1}`;
+    return "Voyageur";
   };
 
   const handleSubmit = async (e) => {
@@ -134,38 +89,47 @@ export default function NewRegistrationForm({ trips }) {
 
     try {
       let groupId = null;
-      if (groupMode === "nouveau" && newGroupLabel.trim()) {
-        const groupRes = await fetch(`/api/admin/trips/${form.tripId}/groups`, {
+      if (inscriptionType !== "individuel") {
+        if (!groupLabel.trim()) {
+          throw new Error("Le nom du groupe/binôme est requis");
+        }
+        const groupRes = await fetch(`/api/admin/trips/${tripId}/groups`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: newGroupLabel.trim(), allowMixedGenderRoom }),
+          body: JSON.stringify({ label: groupLabel.trim(), allowMixedGenderRoom }),
         });
         const groupData = await groupRes.json();
         if (!groupRes.ok) {
           throw new Error(groupData.message || "Erreur lors de la création du groupe");
         }
         groupId = groupData.id;
-      } else if (groupMode === "existant" && existingGroupId) {
-        groupId = existingGroupId;
       }
 
-      const res = await fetch("/api/admin/registrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          preferredHotelId: form.preferredHotelId || null,
-          preferredRoomType: form.preferredRoomType || null,
-          groupId,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Erreur lors de la création");
+      for (const traveler of travelers) {
+        const res = await fetch("/api/admin/registrations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tripId,
+            ...traveler,
+            preferredHotelId: preferredHotelId || null,
+            preferredRoomType: preferredRoomType || null,
+            groupId,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(
+            `${traveler.fullName || "Voyageur"} : ${data.message || "Erreur lors de la création"}`
+          );
+        }
       }
 
-      router.push("/admin/inscriptions");
+      if (groupId) {
+        router.push(`/admin/groupes/${groupId}`);
+      } else {
+        router.push("/admin/inscriptions");
+      }
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -175,13 +139,12 @@ export default function NewRegistrationForm({ trips }) {
   };
 
   return (
-    <>
     <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Voyage</label>
         <select
           required
-          value={form.tripId}
+          value={tripId}
           onChange={handleTripChange}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         >
@@ -195,20 +158,73 @@ export default function NewRegistrationForm({ trips }) {
         </select>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Type d&apos;inscription
+        </label>
+        <div className="mt-2 flex gap-3">
+          {[
+            { value: "individuel", label: "Individuel" },
+            { value: "binome", label: "Binôme" },
+            { value: "groupe", label: "Groupe" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => handleTypeChange(opt.value)}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+                inscriptionType === opt.value
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {inscriptionType !== "individuel" && (
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+          <label className="block text-sm font-medium text-zinc-700">
+            Nom du {inscriptionType === "binome" ? "binôme" : "groupe"}
+          </label>
+          <input
+            required
+            value={groupLabel}
+            onChange={(e) => setGroupLabel(e.target.value)}
+            placeholder="ex. Famille Alaoui, M. et Mme Idrissi"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+          <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={allowMixedGenderRoom}
+              onChange={(e) => setAllowMixedGenderRoom(e.target.checked)}
+            />
+            Couple / famille — autoriser à partager une chambre entre genres
+            différents
+          </label>
+          <p className="mt-2 text-xs text-zinc-500">
+            Ce {inscriptionType === "binome" ? "binôme" : "groupe"} partagera un seul
+            montant dû et un seul suivi de paiement (voir la page du groupe après
+            création).
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
             Hôtel souhaité (optionnel)
           </label>
           <select
-            value={form.preferredHotelId}
-            onChange={set("preferredHotelId")}
-            disabled={!form.tripId}
+            value={preferredHotelId}
+            onChange={(e) => setPreferredHotelId(e.target.value)}
+            disabled={!tripId}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
           >
-            <option value="">
-              {form.tripId ? "Aucune préférence" : "Choisir un voyage d'abord"}
-            </option>
+            <option value="">{tripId ? "Aucune préférence" : "Choisir un voyage d'abord"}</option>
             {tripHotels.map((th) => (
               <option key={th.hotel_id} value={th.hotel_id}>
                 {th.hotel_name} ({th.city})
@@ -221,8 +237,8 @@ export default function NewRegistrationForm({ trips }) {
             Type de chambre souhaité (optionnel)
           </label>
           <select
-            value={form.preferredRoomType}
-            onChange={set("preferredRoomType")}
+            value={preferredRoomType}
+            onChange={(e) => setPreferredRoomType(e.target.value)}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           >
             <option value="">Aucune préférence</option>
@@ -235,157 +251,32 @@ export default function NewRegistrationForm({ trips }) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-        <label className="block text-sm font-medium text-zinc-700">
-          Groupe / binôme (optionnel)
-        </label>
-        <p className="mt-1 text-xs text-zinc-500">
-          Pour garder plusieurs inscriptions liées (couple, famille, groupe
-          d&apos;amis) et faciliter leur affectation à la même chambre.
-        </p>
-        <select
-          value={groupMode}
-          onChange={(e) => setGroupMode(e.target.value)}
-          disabled={!form.tripId}
-          className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+      <div className="space-y-4">
+        {travelers.map((traveler, index) => (
+          <TravelerFields
+            key={index}
+            label={travelerLabel(index)}
+            traveler={traveler}
+            onChange={(updated) => updateTravelerAt(index, updated)}
+            departureDate={selectedTrip?.departure_date}
+            onRemove={
+              inscriptionType === "groupe" && travelers.length > 1
+                ? () => handleRemoveTraveler(index)
+                : undefined
+            }
+          />
+        ))}
+      </div>
+
+      {inscriptionType === "groupe" && (
+        <button
+          type="button"
+          onClick={handleAddTraveler}
+          className="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
         >
-          <option value="aucun">Voyageur seul</option>
-          <option value="nouveau">Créer un nouveau groupe</option>
-          <option value="existant" disabled={tripGroups.length === 0}>
-            Rejoindre un groupe existant
-          </option>
-        </select>
-
-        {groupMode === "nouveau" && (
-          <div className="mt-3 space-y-2">
-            <input
-              required
-              value={newGroupLabel}
-              onChange={(e) => setNewGroupLabel(e.target.value)}
-              placeholder="Nom du groupe (ex. Famille Alaoui, M. et Mme Idrissi)"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-            <label className="flex items-center gap-2 text-sm text-zinc-700">
-              <input
-                type="checkbox"
-                checked={allowMixedGenderRoom}
-                onChange={(e) => setAllowMixedGenderRoom(e.target.checked)}
-              />
-              Couple / famille — autoriser à partager une chambre entre
-              genres différents
-            </label>
-          </div>
-        )}
-
-        {groupMode === "existant" && (
-          <select
-            required
-            value={existingGroupId}
-            onChange={(e) => setExistingGroupId(e.target.value)}
-            className="mt-3 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Sélectionner un groupe...</option>
-            {tripGroups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.label} ({g.member_count} inscrit
-                {g.member_count > 1 ? "s" : ""}
-                {g.allow_mixed_gender_room ? " — couple/famille" : ""})
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Nom complet</label>
-          <input required value={form.fullName} onChange={set("fullName")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Nom en arabe</label>
-          <input value={form.fullNameArabic} onChange={set("fullNameArabic")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Genre</label>
-          <select value={form.gender} onChange={set("gender")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm">
-            <option value="homme">Homme</option>
-            <option value="femme">Femme</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Date de naissance</label>
-          <input type="date" value={form.dateOfBirth} onChange={set("dateOfBirth")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">CIN</label>
-          <input value={form.nationalId} onChange={set("nationalId")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">N° Passeport</label>
-          <input
-            ref={passportInputRef}
-            disabled={passportLocked}
-            value={form.passportNumber}
-            onChange={(e) => {
-              setForm({ ...form, passportNumber: e.target.value });
-              setPassportWarning(null);
-            }}
-            onBlur={handlePassportBlur}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
-          />
-          {passportWarning && <p className="mt-1 text-xs text-red-600">{passportWarning}</p>}
-          {!passportWarning && (isPassportConfirmed || (passportLocked && form.passportNumber)) && (
-            <p className="mt-1 text-xs text-emerald-700">
-              Vérification effectuée : le numéro de passeport est valide.
-              <button
-                type="button"
-                onClick={handleUnlockPassport}
-                className="ml-2 font-medium text-zinc-500 hover:underline"
-              >
-                Modifier
-              </button>
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Expiration passeport</label>
-          <input
-            type="date"
-            value={form.passportExpiryDate}
-            onChange={(e) => {
-              setForm({ ...form, passportExpiryDate: e.target.value });
-              setExpiryError(null);
-            }}
-            onBlur={handleExpiryBlur}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          {expiryError && <p className="mt-1 text-xs text-red-600">{expiryError}</p>}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">WhatsApp</label>
-          <input required value={form.phoneWhatsapp} onChange={set("phoneWhatsapp")} placeholder="+212 6XX XXX XXX" className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Email</label>
-          <input type="email" value={form.email} onChange={set("email")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Adresse</label>
-          <input value={form.address} onChange={set("address")} className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-        </div>
-      </div>
+          + Ajouter un voyageur
+        </button>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -394,38 +285,14 @@ export default function NewRegistrationForm({ trips }) {
         disabled={submitting}
         className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
       >
-        {submitting ? "Création..." : "Créer l'inscription"}
+        {submitting
+          ? "Création..."
+          : inscriptionType === "individuel"
+          ? "Créer l'inscription"
+          : `Créer le ${inscriptionType === "binome" ? "binôme" : "groupe"} (${travelers.length} voyageur${
+              travelers.length > 1 ? "s" : ""
+            })`}
       </button>
     </form>
-
-    {pendingConfirmValue && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-          <h3 className="text-sm font-semibold text-zinc-900">
-            Vérification du numéro de passeport
-          </h3>
-          <p className="mt-3 text-sm text-zinc-700">
-            Vérifiez que le N° de Passeport est : <span className="font-bold">{pendingConfirmValue}</span> — Exact ?
-          </p>
-          <div className="mt-5 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCorrectPassport}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              Corriger
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmPassport}
-              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-            >
-              Valider
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
   );
 }

@@ -183,13 +183,38 @@ Le voyageur peut exprimer un **hôtel et un type de chambre souhaités** dès l'
 
 ## 3quindecies. Groupes d'inscription (binôme/couple, famille)
 
-Une inscription reste **toujours un voyageur = une ligne `registrations`** (documents, passeport, visa individuels). Un **groupe** (`registration_groups`, migration `011_add_registration_groups.sql`) ne fait que **lier** plusieurs inscriptions du même voyage, pour les garder visibles ensemble et faciliter leur affectation chambre commune — pas une fusion de dossiers.
+Une inscription reste **toujours un voyageur = une ligne `registrations`** (documents, passeport, visa individuels). Un **groupe** (`registration_groups`, migration `011_add_registration_groups.sql`) ne fait que **lier** plusieurs inscriptions du même voyage, pour les garder visibles ensemble, partager leur suivi financier et faciliter leur affectation chambre commune — pas une fusion de dossiers.
 
-- Créé depuis `NewRegistrationForm.jsx` (nouvelle inscription) ou `EditRegistrationForm.jsx` (inscription existante), réservé au même groupe de rôles que `status` (`direction`/`ventes`) : soit "Créer un nouveau groupe" (nom libre + case "Couple/famille"), soit "Rejoindre un groupe existant" du même voyage (`GET /api/admin/trips/[tripId]/groups`)
-- **`allow_mixed_gender_room`** (coché uniquement pour un couple/famille) est la **seule exception** à la règle de non-mixité des chambres (`assignRegistrationToRoom`, `lib/roomAssignment.js`) : deux voyageurs de genre différent peuvent partager une chambre **uniquement s'ils appartiennent au même groupe** portant cette case — jamais une mixité générale de la chambre avec des occupants extérieurs au groupe. Vérifié côté serveur (source de vérité) ; le client se contente d'être permissif dans ce cas précis pour ne pas masquer l'option, le serveur tranche.
+### Création — trois types d'inscription
+
+`/admin/inscriptions/new` (`NewRegistrationForm.jsx`) commence par un choix **Individuel / Binôme / Groupe** :
+- **Individuel** : un seul bloc de champs voyageur (comportement historique, inchangé)
+- **Binôme** : exactement deux blocs de champs voyageur affichés l'un sous l'autre (pas de bouton ajouter/retirer)
+- **Groupe** : un bloc de champs voyageur + bouton **"+ Ajouter un voyageur"** répétable (et "Retirer" par voyageur, tant qu'il en reste au moins un)
+
+Chaque bloc (`TravelerFields.jsx`, composant réutilisable) porte sa **propre** vérification de passeport (format + dialogue de confirmation + expiration ≥ 6 mois après le départ du voyage sélectionné, voir §3nonies) — indépendante d'un voyageur à l'autre. Pour binôme/groupe, un nom de groupe (texte libre) et la case "Couple/famille" (voir `allow_mixed_gender_room` ci-dessous) sont demandés une fois pour tout le groupe. La préférence hôtel/type de chambre (§3quaterdecies) est elle aussi saisie une seule fois et appliquée à tous les membres.
+
+À la soumission : le groupe est créé d'abord (`POST /api/admin/trips/[tripId]/groups`), puis chaque voyageur est créé séparément (`POST /api/admin/registrations`, un appel par personne) avec `groupId` renseigné. Redirection vers `/admin/groupes/[id]` si un groupe a été créé, vers `/admin/inscriptions` sinon (individuel).
+
+Après création, un groupe peut aussi être rejoint/créé/quitté depuis une inscription déjà existante (`EditRegistrationForm.jsx`, "Groupe / binôme" : Voyageur seul / Créer un nouveau groupe / Rejoindre un groupe existant) — utile si un membre s'inscrit séparément plus tard.
+
+### Chambre mixte (couple/famille)
+
+**`allow_mixed_gender_room`** (coché uniquement pour un couple/famille) est la **seule exception** à la règle de non-mixité des chambres (`assignRegistrationToRoom`, `lib/roomAssignment.js`) : deux voyageurs de genre différent peuvent partager une chambre **uniquement s'ils appartiennent au même groupe** portant cette case — jamais une mixité générale de la chambre avec des occupants extérieurs au groupe. Vérifié côté serveur (source de vérité) ; le client se contente d'être permissif dans ce cas précis pour ne pas masquer l'option, le serveur tranche.
+
 - `/admin/voyages/[tripId]/hebergement` : la liste "Voyageurs non affectés" regroupe visuellement les membres d'un même groupe et propose un contrôle **"Assigner le groupe à..."** qui affecte tous les membres à la même chambre en un clic (chambres filtrées par capacité restante ≥ taille du groupe) — en plus de l'affectation individuelle habituelle, toujours disponible si le personnel veut les répartir autrement
 - La colonne "Genre" de la table des chambres affiche désormais tous les genres présents (`GROUP_CONCAT(DISTINCT ... SEPARATOR ' + ')`, ex. "Homme + Femme") plutôt qu'un seul (`MAX()`), pour rester exacte sur une chambre couple/famille
-- **Répartition automatique** (`autoAssignTrip`) : **volontairement pas rendue consciente des groupes** (elle traite chaque genre séparément, sans connaissance des couples/familles) — un couple non affecté manuellement peut se retrouver dans deux chambres différentes après un clic sur "Répartition automatique". C'est un choix de portée délibéré : l'algorithme reste un outil de remplissage rapide générique ; pour garder un couple/groupe ensemble de façon fiable, utiliser "Assigner le groupe à..." (manuel, ci-dessus).
+- **Répartition automatique** (`autoAssignTrip`) : **volontairement pas rendue consciente des groupes** (elle traite chaque genre séparément, sans connaissance des couples/familles) — un couple non affecté manuellement peut se retrouver dans deux chambres différentes après un clic sur "Répartition automatique". Pour garder un couple/groupe ensemble de façon fiable, utiliser "Assigner le groupe à..." (manuel, ci-dessus).
+
+### Paiement et suivi financier partagés (migration `012_add_group_payments.sql`)
+
+Un groupe (binôme ou groupe) a **un seul montant dû et un seul historique de versements pour tout le groupe** — pas un montant par personne. Le détail individuel (passeport, visa, statut) reste par voyageur.
+
+- `registration_groups.total_due` (partagé) remplace `registrations.total_due` pour les membres d'un groupe — ce dernier champ reste présent en base mais **n'est plus affiché ni modifiable** pour une inscription groupée (`EditRegistrationForm.jsx` affiche un lien vers la page du groupe à la place)
+- `payments.registration_id` est désormais **nullable** ; `payments.group_id` (nullable, FK `registration_groups`) le complète. Un paiement cible **soit l'un soit l'autre, jamais les deux ni aucun des deux** (`CHECK` en base, `chk_payment_target`) — un paiement de groupe couvre tous ses membres à la fois
+- **`/admin/groupes/[id]`** (nouvelle page) : liste des membres (nom, genre, statut, statut visa — chacun avec un lien vers sa fiche individuelle pour le détail non-financier), formulaire montant dû partagé (`GroupDueForm.jsx`), et `PaymentsSection.jsx` (rendue générique via une prop `apiBasePath` plutôt qu'un `registrationId` figé, réutilisée telle quelle entre une inscription individuelle et un groupe)
+- Le **reçu de paiement PDF** (`lib/exporters/receiptPdf.js`) détecte un paiement de groupe (`payment.members` présent) et affiche "Groupe : {nom}" + la liste de tous les voyageurs du groupe, à la place du champ "Client" individuel — le reste du reçu (détail du versement, montant total dû, solde) est inchangé
+- Les rapports financiers (`lib/payments.js` : `getFinancialSummaryByTrip`/`ByProgram`, `getPaymentsByPeriod`) additionnent explicitement le volet individuel (`group_id IS NULL`) et le volet groupe (`registration_groups.total_due`/`payments.group_id`) pour ne rien compter deux fois ni rien oublier ; calculés via des sous-requêtes corrélées plutôt que des `LEFT JOIN` agrégés, pour éviter un double-comptage par fan-out (un voyage avec plusieurs inscriptions/paiements gonflait `SUM(total_due)` dans l'ancienne version)
 
 ## 4. Modules fonctionnels
 

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getRegistrationById } from "@/lib/registrations";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
@@ -98,6 +99,13 @@ export default async function RegistrationDetailPage({ params }) {
                       (couple/famille)
                     </span>
                   )}
+                  {" — "}
+                  <Link
+                    href={`/admin/groupes/${registration.group_id}`}
+                    className="text-xs font-normal text-emerald-700 hover:underline"
+                  >
+                    Voir le groupe
+                  </Link>
                 </>
               ) : (
                 "Voyageur seul"
@@ -148,12 +156,29 @@ export default async function RegistrationDetailPage({ params }) {
         canManage={canManageServices}
       />
 
-      <PaymentsSection
-        registrationId={registration.id}
-        payments={payments}
-        totalDue={registration.total_due}
-        canManage={canManagePayments}
-      />
+      {registration.group_id ? (
+        <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-zinc-900">Paiements</h2>
+          <p className="mt-2 text-sm text-zinc-600">
+            Ce voyageur fait partie du groupe <strong>{registration.group_label}</strong> :
+            le suivi financier (montant dû, versements, reçus) se fait au niveau du
+            groupe, pas individuellement.
+          </p>
+          <Link
+            href={`/admin/groupes/${registration.group_id}`}
+            className="mt-3 inline-block text-sm font-medium text-emerald-700 hover:underline"
+          >
+            Gérer le paiement du groupe →
+          </Link>
+        </div>
+      ) : (
+        <PaymentsSection
+          apiBasePath={`/api/admin/registrations/${registration.id}`}
+          payments={payments}
+          totalDue={registration.total_due}
+          canManage={canManagePayments}
+        />
+      )}
     </div>
   );
 }

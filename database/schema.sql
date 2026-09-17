@@ -262,11 +262,15 @@ CREATE TABLE travelers (
 -- passeport, visa restent par voyageur). allow_mixed_gender_room : coché
 -- uniquement pour un couple/famille — seule exception à la non-mixité des
 -- chambres, et seulement entre membres de CE groupe (voir migration 011).
+-- total_due : montant dû partagé par TOUT le groupe (pas un montant par
+-- membre) — le suivi financier (montant dû + versements) d'un binôme/
+-- groupe se fait au niveau du groupe, voir migration 012 et CLAUDE.md.
 CREATE TABLE registration_groups (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     trip_id BIGINT UNSIGNED NOT NULL,
     label VARCHAR(150) NOT NULL COMMENT 'ex. "Famille Alaoui", "M. et Mme Idrissi"',
     allow_mixed_gender_room BOOLEAN NOT NULL DEFAULT FALSE,
+    total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (trip_id) REFERENCES trips(id),
     INDEX idx_reg_group_trip (trip_id)
@@ -318,9 +322,14 @@ CREATE TABLE registration_services (
     FOREIGN KEY (service_id) REFERENCES services(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Un paiement cible SOIT une inscription individuelle (registration_id),
+-- SOIT un groupe (group_id) — jamais les deux, jamais aucun des deux
+-- (CHECK). Les inscriptions faisant partie d'un groupe n'ont plus de
+-- paiement individuel : le suivi se fait via group_id (voir migration 012).
 CREATE TABLE payments (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    registration_id BIGINT UNSIGNED NOT NULL,
+    registration_id BIGINT UNSIGNED NULL,
+    group_id BIGINT UNSIGNED NULL,
     amount DECIMAL(10,2) NOT NULL,
     currency CHAR(3) NOT NULL DEFAULT 'MAD',
     payment_method ENUM('especes', 'virement', 'cheque', 'carte', 'autre') NOT NULL DEFAULT 'especes',
@@ -329,8 +338,13 @@ CREATE TABLE payments (
     receipt_reference VARCHAR(50) NULL,
     notes VARCHAR(255) NULL,
     FOREIGN KEY (registration_id) REFERENCES registrations(id),
+    FOREIGN KEY (group_id) REFERENCES registration_groups(id),
     FOREIGN KEY (recorded_by_staff_id) REFERENCES staff_users(id),
-    INDEX idx_payment_date (payment_date)
+    INDEX idx_payment_date (payment_date),
+    CONSTRAINT chk_payment_target CHECK (
+        (registration_id IS NOT NULL AND group_id IS NULL) OR
+        (registration_id IS NULL AND group_id IS NOT NULL)
+    )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Paramètres de l'agence (ligne unique id=1) — en-tête des reçus de

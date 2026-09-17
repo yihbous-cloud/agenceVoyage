@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ROOM_TYPES } from "@/lib/roomTypes";
 
 const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "annule"];
@@ -76,7 +77,7 @@ export default function EditRegistrationForm({
         }
       }
       if (canEditVisa) payload.visaStatus = visaStatus;
-      if (canEditFinance) payload.totalDue = Number(totalDue);
+      if (canEditFinance && !registration.group_id) payload.totalDue = Number(totalDue);
       payload.notes = notes;
 
       const res = await fetch(`/api/admin/registrations/${registration.id}`, {
@@ -235,17 +236,33 @@ export default function EditRegistrationForm({
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700">Montant dû (MAD)</label>
-        <input
-          type="number"
-          step="0.01"
-          disabled={!canEditFinance}
-          value={totalDue}
-          onChange={(e) => setTotalDue(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
-        />
-      </div>
+      {registration.group_id ? (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">Montant dû (MAD)</label>
+          <p className="mt-1 text-sm text-zinc-500">
+            Suivi au niveau du groupe —{" "}
+            <Link
+              href={`/admin/groupes/${registration.group_id}`}
+              className="text-emerald-700 hover:underline"
+            >
+              voir/modifier sur la page du groupe
+            </Link>
+            .
+          </p>
+        </div>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">Montant dû (MAD)</label>
+          <input
+            type="number"
+            step="0.01"
+            disabled={!canEditFinance}
+            value={totalDue}
+            onChange={(e) => setTotalDue(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">Notes</label>

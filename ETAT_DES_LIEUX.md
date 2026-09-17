@@ -105,8 +105,9 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 ### 4.3 Inscriptions (`lib/registrations.js`)
 - Une inscription (`registration`) relie un `traveler` à un `trip`, avec un statut (`inscrit → confirme → paye_partiel/paye_complet`, ou `annule`)
 - Un même voyageur (par numéro WhatsApp) ne peut être inscrit qu'une fois par voyage (contrainte unique)
-- Champs édités par rôle : `status` et `visa_status` (direction/ventes), `total_due` (comptabilité), `notes` (tous)
+- Champs édités par rôle : `status` et `visa_status` (direction/ventes), `total_due` (comptabilité, sauf inscription groupée — voir ci-dessous), `notes` (tous)
 - Le tableau de bord agrège les compteurs par statut et les prochains départs
+- **Création** (`/admin/inscriptions/new`) : trois types — Individuel (un voyageur), Binôme (exactement deux, un sous l'autre) ou Groupe (1 à N, bouton "+ Ajouter un voyageur") — voir CLAUDE.md §3quindecies. Chaque voyageur du bloc porte sa propre vérification de passeport (§3nonies)
 
 ### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`)
 - Catalogue d'hôtels (ville, étoiles, distance au Haram)
@@ -115,7 +116,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre, **sauf** un couple/famille du même groupe d'inscription (voir ci-dessous)
 - **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre ; priorise désormais une chambre correspondant à la préférence hébergement du voyageur avant de retomber sur l'heuristique de remplissage (voir CLAUDE.md §3quaterdecies) ; **ne connaît pas les groupes** (un couple peut finir dans deux chambres différentes après une répartition automatique, voir CLAUDE.md §3quindecies)
 - **Préférence hébergement à l'inscription** (`registrations.preferred_hotel_id`/`preferred_room_type`, migration 010) : le voyageur peut indiquer un hôtel (parmi ceux du voyage) et un type de chambre souhaités dès `/admin/inscriptions/new` ou en modifiant une inscription existante — affiché comme indication au personnel sur la page Hébergement, pas comme affectation automatique
-- **Groupes d'inscription** (`registration_groups`, migration 011, voir CLAUDE.md §3quindecies) : lie plusieurs inscriptions du même voyage (binôme/couple, famille) sans fusionner leurs dossiers. Un groupe marqué "couple/famille" est la seule exception à la non-mixité des chambres. La page Hébergement regroupe visuellement ces voyageurs et propose "Assigner le groupe à..." pour les affecter tous à la même chambre en un clic
+- **Groupes d'inscription** (`registration_groups`, migrations 011/012, voir CLAUDE.md §3quindecies) : lie plusieurs inscriptions du même voyage (binôme/couple, famille) sans fusionner leurs dossiers. Un groupe marqué "couple/famille" est la seule exception à la non-mixité des chambres. La page Hébergement regroupe visuellement ces voyageurs et propose "Assigner le groupe à..." pour les affecter tous à la même chambre en un clic. Un groupe partage aussi **un seul montant dû et un seul suivi de paiement** (page dédiée `/admin/groupes/[id]`), avec reçu PDF listant chaque membre — voir §4.7
 
 ### 4.5 Visa (`lib/visaTypes.js`)
 - Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme
@@ -128,11 +129,11 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Cas particulier "Billet avion" : le montant se pré-remplit automatiquement depuis `trips.flight_ticket_price` du voyage concerné
 
 ### 4.7 Paiements & finances (`lib/payments.js`)
-- Paiements enregistrés par inscription (montant, devise, mode, référence de reçu, qui l'a saisi)
-- Calcul dû/payé/solde à 3 niveaux : par inscription, par voyage, par programme
-- Filtrage des paiements par période avec total
+- Paiements enregistrés par inscription **ou par groupe d'inscription** (montant, devise, mode, référence de reçu, qui l'a saisi) — `payments.registration_id`/`group_id`, mutuellement exclusifs (`CHECK`, migration 012). Un groupe (binôme/famille, CLAUDE.md §3quindecies) a un montant dû et un historique de versements partagés pour tous ses membres, gérés depuis `/admin/groupes/[id]`
+- Calcul dû/payé/solde à 3 niveaux : par inscription (ou groupe), par voyage, par programme — les totaux par voyage/programme additionnent le volet individuel et le volet groupe sans double-compter
+- Filtrage des paiements par période avec total (inclut les paiements de groupe, affichés "Groupe : {nom}")
 - Page `/admin/finances` entièrement réservée à direction/comptabilité (contrôle d'accès au niveau de la page, pas seulement des actions)
-- Reçu de paiement PDF imprimable (format A5) par versement, `GET /api/admin/payments/[id]/recu` (`lib/exporters/receiptPdf.js`) — en-tête tiré de `lib/agencySettings.js` (table `agency_settings`, éditable depuis `/admin/parametres`), détail du versement + rappel dû/payé/solde de l'inscription
+- Reçu de paiement PDF imprimable (format A5) par versement, `GET /api/admin/payments/[id]/recu` (`lib/exporters/receiptPdf.js`) — en-tête tiré de `lib/agencySettings.js` (table `agency_settings`, éditable depuis `/admin/parametres`), détail du versement + rappel dû/payé/solde de l'inscription ; pour un paiement de groupe, liste chaque voyageur du groupe à la place du client individuel
 
 ### 4.8 Listes exportables (`lib/listGenerators.js`, `lib/airlineTemplates.js`, `lib/exporters/`)
 - 3 listes par voyage : voyageurs complets (vue `v_trip_traveler_list`), demandes de visa (avec documents), compagnie aérienne (vue `v_trip_airline_list`, uniquement statuts confirmé/payé)

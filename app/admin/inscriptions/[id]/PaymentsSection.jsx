@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 
 const PAYMENT_METHODS = ["especes", "virement", "cheque", "carte", "autre"];
 
-export default function PaymentsSection({ registrationId, payments, totalDue, canManage }) {
+// apiBasePath : préfixe des routes API (ex. `/api/admin/registrations/12`
+// ou `/api/admin/groups/3`) — permet de réutiliser ce composant tel quel
+// pour le suivi financier d'un groupe (voir CLAUDE.md §3quindecies).
+export default function PaymentsSection({ apiBasePath, payments, totalDue, canManage, title = "Paiements" }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("especes");
@@ -21,7 +24,7 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ca
     setError(null);
 
     try {
-      const res = await fetch(`/api/admin/registrations/${registrationId}/payments`, {
+      const res = await fetch(`${apiBasePath}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -50,7 +53,7 @@ export default function PaymentsSection({ registrationId, payments, totalDue, ca
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-zinc-900">Paiements</h2>
+      <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
 
       <div className="mt-3 grid grid-cols-3 gap-4 text-center">
         <div>
