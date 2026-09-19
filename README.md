@@ -161,8 +161,9 @@ lib/
   permissions.js                       permissions dynamiques par rôle — hasPermission(), matrice, CRUD des rôles (voir CLAUDE.md §3undecies)
   staffUsers.js                        CRUD des comptes internes (staff_users)
   slides.js                            CRUD diapositives du slider accueil, lien dynamique vers un programme (voir CLAUDE.md §3duodecies)
-middleware.js                          protège /admin/* (redirige vers /admin/login)
-scripts/create-staff-user.js           bootstrap du tout premier compte interne (avant qu'une UI soit accessible) ; l'admin /admin/parametres/utilisateurs est le point d'entrée normal ensuite
+proxy.js                               résout l'agence depuis le sous-domaine (x-agency-id) et protège /admin/* (redirige vers /admin/login) — ex-middleware.js, renommé (Next 16)
+scripts/create-agency.js               crée une agence (multi-agences, passe 1/2) + ses rôles de base
+scripts/create-staff-user.js           (5e argument : agencyId, 1 par défaut) bootstrap du tout premier compte interne (avant qu'une UI soit accessible) ; l'admin /admin/parametres/utilisateurs est le point d'entrée normal ensuite
 database/
   schema.sql                           schéma complet MySQL (+ types de visa, documents, prix billet avion par voyage, family/season/theme, program_faqs)
   migrations/001_add_program_family.sql   migration additive : ajoute family/season/theme à `programs` pour les DB existantes
@@ -246,7 +247,7 @@ forme exacte des réponses Duffel diffère de ce qui a été supposé
 
 - Le formulaire de réservation public crée directement un enregistrement `travelers` + `registrations` (statut `inscrit`). Le calcul du montant dû (`total_due`) et le suivi des paiements détaillé seront ajoutés avec le module financier.
 - Sans base MySQL configurée/accessible, les pages publiques dégradent proprement (message d'erreur affiché, pas de crash serveur).
-- La session interne est un JWT signé (HS256, `SESSION_SECRET`) stocké en cookie httpOnly, durée 8h. Le middleware protège toutes les routes `/admin/*` sauf `/admin/login`.
+- La session interne est un JWT signé (HS256, `SESSION_SECRET`) stocké en cookie httpOnly, durée 8h. Le proxy (`proxy.js`) résout l'agence depuis le sous-domaine et protège toutes les routes `/admin/*` sauf `/admin/login` ; une session n'est valable que sur l'agence qui l'a émise (CLAUDE.md §3sexvicies).
 - **Limitation connue** : les PDF exportés n'affichent pas la colonne "Nom (arabe)" (police PDF standard sans support de l'écriture arabe — corruption du rendu sinon). L'Excel, lui, l'affiche correctement. À corriger plus tard en intégrant une police arabe (ex. Noto Naskh Arabic) si le PDF doit inclure ce champ.
 - Le `globals.css` par défaut du scaffold Next.js imposait un fond noir en mode sombre du navigateur (règle CSS hors des cascade layers de Tailwind, qui écrasait silencieusement les classes `bg-zinc-50`/`text-zinc-900` du `<body>`) — nettoyé ; le site garde un thème clair unique quel que soit le réglage du navigateur.
 - Renseignez `NEXT_PUBLIC_SITE_URL` en production (utilisé par le sitemap, `llms.txt` et le schema.org `TravelAgency`) — sinon ces éléments pointent vers `http://localhost:3000`.

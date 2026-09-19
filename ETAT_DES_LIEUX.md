@@ -194,7 +194,8 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 
 | Domaine | Tables |
 |---|---|
-| Utilisateurs internes | `roles`, `staff_users`, `permissions`, `role_permissions` (migration 007 — permissions dynamiques, voir CLAUDE.md §3undecies) |
+| Agences (multi-agences, passe 1/2) | `agencies` (migration 016, CLAUDE.md §3sexvicies) — `agency_id` ajouté à 27 tables, résolution par sous-domaine dans `proxy.js`. ⚠️ Les requêtes `lib/*.js` ne filtrent pas encore par agence : ne pas onboarder de deuxième agence avec de vraies données avant la passe 2 |
+| Utilisateurs internes | `roles`, `staff_users`, `permissions`, `role_permissions` (migration 007 — permissions dynamiques, voir CLAUDE.md §3undecies ; rôles et comptes propres à chaque agence depuis la migration 016) |
 | Compagnies aériennes | `airlines` |
 | Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
 | Hôtels & chambres | `hotels`, `program_hotels` (hôtels par défaut d'un programme — migration 014), `trip_hotels`, `rooms` |

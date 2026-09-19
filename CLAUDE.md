@@ -312,6 +312,36 @@ Sur `/admin/inscriptions/new` (chaque bloc voyageur) et `/admin/inscriptions/[id
 - Le scan **ne contourne pas** les vérifications existantes (§3nonies) : après un scan, le champ passeport garde son état "non confirmé" (la confirmation par dialogue reste déclenchée au blur, comme une saisie manuelle) et la date d'expiration reste validée par rapport aux 6 mois après le départ — un scan valide en checksum n'est pas automatiquement synonyme de passeport valide pour CE voyage précis
 - N'écrase jamais un champ non lu par le scan (ex. MRZ sans genre exploitable) : chaque champ scanné n'est appliqué que s'il a une valeur, sinon la valeur déjà saisie manuellement est conservée
 
+## 3sexvicies. Multi-agences — fondations (passe 1 sur 2, migration `016_add_multi_agency.sql`)
+
+Le système est conçu pour héberger **plusieurs agences indépendantes** sur un même déploiement/base. Décisions retenues : **une agence = un sous-domaine** ; **un compte staff = une seule agence** ; **catalogues propres à chaque agence** (hôtels, compagnies, visa, programmes, voyages, rôles...) ; **création d'agence manuelle** (pas d'interface super-admin pour l'instant). Refonte structurelle volontairement faite en deux passes — **cette passe pose les fondations, la suivante filtre les requêtes**.
+
+### ⚠️ État actuel : NE PAS créer de deuxième agence avec de vraies données
+
+Aucune requête métier (`lib/*.js`) ne filtre encore par `agency_id`, et tous les `INSERT` existants ne le renseignent pas (ils tombent sur `DEFAULT 1`). Tant que seule l'agence 1 (Golden Fantastic) a des données, rien ne fuit. Une agence 2 avec de vraies données verrait/mélangerait celles de l'agence 1 — **la passe 2 (filtrage) doit précéder tout onboarding réel**. `agency_id ... DEFAULT 1` est conservé **exprès** (le retirer casserait tous les `INSERT` actuels) et ne sera retiré qu'une fois chaque `INSERT` retrofité.
+
+### Fait dans la passe 1
+
+- **Schéma** : table `agencies` (nom, `subdomain` unique, coordonnées, `footer_note`, `is_active`), agence 1 reprise de `agency_settings` ; colonne `agency_id` (FK) sur 27 tables métier, y compris celles dérivables par jointure (`trips`, `rooms`, `payments`...) — **volontairement redondante** : une seule colonne à filtrer dans chaque requête plutôt qu'une chaîne de jointures qu'il faudrait refaire juste à chaque fois (le risque n°1 de fuite inter-agences est une jointure oubliée). Tables restées globales : `permissions` (capacités du logiciel), `services`, tables dépréciées vides
+- **Unicité par agence** : `roles(name)`, `staff_users(email)`, `programs(slug)`, `trips(reference_code)`, `airlines(name)`, `news_posts(slug)` deviennent uniques **par `(agency_id, …)`**. `roles.id`/`role_id` élargis à `BIGINT` (4 rôles × N agences dépasserait `TINYINT`)
+- **Rôles propres à chaque agence** (déduit des décisions, non posé explicitement en question) : `scripts/create-agency.js "Nom" sous-domaine` crée l'agence et copie les 4 rôles de base + leur matrice de permissions depuis l'agence 1 ; puis `scripts/create-staff-user.js "Nom" email mdp direction <agencyId>` (5ᵉ argument, `1` par défaut). `hasPermission` filtre `roles.agency_id = session.agencyId` ; le filet "`direction` a tout" (§3undecies) est inchangé
+- **`proxy.js`** remplace `middleware.js` (déprécié en Next 16 ; runtime Node, pas edge). Il résout l'agence depuis l'en-tête `Host` (`lib/agencyHost.js`, fonction pure) puis `lib/agencies.js` (**cache mémoire** 5 min — les docs Next déconseillent les accès lents dans `proxy` ; agence inconnue → 404 "Agence introuvable", **jamais** de repli silencieux sur l'agence 1 en production) et pose l'en-tête interne **`x-agency-id`**, **toujours écrasé** (une valeur envoyée par le client n'est jamais prise en compte). Le `matcher` couvre désormais toutes les routes hors assets statiques (avant : `/admin` seulement), car login et pages publiques ont besoin de l'agence
+- **Sessions** : le JWT porte `agencyId` ; `getSession()` (`lib/session.js`) renvoie `null` si l'agence de la session ≠ celle de la requête (défense en profondeur pour les routes API, que `proxy` ne filtre pas par session) ; `proxy` fait le même contrôle pour `/admin`. La connexion (`/api/auth/login`) ne cherche le compte que dans l'agence de la requête. **Conséquence : toute session émise avant cette migration (sans `agencyId`) est invalide — reconnexion unique nécessaire**
+- **Configuration** : `ROOT_DOMAIN` (env, ex. `plateforme.ma` → `agence1.plateforme.ma` ⇒ `agence1` ; le nom de domaine n'étant pas encore choisi, rien n'est codé en dur). En local, `agence2.localhost:3000` résout `agence2` sans configuration (les navigateurs routent `*.localhost` vers la boucle locale) ; `localhost`/IP nus → `DEV_AGENCY_SUBDOMAIN`, sinon `goldenfantastic` **hors production seulement**
+
+### Écarts assumés par rapport au plan validé
+
+- `agency_id` garde `DEFAULT 1` (voir ci-dessus) au lieu d'être rendu obligatoire sans défaut
+- colonne nommée `footer_note` (comme `agency_settings`) plutôt que `receipt_footer_note`
+- **`agency_settings` est encore la source lue par le code** (`lib/agencySettings.js`, layouts, reçus PDF, `/admin/parametres`) : la table `agencies` est un instantané de la ligne migrée, la modifier depuis `/admin/parametres` n'y répercute rien. Basculer la lecture/écriture sur `agencies` est reporté à la passe 2 — le faire ici aurait rendu dynamiques (`headers()`) toutes les pages publiques en `revalidate = 300`, décision à prendre avec le branding public
+
+### Reste à faire (passe 2, dans cet ordre)
+
+1. **Filtrer par `agency_id` les ~25 fichiers `lib/*.js`** (`WHERE agency_id = ?` + `agency_id` dans chaque `INSERT`, puis retirer `DEFAULT 1`), fichier par fichier avec vérification SQL après chacun. Points de vigilance connus : `createRegistration` retrouve un voyageur existant **par numéro WhatsApp globalement** (deux agences fusionneraient un même voyageur — à scoper) ; `listRoles`/`getPermissionsMatrix`/`createRole` (§3undecies) ne sont pas encore filtrés ; les vues `v_trip_traveler_list`/`v_trip_airline_list`
+2. **Toutes les routes `app/api/admin/**`** : vérifier que la ressource ciblée (`tripId`, `registrationId`...) appartient à `session.agencyId` avant d'agir — sinon un identifiant deviné agirait sur une autre agence même avec la lecture filtrée
+3. **Branding dynamique** : "Golden Fantastic" est codé en dur dans `app/(site)/layout.js`, `app/admin/layout.js`, le JSON-LD ; basculer `getAgencySettings` sur `agencies` ; sitemap/robots/`llms.txt`/flux RSS par agence ; uploads (`public/uploads/*`) à séparer par agence
+4. Déploiement : DNS wildcard + certificat pour `*.<ROOT_DOMAIN>` (le système n'est pas encore déployé)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
