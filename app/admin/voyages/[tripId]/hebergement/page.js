@@ -5,6 +5,7 @@ import {
   listTripHotels,
   listRoomsForTrip,
   listUnassignedRegistrations,
+  listAssignedRegistrationsForTrip,
 } from "@/lib/roomAssignment";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
@@ -18,11 +19,12 @@ export default async function HebergementPage({ params }) {
     notFound();
   }
 
-  const [hotels, tripHotels, rooms, unassigned, session] = await Promise.all([
+  const [hotels, tripHotels, rooms, unassigned, assigned, session] = await Promise.all([
     listHotels(),
     listTripHotels(tripId),
     listRoomsForTrip(tripId),
     listUnassignedRegistrations(tripId),
+    listAssignedRegistrationsForTrip(tripId),
     getSession(),
   ]);
 
@@ -49,6 +51,7 @@ export default async function HebergementPage({ params }) {
         tripHotels={tripHotels}
         rooms={rooms}
         unassigned={unassigned}
+        assigned={assigned}
         canManage={canManage}
       />
     </div>

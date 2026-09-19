@@ -12,6 +12,7 @@ export default function HebergementManager({
   tripHotels,
   rooms,
   unassigned,
+  assigned,
   canManage,
 }) {
   const router = useRouter();
@@ -188,6 +189,18 @@ export default function HebergementManager({
   const tripHotelsByCity = groupByCity(tripHotels, "city");
   const roomsByCity = groupByCity(rooms, "hotel_city");
 
+  // Voyageurs déjà affectés, groupés par chambre — pour vérifier que
+  // l'affectation réelle correspond à la préférence exprimée à
+  // l'inscription (§3quaterdecies) : un changement manuel ou une
+  // répartition automatique peut placer quelqu'un dans une chambre
+  // différente de celle demandée sans que ça saute aux yeux une fois la
+  // chambre marquée "occupée" (voir CLAUDE.md).
+  const occupantsByRoom = new Map();
+  for (const a of assigned) {
+    if (!occupantsByRoom.has(a.room_id)) occupantsByRoom.set(a.room_id, []);
+    occupantsByRoom.get(a.room_id).push(a);
+  }
+
   // Regroupe les voyageurs non affectés par groupe d'inscription (binôme/
   // famille) pour les afficher et les assigner ensemble.
   const soloUnassigned = unassigned.filter((u) => !u.group_id);
@@ -318,11 +331,14 @@ export default function HebergementManager({
                     <th className="px-2 py-2">Type</th>
                     <th className="px-2 py-2">Occupation</th>
                     <th className="px-2 py-2">Genre</th>
+                    <th className="px-2 py-2">Voyageurs</th>
                     {canManage && <th className="px-2 py-2" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {group.items.map((r) => (
+                  {group.items.map((r) => {
+                    const occupants = occupantsByRoom.get(r.id) || [];
+                    return (
                     <tr key={r.id} className="border-b border-zinc-100 last:border-0">
                       <td className="px-2 py-2">{r.hotel_name}</td>
                       <td className="px-2 py-2">{r.room_number || "—"}</td>
@@ -331,6 +347,36 @@ export default function HebergementManager({
                         {r.occupants_count} / {r.capacity}
                       </td>
                       <td className="px-2 py-2 capitalize">{r.occupants_gender || "—"}</td>
+                      <td className="px-2 py-2">
+                        {occupants.length === 0 ? (
+                          "—"
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {occupants.map((o) => {
+                              const hotelMismatch =
+                                o.preferred_hotel_id && o.preferred_hotel_id !== r.hotel_id;
+                              const typeMismatch =
+                                o.preferred_room_type && o.preferred_room_type !== r.room_type;
+                              return (
+                                <li key={o.id}>
+                                  {o.full_name}
+                                  {(hotelMismatch || typeMismatch) && (
+                                    <span className="ml-1 text-xs font-medium text-amber-600">
+                                      ⚠ avait demandé{" "}
+                                      {[
+                                        hotelMismatch ? o.preferred_hotel_name : null,
+                                        typeMismatch ? o.preferred_room_type : null,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" — ")}
+                                    </span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </td>
                       {canManage && (
                         <td className="px-2 py-2 text-right">
                           <button
@@ -342,7 +388,8 @@ export default function HebergementManager({
                         </td>
                       )}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

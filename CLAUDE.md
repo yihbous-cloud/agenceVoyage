@@ -265,6 +265,14 @@ Un programme (ex. "Omra Ramadan") utilise généralement les mêmes hôtels à c
 - **Auto-attachement à la création d'un voyage** (`createTrip` dans `lib/programsAdmin.js`) : juste après l'insertion du voyage, chaque hôtel par défaut du programme est inséré dans `trip_hotels` avec `check_in_date`/`check_out_date` = dates du voyage entier (par défaut) — ajustable ensuite comme n'importe quel hôtel, sans distinction, depuis `/admin/voyages/[tripId]/hebergement` (retirer, changer les dates, ou en ajouter un supplémentaire propre à ce voyage précis)
 - Fixer les hôtels du programme est **indicatif pour les futurs voyages**, pas rétroactif : modifier la liste sur la fiche d'un programme existant n'affecte jamais les voyages déjà créés (dont les `trip_hotels` sont déjà en base, indépendants).
 
+## 3unvicies. Alerte de préférence non respectée sur une chambre déjà occupée
+
+Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voyages/[tripId]/hebergement` n'affichait plus que l'occupation agrégée (ex. "1 / 5", genre) — la préférence hôtel/type exprimée à l'inscription (§3quaterdecies) n'était visible que tant que le voyageur restait "non affecté". Une fois affecté, rien ne signalait plus qu'un changement manuel de chambre (ou un résultat de répartition automatique — qui **ne connaît pas** les préférences groupe, voir §3quindecies) avait placé quelqu'un dans une chambre différente de celle demandée.
+
+- **`lib/roomAssignment.js`** : nouvelle fonction `listAssignedRegistrationsForTrip(tripId)` — même forme que `listUnassignedRegistrations` mais `room_id IS NOT NULL`
+- **`HebergementManager.jsx`** : nouvelle colonne "Voyageurs" sur le tableau des chambres, listant chaque occupant par son nom ; si sa préférence (`preferred_hotel_id`/`preferred_room_type`) diffère de l'hôtel/type réel de la chambre, un badge ⚠ "avait demandé {hôtel} — {type}" apparaît à côté de son nom — comparaison faite uniquement sur les champs où une préférence a été exprimée (un voyageur sans préférence n'affiche jamais d'alerte)
+- Volontairement informatif seulement, pas bloquant : le personnel peut avoir une bonne raison de déroger (hôtel préféré complet, contrainte de dernière minute) — l'objectif est de rendre l'écart visible, pas de l'empêcher
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
