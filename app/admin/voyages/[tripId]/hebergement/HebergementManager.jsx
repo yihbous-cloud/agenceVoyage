@@ -358,18 +358,28 @@ export default function HebergementManager({
                               const typeMismatch =
                                 o.preferred_room_type && o.preferred_room_type !== r.room_type;
                               return (
-                                <li key={o.id}>
-                                  {o.full_name}
-                                  {(hotelMismatch || typeMismatch) && (
-                                    <span className="ml-1 text-xs font-medium text-amber-600">
-                                      ⚠ avait demandé{" "}
-                                      {[
-                                        hotelMismatch ? o.preferred_hotel_name : null,
-                                        typeMismatch ? o.preferred_room_type : null,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" — ")}
-                                    </span>
+                                <li key={o.id} className="flex items-center gap-1">
+                                  <span>
+                                    {o.full_name}
+                                    {(hotelMismatch || typeMismatch) && (
+                                      <span className="ml-1 text-xs font-medium text-amber-600">
+                                        ⚠ avait demandé{" "}
+                                        {[
+                                          hotelMismatch ? o.preferred_hotel_name : null,
+                                          typeMismatch ? o.preferred_room_type : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" — ")}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {canManage && (
+                                    <button
+                                      onClick={() => handleAssign(o.id, "")}
+                                      className="text-xs text-red-600 hover:underline"
+                                    >
+                                      Retirer
+                                    </button>
                                   )}
                                 </li>
                               );
