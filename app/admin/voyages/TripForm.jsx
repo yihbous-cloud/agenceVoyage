@@ -65,7 +65,16 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
 
-      router.push(`/admin/programmes/${trip?.program_id || programId}`);
+      if (isEdit) {
+        router.push(`/admin/programmes/${trip.program_id}`);
+      } else {
+        // Le voyage vient d'être créé : on enchaîne directement sur
+        // l'attachement de ses hôtels plutôt que de revenir sur la fiche
+        // programme — l'hébergement se configure dès la création du voyage
+        // (voir CLAUDE.md).
+        const data = await res.json();
+        router.push(`/admin/voyages/${data.id}/hebergement`);
+      }
       router.refresh();
     } catch (err) {
       setError(err.message);

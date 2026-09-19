@@ -167,6 +167,27 @@ export default function HebergementManager({
     router.refresh();
   };
 
+  // Un voyage peut avoir des hôtels dans plusieurs villes (ex. Omra :
+  // Mecque + Médine) — regroupe hôtels/chambres par ville pour que
+  // l'affectation se fasse dans la bonne ville, pas au hasard sur une
+  // liste à plat (voir CLAUDE.md).
+  const groupByCity = (items, cityKey) => {
+    const groups = [];
+    const seen = new Map();
+    for (const item of items) {
+      const city = item[cityKey] || "Autre";
+      if (!seen.has(city)) {
+        seen.set(city, { city, items: [] });
+        groups.push(seen.get(city));
+      }
+      seen.get(city).items.push(item);
+    }
+    return groups;
+  };
+
+  const tripHotelsByCity = groupByCity(tripHotels, "city");
+  const roomsByCity = groupByCity(rooms, "hotel_city");
+
   // Regroupe les voyageurs non affectés par groupe d'inscription (binôme/
   // famille) pour les afficher et les assigner ensemble.
   const soloUnassigned = unassigned.filter((u) => !u.group_id);
@@ -192,28 +213,37 @@ export default function HebergementManager({
       {/* Hôtels du voyage */}
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Hôtels du voyage</h2>
-        <ul className="mt-3 divide-y divide-zinc-100">
-          {tripHotels.map((th) => (
-            <li key={th.id} className="flex items-center justify-between py-2 text-sm">
-              <span>
-                {th.hotel_name} ({th.city}) —{" "}
-                {new Date(th.check_in_date).toLocaleDateString("fr-FR")} →{" "}
-                {new Date(th.check_out_date).toLocaleDateString("fr-FR")}
-              </span>
-              {canManage && (
-                <button
-                  onClick={() => handleRemoveTripHotel(th.id)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  Retirer
-                </button>
-              )}
-            </li>
+        <div className="mt-3 space-y-4">
+          {tripHotelsByCity.map((group) => (
+            <div key={group.city}>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                {group.city}
+              </h3>
+              <ul className="mt-1 divide-y divide-zinc-100">
+                {group.items.map((th) => (
+                  <li key={th.id} className="flex items-center justify-between py-2 text-sm">
+                    <span>
+                      {th.hotel_name} —{" "}
+                      {new Date(th.check_in_date).toLocaleDateString("fr-FR")} →{" "}
+                      {new Date(th.check_out_date).toLocaleDateString("fr-FR")}
+                    </span>
+                    {canManage && (
+                      <button
+                        onClick={() => handleRemoveTripHotel(th.id)}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Retirer
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
           {tripHotels.length === 0 && (
-            <li className="py-2 text-sm text-zinc-500">Aucun hôtel assigné.</li>
+            <p className="py-2 text-sm text-zinc-500">Aucun hôtel assigné.</p>
           )}
-        </ul>
+        </div>
 
         {canManage && (
           <form onSubmit={handleAddHotel} className="mt-4 flex flex-wrap items-end gap-3 border-t border-zinc-100 pt-4">
@@ -226,10 +256,14 @@ export default function HebergementManager({
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               >
                 <option value="">Sélectionner...</option>
-                {hotels.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name} ({h.city})
-                  </option>
+                {groupByCity(hotels, "city").map((group) => (
+                  <optgroup key={group.city} label={group.city}>
+                    {group.items.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -270,49 +304,50 @@ export default function HebergementManager({
       {/* Chambres */}
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Chambres</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 text-zinc-500">
-              <tr>
-                <th className="px-2 py-2">Hôtel</th>
-                <th className="px-2 py-2">N°</th>
-                <th className="px-2 py-2">Type</th>
-                <th className="px-2 py-2">Occupation</th>
-                <th className="px-2 py-2">Genre</th>
-                {canManage && <th className="px-2 py-2" />}
-              </tr>
-            </thead>
-            <tbody>
-              {rooms.map((r) => (
-                <tr key={r.id} className="border-b border-zinc-100 last:border-0">
-                  <td className="px-2 py-2">{r.hotel_name}</td>
-                  <td className="px-2 py-2">{r.room_number || "—"}</td>
-                  <td className="px-2 py-2 capitalize">{r.room_type}</td>
-                  <td className="px-2 py-2">
-                    {r.occupants_count} / {r.capacity}
-                  </td>
-                  <td className="px-2 py-2 capitalize">{r.occupants_gender || "—"}</td>
-                  {canManage && (
-                    <td className="px-2 py-2 text-right">
-                      <button
-                        onClick={() => handleDeleteRoom(r.id)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {rooms.length === 0 && (
-                <tr>
-                  <td className="px-2 py-2 text-zinc-500" colSpan={6}>
-                    Aucune chambre.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="mt-3 space-y-4 overflow-x-auto">
+          {roomsByCity.map((group) => (
+            <div key={group.city}>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                {group.city}
+              </h3>
+              <table className="mt-1 w-full text-left text-sm">
+                <thead className="border-b border-zinc-200 text-zinc-500">
+                  <tr>
+                    <th className="px-2 py-2">Hôtel</th>
+                    <th className="px-2 py-2">N°</th>
+                    <th className="px-2 py-2">Type</th>
+                    <th className="px-2 py-2">Occupation</th>
+                    <th className="px-2 py-2">Genre</th>
+                    {canManage && <th className="px-2 py-2" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.items.map((r) => (
+                    <tr key={r.id} className="border-b border-zinc-100 last:border-0">
+                      <td className="px-2 py-2">{r.hotel_name}</td>
+                      <td className="px-2 py-2">{r.room_number || "—"}</td>
+                      <td className="px-2 py-2 capitalize">{r.room_type}</td>
+                      <td className="px-2 py-2">
+                        {r.occupants_count} / {r.capacity}
+                      </td>
+                      <td className="px-2 py-2 capitalize">{r.occupants_gender || "—"}</td>
+                      {canManage && (
+                        <td className="px-2 py-2 text-right">
+                          <button
+                            onClick={() => handleDeleteRoom(r.id)}
+                            className="text-xs text-red-600 hover:underline"
+                          >
+                            Supprimer
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          {rooms.length === 0 && <p className="py-2 text-sm text-zinc-500">Aucune chambre.</p>}
         </div>
 
         {canManage && tripHotels.length > 0 && (
@@ -326,10 +361,14 @@ export default function HebergementManager({
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               >
                 <option value="">Sélectionner...</option>
-                {tripHotels.map((th) => (
-                  <option key={th.id} value={th.id}>
-                    {th.hotel_name}
-                  </option>
+                {tripHotelsByCity.map((group) => (
+                  <optgroup key={group.city} label={group.city}>
+                    {group.items.map((th) => (
+                      <option key={th.id} value={th.id}>
+                        {th.hotel_name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -438,11 +477,15 @@ export default function HebergementManager({
                       className="rounded-lg border border-zinc-300 px-2 py-1 text-xs"
                     >
                       <option value="">Assigner le groupe à...</option>
-                      {compatibleRooms.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.hotel_name} — {r.room_type} {r.room_number} (
-                          {r.occupants_count}/{r.capacity})
-                        </option>
+                      {groupByCity(compatibleRooms, "hotel_city").map((group) => (
+                        <optgroup key={group.city} label={group.city}>
+                          {group.items.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.hotel_name} — {r.room_type} {r.room_number} (
+                              {r.occupants_count}/{r.capacity})
+                            </option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   )}
@@ -472,14 +515,19 @@ export default function HebergementManager({
                   className="rounded-lg border border-zinc-300 px-2 py-1 text-xs"
                 >
                   <option value="">Assigner à...</option>
-                  {rooms
-                    .filter((r) => isRoomCompatible(r, u))
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.hotel_name} — {r.room_type} {r.room_number} (
-                        {r.occupants_count}/{r.capacity})
-                      </option>
-                    ))}
+                  {groupByCity(
+                    rooms.filter((r) => isRoomCompatible(r, u)),
+                    "hotel_city"
+                  ).map((group) => (
+                    <optgroup key={group.city} label={group.city}>
+                      {group.items.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.hotel_name} — {r.room_type} {r.room_number} (
+                          {r.occupants_count}/{r.capacity})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               )}
             </li>

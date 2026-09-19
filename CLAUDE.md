@@ -247,6 +247,14 @@ Une inscription (individuelle ou groupe) démarre désormais avec `total_due` d�
 
 `/admin/voyages/[tripId]/hebergement` : les dates de check-in/check-out d'un hôtel ajouté au voyage doivent rester **dans** les dates du voyage (`trips.departure_date`/`return_date`) — auparavant non vérifié, un hôtel avait pu être ajouté avec des dates totalement hors du voyage (trouvé et corrigé en base). Validé côté client (`min`/`max` sur les `<input type="date">`, plus message d'erreur explicite si contourné) **et** côté serveur (`POST /api/admin/trips/[tripId]/hotels`, source de vérité) — le check-in doit aussi précéder le check-out.
 
+## 3novemdecies. Hébergement organisé par ville, attaché dès la création du voyage
+
+Un voyage peut avoir plusieurs hôtels dans des villes différentes (ex. Omra : Mecque **et** Médine, cf. commentaire déjà présent dans `database/schema.sql` sur `trip_hotels`) — avant cette section, `/admin/voyages/[tripId]/hebergement` affichait hôtels, chambres et menus d'affectation en une seule liste à plat mélangeant toutes les villes, au risque d'affecter un voyageur à la mauvaise ville par inattention.
+
+- **`lib/roomAssignment.js`** : `listTripHotels` trié par `h.city` d'abord ; `listRoomsForTrip` renvoie désormais aussi `hotel_city` (`h.city AS hotel_city`) et trie par ville également
+- **`HebergementManager.jsx`** : `groupByCity()` (regroupement générique par la clé ville d'un tableau) — la liste "Hôtels du voyage" et le tableau "Chambres" sont désormais **sous-sectionnés par ville** (sous-titre par ville) ; tous les `<select>` d'affectation (chambre pour un voyageur seul, chambre pour un groupe, hôtel du catalogue, hôtel du voyage pour créer une chambre) utilisent des `<optgroup>` par ville plutôt qu'une liste plate
+- **Hôtels attachés dès la création du voyage** : `TripForm.jsx` redirige désormais, à la **création** d'un voyage (pas à l'édition), directement vers `/admin/voyages/[id]/hebergement` au lieu de revenir sur la fiche programme — attacher les hôtels du voyage devient l'étape suivante immédiate, plutôt qu'une action separée qu'on risque d'oublier. Techniquement les dates d'hôtel ne peuvent être validées qu'une fois le voyage créé (elles sont bornées par `trips.departure_date`/`return_date`, voir §3octodecies) : impossible de fusionner les deux formulaires, d'où ce chaînage par redirection plutôt qu'un unique écran.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
