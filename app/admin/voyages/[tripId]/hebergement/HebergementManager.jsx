@@ -189,6 +189,21 @@ export default function HebergementManager({
   const tripHotelsByCity = groupByCity(tripHotels, "city");
   const roomsByCity = groupByCity(rooms, "hotel_city");
 
+  // Un voyageur avec une préférence hôtel/type exprimée à l'inscription
+  // (§3quaterdecies) n'a pas besoin de voir tous les hôtels/chambres du
+  // voyage dans "Assigner à..." — seulement les chambres qui correspondent
+  // à ce qu'il a demandé. Si aucune ne correspond (hôtel préféré complet,
+  // par exemple), retombe sur la liste complète pour ne jamais bloquer
+  // l'affectation.
+  const filterByPreference = (roomsList, preferredHotelId, preferredRoomType) => {
+    if (!preferredHotelId) return roomsList;
+    const hotelMatches = roomsList.filter((r) => r.hotel_id === preferredHotelId);
+    if (hotelMatches.length === 0) return roomsList;
+    if (!preferredRoomType) return hotelMatches;
+    const typeMatches = hotelMatches.filter((r) => r.room_type === preferredRoomType);
+    return typeMatches.length > 0 ? typeMatches : hotelMatches;
+  };
+
   // Voyageurs déjà affectés, groupés par chambre — pour vérifier que
   // l'affectation réelle correspond à la préférence exprimée à
   // l'inscription (§3quaterdecies) : un changement manuel ou une
@@ -534,7 +549,14 @@ export default function HebergementManager({
                       className="rounded-lg border border-zinc-300 px-2 py-1 text-xs"
                     >
                       <option value="">Assigner le groupe à...</option>
-                      {groupByCity(compatibleRooms, "hotel_city").map((group) => (
+                      {groupByCity(
+                        filterByPreference(
+                          compatibleRooms,
+                          g.members[0]?.preferred_hotel_id,
+                          g.members[0]?.preferred_room_type
+                        ),
+                        "hotel_city"
+                      ).map((group) => (
                         <optgroup key={group.city} label={group.city}>
                           {group.items.map((r) => (
                             <option key={r.id} value={r.id}>
@@ -573,7 +595,11 @@ export default function HebergementManager({
                 >
                   <option value="">Assigner à...</option>
                   {groupByCity(
-                    rooms.filter((r) => isRoomCompatible(r, u)),
+                    filterByPreference(
+                      rooms.filter((r) => isRoomCompatible(r, u)),
+                      u.preferred_hotel_id,
+                      u.preferred_room_type
+                    ),
                     "hotel_city"
                   ).map((group) => (
                     <optgroup key={group.city} label={group.city}>

@@ -272,6 +272,7 @@ Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voy
 - **`lib/roomAssignment.js`** : nouvelle fonction `listAssignedRegistrationsForTrip(tripId)` — même forme que `listUnassignedRegistrations` mais `room_id IS NOT NULL`
 - **`HebergementManager.jsx`** : nouvelle colonne "Voyageurs" sur le tableau des chambres, listant chaque occupant par son nom ; si sa préférence (`preferred_hotel_id`/`preferred_room_type`) diffère de l'hôtel/type réel de la chambre, un badge ⚠ "avait demandé {hôtel} — {type}" apparaît à côté de son nom — comparaison faite uniquement sur les champs où une préférence a été exprimée (un voyageur sans préférence n'affiche jamais d'alerte)
 - Volontairement informatif seulement, pas bloquant : le personnel peut avoir une bonne raison de déroger (hôtel préféré complet, contrainte de dernière minute) — l'objectif est de rendre l'écart visible, pas de l'empêcher
+- **Le menu "Assigner à..."/"Assigner le groupe à..." filtre lui aussi par préférence** (`filterByPreference` dans `HebergementManager.jsx`) : un voyageur avec une préférence hôtel + type ne voit que les chambres de ce type dans cet hôtel (pas les autres hôtels/types du voyage) — retombe sur la liste complète uniquement si rien ne correspond (hôtel préféré complet), pour ne jamais bloquer l'affectation. Pour un groupe, la préférence est lue sur le premier membre (tous partagent la même, saisie une seule fois à l'inscription — voir §3quindecies)
 
 ## 4. Modules fonctionnels
 
