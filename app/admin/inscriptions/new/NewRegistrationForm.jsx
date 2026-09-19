@@ -27,6 +27,8 @@ export default function NewRegistrationForm({ trips }) {
   const router = useRouter();
   const [tripId, setTripId] = useState("");
   const [tripHotels, setTripHotels] = useState([]);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [hotelsError, setHotelsError] = useState(null);
 
   // Type d'inscription : individuel (1 voyageur), binôme (exactement 2,
   // ex. un couple) ou groupe (1 à N, extensible via "+ Ajouter un
@@ -62,12 +64,20 @@ export default function NewRegistrationForm({ trips }) {
     setTripId(value);
     setHotelPreferencesByCity({});
     setTripHotels([]);
+    setHotelsError(null);
     if (!value) return;
+    setHotelsLoading(true);
     try {
       const res = await fetch(`/api/admin/trips/${value}/hotels`);
-      if (res.ok) setTripHotels(await res.json());
+      if (res.ok) {
+        setTripHotels(await res.json());
+      } else {
+        setHotelsError("Impossible de charger les hôtels de ce voyage (erreur serveur).");
+      }
     } catch {
-      // pas bloquant : la préférence d'hôtel reste optionnelle
+      setHotelsError("Impossible de charger les hôtels de ce voyage (connexion).");
+    } finally {
+      setHotelsLoading(false);
     }
   };
 
@@ -268,7 +278,11 @@ export default function NewRegistrationForm({ trips }) {
       )}
 
       <div>
-        {tripId && tripHotelsByCity.length === 0 && (
+        {hotelsLoading && (
+          <p className="text-sm text-zinc-500">Chargement des hôtels du voyage...</p>
+        )}
+        {hotelsError && <p className="text-sm text-red-600">{hotelsError}</p>}
+        {!hotelsLoading && !hotelsError && tripId && tripHotelsByCity.length === 0 && (
           <p className="text-sm text-zinc-500">
             Aucun hôtel disponible pour ce voyage — la préférence sera laissée de côté.
           </p>
