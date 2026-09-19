@@ -21,8 +21,9 @@ export default async function InscriptionsPage({ searchParams }) {
   const params = await searchParams;
   const tripId = params?.tripId || undefined;
   const status = params?.status || undefined;
+  const q = params?.q || undefined;
 
-  const registrations = await listRegistrations({ tripId, status });
+  const registrations = await listRegistrations({ tripId, status, q });
 
   return (
     <div className="space-y-6">
@@ -36,8 +37,28 @@ export default async function InscriptionsPage({ searchParams }) {
         </Link>
       </div>
 
-      {(tripId || status) && (
+      <form method="GET" className="flex items-center gap-2">
+        {tripId && <input type="hidden" name="tripId" value={tripId} />}
+        {status && <input type="hidden" name="status" value={status} />}
+        <input
+          type="search"
+          name="q"
+          defaultValue={q || ""}
+          placeholder="Rechercher par nom ou groupe..."
+          className="w-72 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+        >
+          Rechercher
+        </button>
+      </form>
+
+      {(tripId || status || q) && (
         <p className="text-sm text-zinc-500">
+          {q && <>Recherche : &laquo; {q} &raquo;</>}
+          {q && (tripId || status) && " · "}
           {tripId && <>Filtré par voyage #{tripId}</>}
           {tripId && status && " · "}
           {status && (
@@ -98,6 +119,11 @@ export default async function InscriptionsPage({ searchParams }) {
               <tr key={reg.id} className="border-b border-zinc-100 last:border-0">
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {reg.full_name}
+                  {reg.group_label && (
+                    <span className="ml-2 text-xs font-normal text-emerald-700">
+                      ({reg.group_label})
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{reg.phone_whatsapp}</td>
                 <td className="px-4 py-3 text-zinc-600">{reg.program_title}</td>

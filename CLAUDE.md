@@ -274,6 +274,14 @@ Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voy
 - Volontairement informatif seulement, pas bloquant : le personnel peut avoir une bonne raison de déroger (hôtel préféré complet, contrainte de dernière minute) — l'objectif est de rendre l'écart visible, pas de l'empêcher
 - **Le menu "Assigner à..."/"Assigner le groupe à..." filtre lui aussi par préférence** (`filterByPreference` dans `HebergementManager.jsx`) : un voyageur avec une préférence hôtel + type ne voit que les chambres de ce type dans cet hôtel (pas les autres hôtels/types du voyage) — retombe sur la liste complète uniquement si rien ne correspond (hôtel préféré complet), pour ne jamais bloquer l'affectation. Pour un groupe, la préférence est lue sur le premier membre (tous partagent la même, saisie une seule fois à l'inscription — voir §3quindecies)
 
+## 3duovicies. Recherche par nom ou groupe sur la liste des inscrits
+
+`/admin/inscriptions` ne permettait de filtrer que par voyage ou statut (paramètres d'URL `tripId`/`status`) — aucun moyen de retrouver rapidement une personne ou un groupe/binôme précis dans une longue liste.
+
+- `listRegistrations({ tripId, status, q })` (`lib/registrations.js`) : `q` filtre sur `tr.full_name LIKE %q%` **ou** `rg.label LIKE %q%` (nom du groupe/binôme, via un nouveau `LEFT JOIN registration_groups`) — un seul champ couvre les deux cas, un même mot-clé (ex. "Fassi") retrouve aussi bien un voyageur nommé ainsi que tous les membres d'un groupe "Famille Fassi"
+- Formulaire `GET` simple (pas de composant client, cohérent avec le filtrage déjà en place par `searchParams`) — préserve `tripId`/`status` actifs via des champs cachés
+- La colonne "Voyageur" affiche désormais le nom du groupe entre parenthèses quand l'inscription en fait partie, pour confirmer visuellement qu'une recherche par nom de groupe a bien fonctionné
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
