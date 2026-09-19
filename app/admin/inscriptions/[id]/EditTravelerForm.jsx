@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
+import PassportScanInput from "../PassportScanInput";
 
 export default function EditTravelerForm({ registration, canEdit }) {
   const router = useRouter();
@@ -148,6 +149,21 @@ export default function EditTravelerForm({ registration, canEdit }) {
           </button>
         )}
       </h2>
+
+      {!fieldsDisabled && (
+        <PassportScanInput
+          disabled={passportDisabled}
+          onScan={(parsed) => {
+            if (!parsed) return;
+            if (parsed.fullName) setFullName(parsed.fullName);
+            if (parsed.passportNumber) setPassportNumber(parsed.passportNumber);
+            if (parsed.gender) setGender(parsed.gender);
+            if (parsed.passportExpiryDate) setPassportExpiryDate(parsed.passportExpiryDate);
+            setPassportWarning(null);
+            setConfirmedPassportNumber(null);
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>

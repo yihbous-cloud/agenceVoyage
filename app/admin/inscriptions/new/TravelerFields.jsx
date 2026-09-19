@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
+import PassportScanInput from "../PassportScanInput";
 
 // Bloc de champs pour UN voyageur, réutilisable N fois (individuel = 1,
 // binôme = 2, groupe = N) — porte sa propre vérification de passeport
@@ -86,6 +87,25 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
             Retirer
           </button>
         )}
+      </div>
+
+      <div className="mt-3">
+        <PassportScanInput
+          disabled={passportLocked}
+          onScan={(parsed) => {
+            if (!parsed) return;
+            onChange({
+              ...traveler,
+              fullName: parsed.fullName || traveler.fullName,
+              passportNumber: parsed.passportNumber || traveler.passportNumber,
+              gender: parsed.gender || traveler.gender,
+              dateOfBirth: parsed.dateOfBirth || traveler.dateOfBirth,
+              passportExpiryDate: parsed.passportExpiryDate || traveler.passportExpiryDate,
+            });
+            setPassportWarning(null);
+            setConfirmedPassportNumber(null);
+          }}
+        />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-4">
