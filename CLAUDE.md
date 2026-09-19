@@ -282,6 +282,14 @@ Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voy
 - **`SearchBar.jsx`** (client component) : filtre dès la première lettre tapée, pas besoin de valider — débattu de 300ms (`setTimeout`/`clearTimeout` sur `value`) pour éviter une navigation à chaque frappe, met à jour l'URL via `router.replace(..., { scroll: false })` en préservant `tripId`/`status` déjà présents dans `searchParams`. Un `useEffect` sur `initialQuery` resynchronise le champ si l'URL change de l'extérieur (ex. le lien "réinitialiser" de la page)
 - La colonne "Voyageur" affiche désormais le nom du groupe entre parenthèses quand l'inscription en fait partie, pour confirmer visuellement qu'une recherche par nom de groupe a bien fonctionné
 
+## 3trevicies. Voyageurs masqués de l'hébergement tant que non payés / visa non entamé
+
+`listUnassignedRegistrations` (`lib/roomAssignment.js`, utilisée par la liste "Voyageurs non affectés" **et** `autoAssignTrip`) n'affiche/ne propose désormais que les voyageurs ayant **au moins un versement enregistré** (`status IN ('paye_partiel', 'paye_complet')`) **et** une **démarche visa au moins lancée** (`visa_status IN ('en_cours', 'accorde')`) — inutile de réserver une chambre à quelqu'un dont l'inscription peut encore changer (aucun acompte, visa jamais demandé).
+
+- Seuil volontairement **pas** le plus strict : un acompte partiel suffit (pas besoin du paiement complet), un visa "en cours" suffit (pas besoin de l'accord définitif, qui peut prendre du temps) — choisi explicitement par l'utilisateur pour ne pas bloquer l'organisation de l'hébergement en attendant une validation finale qui peut traîner
+- S'applique **avant** l'affectation (voyageurs non affectés, individuels et groupes) — un voyageur déjà affecté à une chambre reste affiché normalement dans le tableau "Chambres" quel que soit son statut de paiement/visa, ce filtre ne retire jamais une affectation déjà faite
+- Conséquence attendue sur des données de démo sans paiement/visa enregistrés : la liste "Voyageurs non affectés" peut apparaître vide même avec des inscriptions en attente — normal, pas un bug, tant qu'aucun versement ni démarche visa n'a été saisi
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
