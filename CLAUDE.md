@@ -280,7 +280,7 @@ Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voy
 
 - `listRegistrations({ tripId, status, q })` (`lib/registrations.js`) : `q` filtre sur `tr.full_name LIKE %q%` **ou** `rg.label LIKE %q%` (nom du groupe/binôme, via un nouveau `LEFT JOIN registration_groups`) — un seul champ couvre les deux cas, un même mot-clé (ex. "Fassi") retrouve aussi bien un voyageur nommé ainsi que tous les membres d'un groupe "Famille Fassi"
 - **`SearchBar.jsx`** (client component) : filtre dès la première lettre tapée, pas besoin de valider — débattu de 300ms (`setTimeout`/`clearTimeout` sur `value`) pour éviter une navigation à chaque frappe, met à jour l'URL via `router.replace(..., { scroll: false })` en préservant `tripId`/`status` déjà présents dans `searchParams`. Un `useEffect` sur `initialQuery` resynchronise le champ si l'URL change de l'extérieur (ex. le lien "réinitialiser" de la page)
-- La colonne "Voyageur" affiche désormais le nom du groupe entre parenthèses quand l'inscription en fait partie, pour confirmer visuellement qu'une recherche par nom de groupe a bien fonctionné
+- La colonne "Voyageur" affiche désormais le nom du groupe entre parenthèses quand l'inscription en fait partie, pour confirmer visuellement qu'une recherche par nom de groupe a bien fonctionné — ce nom est un **lien** vers `/admin/groupes/[id]` (traitement par groupe : montant dû, paiements, tous les membres), à côté du lien "Afficher" existant vers la fiche individuelle (traitement par voyageur) — les deux niveaux de traitement restent accessibles depuis la même ligne
 
 ## 3trevicies. Voyageurs masqués de l'hébergement tant que non payés / visa non entamé
 

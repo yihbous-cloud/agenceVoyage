@@ -105,9 +105,16 @@ export default async function InscriptionsPage({ searchParams }) {
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {reg.full_name}
                   {reg.group_label && (
-                    <span className="ml-2 text-xs font-normal text-emerald-700">
-                      ({reg.group_label})
-                    </span>
+                    <>
+                      {" "}
+                      <Link
+                        href={`/admin/groupes/${reg.group_id}`}
+                        className="text-xs font-normal text-emerald-700 hover:underline"
+                        title="Accéder au groupe (montant dû, paiements, tous les membres)"
+                      >
+                        ({reg.group_label})
+                      </Link>
+                    </>
                   )}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{reg.phone_whatsapp}</td>
