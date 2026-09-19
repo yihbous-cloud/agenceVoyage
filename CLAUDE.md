@@ -279,7 +279,7 @@ Une fois un voyageur affecté à une chambre, la table "Chambres" de `/admin/voy
 `/admin/inscriptions` ne permettait de filtrer que par voyage ou statut (paramètres d'URL `tripId`/`status`) — aucun moyen de retrouver rapidement une personne ou un groupe/binôme précis dans une longue liste.
 
 - `listRegistrations({ tripId, status, q })` (`lib/registrations.js`) : `q` filtre sur `tr.full_name LIKE %q%` **ou** `rg.label LIKE %q%` (nom du groupe/binôme, via un nouveau `LEFT JOIN registration_groups`) — un seul champ couvre les deux cas, un même mot-clé (ex. "Fassi") retrouve aussi bien un voyageur nommé ainsi que tous les membres d'un groupe "Famille Fassi"
-- Formulaire `GET` simple (pas de composant client, cohérent avec le filtrage déjà en place par `searchParams`) — préserve `tripId`/`status` actifs via des champs cachés
+- **`SearchBar.jsx`** (client component) : filtre dès la première lettre tapée, pas besoin de valider — débattu de 300ms (`setTimeout`/`clearTimeout` sur `value`) pour éviter une navigation à chaque frappe, met à jour l'URL via `router.replace(..., { scroll: false })` en préservant `tripId`/`status` déjà présents dans `searchParams`. Un `useEffect` sur `initialQuery` resynchronise le champ si l'URL change de l'extérieur (ex. le lien "réinitialiser" de la page)
 - La colonne "Voyageur" affiche désormais le nom du groupe entre parenthèses quand l'inscription en fait partie, pour confirmer visuellement qu'une recherche par nom de groupe a bien fonctionné
 
 ## 4. Modules fonctionnels

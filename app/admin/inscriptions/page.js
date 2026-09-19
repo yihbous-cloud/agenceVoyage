@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listRegistrations } from "@/lib/registrations";
+import SearchBar from "./SearchBar";
 
 const STATUS_LABELS = {
   inscrit: "Inscrit",
@@ -37,23 +38,7 @@ export default async function InscriptionsPage({ searchParams }) {
         </Link>
       </div>
 
-      <form method="GET" className="flex items-center gap-2">
-        {tripId && <input type="hidden" name="tripId" value={tripId} />}
-        {status && <input type="hidden" name="status" value={status} />}
-        <input
-          type="search"
-          name="q"
-          defaultValue={q || ""}
-          placeholder="Rechercher par nom ou groupe..."
-          className="w-72 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-        />
-        <button
-          type="submit"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          Rechercher
-        </button>
-      </form>
+      <SearchBar initialQuery={q} />
 
       {(tripId || status || q) && (
         <p className="text-sm text-zinc-500">
