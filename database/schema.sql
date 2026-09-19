@@ -294,7 +294,7 @@ CREATE TABLE registrations (
     registered_by_staff_id BIGINT UNSIGNED NULL COMMENT 'employé ayant saisi l’inscription',
     status ENUM('inscrit', 'confirme', 'paye_partiel', 'paye_complet', 'annule') NOT NULL DEFAULT 'inscrit',
     room_id BIGINT UNSIGNED NULL COMMENT 'chambre assignée (peut être NULL avant répartition)',
-    preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'hôtel souhaité par le voyageur (préférence, pas l’affectation réelle, voir migration 010)',
+    preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'DEPRECIEE (migration 010) — remplacée par registration_hotel_preferences (une préférence par ville, migration 015), conservée pour l’historique mais plus alimentée',
     preferred_room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NULL COMMENT 'type de chambre souhaité par le voyageur',
     group_id BIGINT UNSIGNED NULL COMMENT 'groupe d’inscription (binôme/famille/groupe), voir registration_groups',
     visa_status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
@@ -310,6 +310,20 @@ CREATE TABLE registrations (
     UNIQUE KEY uq_traveler_per_trip (trip_id, traveler_id),
     INDEX idx_reg_status (status),
     INDEX idx_reg_visa_status (visa_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Préférence hôtel par ville (migration 015) : un voyageur Omra passe par
+-- plusieurs villes (Mecque + Médine), une seule préférence par inscription
+-- ne suffisait pas. Une ligne par ville souhaitée, jamais deux hôtels pour
+-- la même ville (uq_registration_city).
+CREATE TABLE registration_hotel_preferences (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    registration_id BIGINT UNSIGNED NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    hotel_id BIGINT UNSIGNED NOT NULL,
+    FOREIGN KEY (registration_id) REFERENCES registrations(id) ON DELETE CASCADE,
+    FOREIGN KEY (hotel_id) REFERENCES hotels(id),
+    UNIQUE KEY uq_registration_city (registration_id, city)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================

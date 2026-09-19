@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getRoomDetails, listTripHotels } from "@/lib/roomAssignment";
 import { listGroupsForTrip } from "@/lib/registrationGroups";
+import { listHotelPreferencesForRegistration } from "@/lib/registrationHotelPreferences";
 import { listPaymentsForRegistration } from "@/lib/payments";
 import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import EditRegistrationForm from "./EditRegistrationForm";
@@ -26,6 +27,7 @@ export default async function RegistrationDetailPage({ params }) {
     tripGroups,
     payments,
     flightBooking,
+    hotelPreferences,
     canEditVoyageur,
     canManagePayments,
     canDeleteRegistration,
@@ -35,6 +37,7 @@ export default async function RegistrationDetailPage({ params }) {
     listGroupsForTrip(registration.trip_id),
     listPaymentsForRegistration(id),
     getFlightBookingForRegistration(id),
+    listHotelPreferencesForRegistration(id),
     hasPermission(session, "inscriptions.edit_voyageur"),
     hasPermission(session, "paiements.manage"),
     hasPermission(session, "inscriptions.delete"),
@@ -63,13 +66,20 @@ export default async function RegistrationDetailPage({ params }) {
           <div>
             <dt className="text-zinc-500">Préférence hébergement</dt>
             <dd className="font-medium text-zinc-900">
-              {registration.preferred_hotel_name || registration.preferred_room_type
-                ? `${registration.preferred_hotel_name || "—"}${
-                    registration.preferred_room_type
-                      ? ` — ${registration.preferred_room_type}`
-                      : ""
-                  }`
-                : "Aucune"}
+              {hotelPreferences.length > 0 || registration.preferred_room_type ? (
+                <>
+                  {hotelPreferences.map((p) => (
+                    <div key={p.city}>
+                      {p.city} → {p.hotel_name}
+                    </div>
+                  ))}
+                  {registration.preferred_room_type && (
+                    <div>Type : {registration.preferred_room_type}</div>
+                  )}
+                </>
+              ) : (
+                "Aucune"
+              )}
             </dd>
           </div>
           <div>
@@ -122,6 +132,7 @@ export default async function RegistrationDetailPage({ params }) {
         role={session?.role}
         canDelete={canDeleteRegistration}
         tripHotels={tripHotels}
+        hotelPreferences={hotelPreferences}
         tripGroups={tripGroups}
       />
 

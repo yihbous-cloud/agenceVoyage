@@ -36,7 +36,10 @@ export default function NewRegistrationForm({ trips }) {
   const [groupLabel, setGroupLabel] = useState("");
   const [allowMixedGenderRoom, setAllowMixedGenderRoom] = useState(false);
 
-  const [preferredHotelId, setPreferredHotelId] = useState("");
+  // Un voyageur Omra passe par plusieurs villes (Mecque + Médine) : une
+  // préférence d'hôtel par ville plutôt qu'une seule pour tout le voyage
+  // (§3quattuorvicies) — { [ville]: hotelId }.
+  const [hotelPreferencesByCity, setHotelPreferencesByCity] = useState({});
   const [preferredRoomType, setPreferredRoomType] = useState("");
 
   const [error, setError] = useState(null);
@@ -44,10 +47,20 @@ export default function NewRegistrationForm({ trips }) {
 
   const selectedTrip = trips.find((t) => String(t.id) === String(tripId));
 
+  const tripHotelsByCity = [];
+  const seenCities = new Map();
+  for (const th of tripHotels) {
+    if (!seenCities.has(th.city)) {
+      seenCities.set(th.city, { city: th.city, items: [] });
+      tripHotelsByCity.push(seenCities.get(th.city));
+    }
+    seenCities.get(th.city).items.push(th);
+  }
+
   const handleTripChange = async (e) => {
     const value = e.target.value;
     setTripId(value);
-    setPreferredHotelId("");
+    setHotelPreferencesByCity({});
     setTripHotels([]);
     if (!value) return;
     try {
@@ -117,6 +130,10 @@ export default function NewRegistrationForm({ trips }) {
         }
       }
 
+      const hotelPreferences = Object.entries(hotelPreferencesByCity)
+        .filter(([, hotelId]) => hotelId)
+        .map(([city, hotelId]) => ({ city, hotelId }));
+
       for (const traveler of travelers) {
         const res = await fetch("/api/admin/registrations", {
           method: "POST",
@@ -124,7 +141,7 @@ export default function NewRegistrationForm({ trips }) {
           body: JSON.stringify({
             tripId,
             ...traveler,
-            preferredHotelId: preferredHotelId || null,
+            hotelPreferences,
             preferredRoomType: preferredRoomType || null,
             groupId,
           }),
@@ -250,42 +267,61 @@ export default function NewRegistrationForm({ trips }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Hôtel souhaité (optionnel)
-          </label>
-          <select
-            value={preferredHotelId}
-            onChange={(e) => setPreferredHotelId(e.target.value)}
-            disabled={!tripId}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+      <div>
+        {tripId && tripHotelsByCity.length === 0 && (
+          <p className="text-sm text-zinc-500">
+            Aucun hôtel disponible pour ce voyage — la préférence sera laissée de côté.
+          </p>
+        )}
+        {tripHotelsByCity.length > 0 && (
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: `repeat(${tripHotelsByCity.length}, minmax(0, 1fr))` }}
           >
-            <option value="">{tripId ? "Aucune préférence" : "Choisir un voyage d'abord"}</option>
-            {tripHotels.map((th) => (
-              <option key={th.hotel_id} value={th.hotel_id}>
-                {th.hotel_name} ({th.city})
-              </option>
+            {tripHotelsByCity.map((group) => (
+              <div key={group.city}>
+                <label className="block text-sm font-medium text-zinc-700">
+                  Hôtel souhaité — {group.city} (optionnel)
+                </label>
+                <select
+                  value={hotelPreferencesByCity[group.city] || ""}
+                  onChange={(e) =>
+                    setHotelPreferencesByCity((prev) => ({
+                      ...prev,
+                      [group.city]: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Aucune préférence</option>
+                  {group.items.map((th) => (
+                    <option key={th.hotel_id} value={th.hotel_id}>
+                      {th.hotel_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Type de chambre souhaité (optionnel)
-          </label>
-          <select
-            value={preferredRoomType}
-            onChange={(e) => setPreferredRoomType(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Aucune préférence</option>
-            {ROOM_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Type de chambre souhaité (optionnel)
+        </label>
+        <select
+          value={preferredRoomType}
+          onChange={(e) => setPreferredRoomType(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        >
+          <option value="">Aucune préférence</option>
+          {ROOM_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-4">

@@ -18,6 +18,7 @@ export default function EditRegistrationForm({
   role,
   canDelete,
   tripHotels = [],
+  hotelPreferences = [],
   tripGroups = [],
 }) {
   const router = useRouter();
@@ -25,8 +26,10 @@ export default function EditRegistrationForm({
   const [visaStatus, setVisaStatus] = useState(registration.visa_status);
   const [totalDue, setTotalDue] = useState(registration.total_due);
   const [notes, setNotes] = useState(registration.notes || "");
-  const [preferredHotelId, setPreferredHotelId] = useState(
-    registration.preferred_hotel_id || ""
+  // Une préférence d'hôtel par ville (Mecque + Médine — §3quattuorvicies) :
+  // { [ville]: hotelId }.
+  const [hotelPreferencesByCity, setHotelPreferencesByCity] = useState(
+    Object.fromEntries(hotelPreferences.map((p) => [p.city, String(p.hotel_id)]))
   );
   const [preferredRoomType, setPreferredRoomType] = useState(
     registration.preferred_room_type || ""
@@ -44,6 +47,16 @@ export default function EditRegistrationForm({
   const canEditFinance = ["direction", "comptabilite"].includes(role);
   const canEditVisa = ["direction", "suivi"].includes(role);
 
+  const tripHotelsByCity = [];
+  const seenCities = new Map();
+  for (const th of tripHotels) {
+    if (!seenCities.has(th.city)) {
+      seenCities.set(th.city, { city: th.city, items: [] });
+      tripHotelsByCity.push(seenCities.get(th.city));
+    }
+    seenCities.get(th.city).items.push(th);
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -53,7 +66,9 @@ export default function EditRegistrationForm({
       const payload = {};
       if (canEditStatus) {
         payload.status = status;
-        payload.preferredHotelId = preferredHotelId || null;
+        payload.hotelPreferences = Object.entries(hotelPreferencesByCity)
+          .filter(([, hotelId]) => hotelId)
+          .map(([city, hotelId]) => ({ city, hotelId }));
         payload.preferredRoomType = preferredRoomType || null;
 
         if (groupMode === "nouveau" && newGroupLabel.trim()) {
@@ -140,25 +155,39 @@ export default function EditRegistrationForm({
       </div>
 
       {canEditStatus && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">
-              Hôtel souhaité
-            </label>
-            <select
-              value={preferredHotelId}
-              onChange={(e) => setPreferredHotelId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        <div className="space-y-4">
+          {tripHotelsByCity.length > 0 && (
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: `repeat(${tripHotelsByCity.length}, minmax(0, 1fr))` }}
             >
-              <option value="">Aucune préférence</option>
-              {tripHotels.map((th) => (
-                <option key={th.hotel_id} value={th.hotel_id}>
-                  {th.hotel_name} ({th.city})
-                </option>
+              {tripHotelsByCity.map((group) => (
+                <div key={group.city}>
+                  <label className="block text-sm font-medium text-zinc-700">
+                    Hôtel souhaité — {group.city}
+                  </label>
+                  <select
+                    value={hotelPreferencesByCity[group.city] || ""}
+                    onChange={(e) =>
+                      setHotelPreferencesByCity((prev) => ({
+                        ...prev,
+                        [group.city]: e.target.value,
+                      }))
+                    }
+                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">Aucune préférence</option>
+                    {group.items.map((th) => (
+                      <option key={th.hotel_id} value={th.hotel_id}>
+                        {th.hotel_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ))}
-            </select>
-          </div>
-          <div>
+            </div>
+          )}
+          <div className="max-w-xs">
             <label className="block text-sm font-medium text-zinc-700">
               Type de chambre souhaité
             </label>

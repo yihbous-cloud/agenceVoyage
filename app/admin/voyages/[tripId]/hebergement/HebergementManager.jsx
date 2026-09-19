@@ -192,12 +192,15 @@ export default function HebergementManager({
   // Un voyageur avec une préférence hôtel/type exprimée à l'inscription
   // (§3quaterdecies) n'a pas besoin de voir tous les hôtels/chambres du
   // voyage dans "Assigner à..." — seulement les chambres qui correspondent
-  // à ce qu'il a demandé. Si aucune ne correspond (hôtel préféré complet,
-  // par exemple), retombe sur la liste complète pour ne jamais bloquer
-  // l'affectation.
-  const filterByPreference = (roomsList, preferredHotelId, preferredRoomType) => {
-    if (!preferredHotelId) return roomsList;
-    const hotelMatches = roomsList.filter((r) => r.hotel_id === preferredHotelId);
+  // à ce qu'il a demandé. Depuis §3quattuorvicies, hotelPreferences est un
+  // tableau (une préférence par ville, ex. Mecque + Médine) : une chambre
+  // matche si son hôtel figure dans l'une des préférences, quelle que soit
+  // la ville. Si aucune ne correspond, retombe sur la liste complète pour
+  // ne jamais bloquer l'affectation.
+  const filterByPreference = (roomsList, hotelPreferences, preferredRoomType) => {
+    if (!hotelPreferences || hotelPreferences.length === 0) return roomsList;
+    const preferredHotelIds = hotelPreferences.map((p) => p.hotel_id);
+    const hotelMatches = roomsList.filter((r) => preferredHotelIds.includes(r.hotel_id));
     if (hotelMatches.length === 0) return roomsList;
     if (!preferredRoomType) return hotelMatches;
     const typeMatches = hotelMatches.filter((r) => r.room_type === preferredRoomType);
@@ -552,7 +555,7 @@ export default function HebergementManager({
                       {groupByCity(
                         filterByPreference(
                           compatibleRooms,
-                          g.members[0]?.preferred_hotel_id,
+                          g.members[0]?.hotelPreferences,
                           g.members[0]?.preferred_room_type
                         ),
                         "hotel_city"
@@ -580,9 +583,14 @@ export default function HebergementManager({
             >
               <span>
                 {u.full_name} <span className="capitalize text-zinc-500">({u.gender})</span>
-                {(u.preferred_hotel_name || u.preferred_room_type) && (
+                {(u.hotelPreferences?.length > 0 || u.preferred_room_type) && (
                   <span className="ml-2 text-xs text-emerald-700">
-                    souhaite : {u.preferred_hotel_name || "—"}
+                    souhaite :{" "}
+                    {u.hotelPreferences?.length > 0
+                      ? u.hotelPreferences
+                          .map((p) => `${p.city} → ${p.hotel_name}`)
+                          .join(", ")
+                      : "—"}
                     {u.preferred_room_type ? ` — ${u.preferred_room_type}` : ""}
                   </span>
                 )}
@@ -597,7 +605,7 @@ export default function HebergementManager({
                   {groupByCity(
                     filterByPreference(
                       rooms.filter((r) => isRoomCompatible(r, u)),
-                      u.preferred_hotel_id,
+                      u.hotelPreferences,
                       u.preferred_room_type
                     ),
                     "hotel_city"

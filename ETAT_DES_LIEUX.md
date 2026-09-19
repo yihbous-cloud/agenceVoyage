@@ -117,7 +117,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Chambres : type (simple/double/triple/quadruple/quintuple) + capacité **dérivée automatiquement du type et verrouillée** dans le formulaire (1 à 5 personnes respectivement, migration 009 — voir CLAUDE.md §3terdecies), rattachées à un hôtel-voyage
 - **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre, **sauf** un couple/famille du même groupe d'inscription (voir ci-dessous)
 - **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre ; priorise désormais une chambre correspondant à la préférence hébergement du voyageur avant de retomber sur l'heuristique de remplissage (voir CLAUDE.md §3quaterdecies) ; **ne connaît pas les groupes** (un couple peut finir dans deux chambres différentes après une répartition automatique, voir CLAUDE.md §3quindecies)
-- **Préférence hébergement à l'inscription** (`registrations.preferred_hotel_id`/`preferred_room_type`, migration 010) : le voyageur peut indiquer un hôtel (parmi ceux du voyage) et un type de chambre souhaités dès `/admin/inscriptions/new` ou en modifiant une inscription existante — affiché comme indication au personnel sur la page Hébergement, pas comme affectation automatique
+- **Préférence hébergement à l'inscription** : le voyageur peut indiquer un hôtel **par ville** (`registration_hotel_preferences`, migration 015, CLAUDE.md §3quattuorvicies — ex. Mecque + Médine séparément) et un type de chambre pour tout le séjour (`registrations.preferred_room_type`) dès `/admin/inscriptions/new` ou en modifiant une inscription existante — affiché comme indication au personnel sur la page Hébergement, pas comme affectation automatique
 - **Groupes d'inscription** (`registration_groups`, migrations 011/012, voir CLAUDE.md §3quindecies) : lie plusieurs inscriptions du même voyage (binôme/couple, famille) sans fusionner leurs dossiers. Un groupe marqué "couple/famille" est la seule exception à la non-mixité des chambres. La page Hébergement regroupe visuellement ces voyageurs et propose "Assigner le groupe à..." pour les affecter tous à la même chambre en un clic. Un groupe partage aussi **un seul montant dû et un seul suivi de paiement** (page dédiée `/admin/groupes/[id]`), avec reçu PDF listant chaque membre — voir §4.7
 
 ### 4.5 Visa (`lib/visaTypes.js`, `lib/visaServices.js`)
@@ -179,6 +179,7 @@ programs ──< visa_types (nullable → global si NULL)
 visa_types ──< visa_type_documents
 trips ──< trip_hotels >── hotels
 trip_hotels ──< rooms ──< registrations (room_id, nullable)
+registrations ──< registration_hotel_preferences >── hotels (une préférence par ville — migration 015)
 registrations ──< registration_services >── services
 registrations ──< payments
 registrations ──1:1── visa_requests ──< visa_request_documents >── visa_type_documents
@@ -197,7 +198,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 | Compagnies aériennes | `airlines` |
 | Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
 | Hôtels & chambres | `hotels`, `program_hotels` (hôtels par défaut d'un programme — migration 014), `trip_hotels`, `rooms` |
-| Voyageurs & inscriptions | `travelers`, `registrations` |
+| Voyageurs & inscriptions | `travelers`, `registrations`, `registration_hotel_preferences` (préférence hôtel par ville — migration 015) |
 | Facturation | `services`, `registration_services`, `payments` |
 | Visa | `visa_types`, `visa_type_documents`, `visa_requests`, `visa_request_documents` |
 | WhatsApp (schéma prêt, non câblé) | `whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log` |
