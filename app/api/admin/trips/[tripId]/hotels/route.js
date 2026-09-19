@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listTripHotels, addTripHotel, getTripSummary } from "@/lib/roomAssignment";
+import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 
 export async function GET(request, { params }) {
   const session = await getSession();
@@ -10,7 +11,20 @@ export async function GET(request, { params }) {
   }
   const { tripId } = await params;
   const tripHotels = await listTripHotels(tripId);
-  return NextResponse.json(tripHotels);
+  if (tripHotels.length > 0) {
+    return NextResponse.json(tripHotels);
+  }
+
+  // Hébergement pas encore configuré pour ce voyage précis (aucun hôtel
+  // réellement attaché) : propose les hôtels par défaut fixés au niveau du
+  // programme (§3vicies) pour ne pas laisser le menu de préférence de
+  // /admin/inscriptions/new vide — même forme de réponse que trip_hotels
+  // (hotel_id/hotel_name/city) pour que le client n'ait rien à distinguer.
+  const trip = await getTripSummary(tripId);
+  const defaultHotels = trip ? await listDefaultHotelsForProgram(trip.program_id) : [];
+  return NextResponse.json(
+    defaultHotels.map((h) => ({ hotel_id: h.id, hotel_name: h.name, city: h.city }))
+  );
 }
 
 export async function POST(request, { params }) {
