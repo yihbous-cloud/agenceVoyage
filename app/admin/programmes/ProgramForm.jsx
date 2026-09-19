@@ -10,7 +10,7 @@ const FAMILIES = [
 ];
 const SEASONS = ["mawlid", "rajab", "chaabane", "ramadan", "chawal"];
 
-export default function ProgramForm({ program, canDelete }) {
+export default function ProgramForm({ program, hotels = [], defaultHotelIds = [], canDelete }) {
   const router = useRouter();
   const isEdit = !!program;
 
@@ -31,6 +31,9 @@ export default function ProgramForm({ program, canDelete }) {
   const [metaTitle, setMetaTitle] = useState(program?.meta_title || "");
   const [metaDescription, setMetaDescription] = useState(
     program?.meta_description || ""
+  );
+  const [selectedHotelIds, setSelectedHotelIds] = useState(
+    defaultHotelIds.map((id) => String(id))
   );
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -81,6 +84,7 @@ export default function ProgramForm({ program, canDelete }) {
       isPublished,
       metaTitle: metaTitle || null,
       metaDescription: metaDescription || null,
+      defaultHotelIds: selectedHotelIds.map((id) => Number(id)),
     };
 
     try {
@@ -104,6 +108,23 @@ export default function ProgramForm({ program, canDelete }) {
       setSubmitting(false);
     }
   };
+
+  const toggleHotel = (hotelId) => {
+    const id = String(hotelId);
+    setSelectedHotelIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const hotelsByCity = [];
+  const seenCities = new Map();
+  for (const h of hotels) {
+    if (!seenCities.has(h.city)) {
+      seenCities.set(h.city, { city: h.city, items: [] });
+      hotelsByCity.push(seenCities.get(h.city));
+    }
+    seenCities.get(h.city).items.push(h);
+  }
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce programme ?")) return;
@@ -273,6 +294,48 @@ export default function ProgramForm({ program, canDelete }) {
         <p className="mt-1 text-xs text-zinc-500">
           JPG, PNG, WEBP ou GIF — 5 Mo maximum.
         </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Hôtels habituels de ce programme
+        </label>
+        <p className="mt-1 text-xs text-zinc-500">
+          Fixés une fois ici : chaque nouveau voyage créé sous ce programme les récupère
+          automatiquement (dates pré-remplies sur toute la durée du voyage, ajustables ensuite
+          depuis sa page hébergement).
+        </p>
+        {hotelsByCity.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">
+            Aucun hôtel au catalogue — ajoutez-en d&apos;abord depuis{" "}
+            <a href="/admin/hotels" className="text-emerald-700 hover:underline">
+              /admin/hotels
+            </a>
+            .
+          </p>
+        ) : (
+          <div className="mt-2 max-h-64 space-y-3 overflow-y-auto rounded-lg border border-zinc-200 p-3">
+            {hotelsByCity.map((group) => (
+              <div key={group.city}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  {group.city}
+                </p>
+                <div className="mt-1 space-y-1">
+                  {group.items.map((h) => (
+                    <label key={h.id} className="flex items-center gap-2 text-sm text-zinc-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedHotelIds.includes(String(h.id))}
+                        onChange={() => toggleHotel(h.id)}
+                      />
+                      {h.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

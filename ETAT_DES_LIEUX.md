@@ -109,9 +109,11 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Le tableau de bord agrège les compteurs par statut et les prochains départs
 - **Création** (`/admin/inscriptions/new`) : trois types — Individuel (un voyageur), Binôme (exactement deux, un sous l'autre) ou Groupe (1 à N, bouton "+ Ajouter un voyageur") — voir CLAUDE.md §3quindecies. Chaque voyageur du bloc porte sa propre vérification de passeport (§3nonies)
 
-### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`)
+### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`, `lib/programHotels.js`)
 - Catalogue d'hôtels (ville, étoiles, distance au Haram)
-- Un voyage peut être associé à plusieurs hôtels (ex. Omra : La Mecque + Médine), chacun avec ses dates de check-in/out
+- **Hôtels par défaut d'un programme** (`program_hotels`, migration 014, CLAUDE.md §3vicies) : fixés une fois depuis `/admin/programmes/new` ou la fiche du programme (cases à cocher groupées par ville) — chaque nouveau voyage créé sous ce programme récupère automatiquement ces hôtels dans `trip_hotels` (dates = toute la durée du voyage par défaut, ajustables ensuite sans distinction avec un hôtel ajouté manuellement)
+- Un voyage peut être associé à plusieurs hôtels (ex. Omra : La Mecque + Médine), chacun avec ses dates de check-in/out ; hôtels et chambres sont désormais sous-sectionnés par ville sur `/admin/voyages/[tripId]/hebergement` (CLAUDE.md §3novemdecies) pour éviter une affectation dans la mauvaise ville
+- Les dates de check-in/check-out d'un hôtel de voyage doivent rester dans les dates du voyage lui-même, validé client et serveur (CLAUDE.md §3octodecies)
 - Chambres : type (simple/double/triple/quadruple/quintuple) + capacité **dérivée automatiquement du type et verrouillée** dans le formulaire (1 à 5 personnes respectivement, migration 009 — voir CLAUDE.md §3terdecies), rattachées à un hôtel-voyage
 - **Affectation manuelle** : anti-conflit vérifié côté serveur — refuse si chambre complète, refuse si chambre déjà occupée par l'autre genre, **sauf** un couple/famille du même groupe d'inscription (voir ci-dessous)
 - **Affectation automatique** : traite d'abord le genre le plus nombreux parmi les non-affectés, pour minimiser les places perdues dans une chambre mixte-libre ; priorise désormais une chambre correspondant à la préférence hébergement du voyageur avant de retomber sur l'heuristique de remplissage (voir CLAUDE.md §3quaterdecies) ; **ne connaît pas les groupes** (un couple peut finir dans deux chambres différentes après une répartition automatique, voir CLAUDE.md §3quindecies)
@@ -172,6 +174,7 @@ roles ──< staff_users
 roles ──< role_permissions >── permissions
 airlines ──< trips
 programs ──< trips ──< registrations >── travelers
+programs ──< program_hotels >── hotels (hôtels par défaut, auto-attachés à chaque nouveau voyage)
 programs ──< visa_types (nullable → global si NULL)
 visa_types ──< visa_type_documents
 trips ──< trip_hotels >── hotels
@@ -193,7 +196,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 | Utilisateurs internes | `roles`, `staff_users`, `permissions`, `role_permissions` (migration 007 — permissions dynamiques, voir CLAUDE.md §3undecies) |
 | Compagnies aériennes | `airlines` |
 | Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
-| Hôtels & chambres | `hotels`, `trip_hotels`, `rooms` |
+| Hôtels & chambres | `hotels`, `program_hotels` (hôtels par défaut d'un programme — migration 014), `trip_hotels`, `rooms` |
 | Voyageurs & inscriptions | `travelers`, `registrations` |
 | Facturation | `services`, `registration_services`, `payments` |
 | Visa | `visa_types`, `visa_type_documents`, `visa_requests`, `visa_request_documents` |

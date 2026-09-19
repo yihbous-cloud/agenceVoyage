@@ -255,6 +255,16 @@ Un voyage peut avoir plusieurs hôtels dans des villes différentes (ex. Omra : 
 - **`HebergementManager.jsx`** : `groupByCity()` (regroupement générique par la clé ville d'un tableau) — la liste "Hôtels du voyage" et le tableau "Chambres" sont désormais **sous-sectionnés par ville** (sous-titre par ville) ; tous les `<select>` d'affectation (chambre pour un voyageur seul, chambre pour un groupe, hôtel du catalogue, hôtel du voyage pour créer une chambre) utilisent des `<optgroup>` par ville plutôt qu'une liste plate
 - **Hôtels attachés dès la création du voyage** : `TripForm.jsx` redirige désormais, à la **création** d'un voyage (pas à l'édition), directement vers `/admin/voyages/[id]/hebergement` au lieu de revenir sur la fiche programme — attacher les hôtels du voyage devient l'étape suivante immédiate, plutôt qu'une action separée qu'on risque d'oublier. Techniquement les dates d'hôtel ne peuvent être validées qu'une fois le voyage créé (elles sont bornées par `trips.departure_date`/`return_date`, voir §3octodecies) : impossible de fusionner les deux formulaires, d'où ce chaînage par redirection plutôt qu'un unique écran.
 
+## 3vicies. Hôtels par défaut d'un programme (migration `014_add_program_default_hotels.sql`)
+
+Un programme (ex. "Omra Ramadan") utilise généralement les mêmes hôtels à chaque départ — répéter la saisie des hôtels à chaque nouveau voyage (§3novemdecies) était redondant. Les hôtels **habituels** du programme se fixent désormais une fois, à sa création (`/admin/programmes/new`) ou depuis sa fiche (`/admin/programmes/[id]`), et s'appliquent automatiquement à chaque voyage créé sous ce programme.
+
+- Table `program_hotels` (`program_id`, `hotel_id`, clé unique sur la paire) — simple catalogue de référence, **pas** de dates (les dates restent propres à chaque voyage, un même programme pouvant avoir des voyages à des dates différentes)
+- `lib/programHotels.js` : `listDefaultHotelsForProgram`, `setDefaultHotelsForProgram` (remplacement complet purge + réinsertion, même pattern que `setRolePermissions` dans `lib/permissions.js`)
+- **`ProgramForm.jsx`** : case à cocher par hôtel du catalogue global, groupées par ville (même pattern d'affichage que `HebergementManager.jsx`) — envoyées en `defaultHotelIds` dans le payload de création/édition du programme
+- **Auto-attachement à la création d'un voyage** (`createTrip` dans `lib/programsAdmin.js`) : juste après l'insertion du voyage, chaque hôtel par défaut du programme est inséré dans `trip_hotels` avec `check_in_date`/`check_out_date` = dates du voyage entier (par défaut) — ajustable ensuite comme n'importe quel hôtel, sans distinction, depuis `/admin/voyages/[tripId]/hebergement` (retirer, changer les dates, ou en ajouter un supplémentaire propre à ce voyage précis)
+- Fixer les hôtels du programme est **indicatif pour les futurs voyages**, pas rétroactif : modifier la liste sur la fiche d'un programme existant n'affecte jamais les voyages déjà créés (dont les `trip_hotels` sont déjà en base, indépendants).
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

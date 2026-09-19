@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateProgram, deleteProgram, slugify } from "@/lib/programsAdmin";
+import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 
 export async function PUT(request, { params }) {
   const session = await getSession();
@@ -27,6 +28,9 @@ export async function PUT(request, { params }) {
       ...body,
       slug: body.slug?.trim() || slugify(body.title),
     });
+    if (Array.isArray(body.defaultHotelIds)) {
+      await setDefaultHotelsForProgram(id, body.defaultHotelIds);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
