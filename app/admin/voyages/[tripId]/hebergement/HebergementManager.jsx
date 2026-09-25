@@ -23,16 +23,20 @@ export default function HebergementManager({
   const [hotelId, setHotelId] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  // Erreur dédiée à ce formulaire (plutôt que le `error` général de la page,
+  // partagé par d'autres actions) : s'affiche directement sous les champs de
+  // date, là où l'erreur de chevauchement est la plus lisible.
+  const [hotelFormError, setHotelFormError] = useState(null);
 
   const handleAddHotel = async (e) => {
     e.preventDefault();
-    setError(null);
+    setHotelFormError(null);
 
     // Les dates de séjour à l'hôtel ne doivent pas sortir des dates du
     // voyage — vérifié aussi côté serveur (source de vérité), voir
     // CLAUDE.md.
     if (checkIn < tripDepartureDate || checkOut > tripReturnDate) {
-      setError(
+      setHotelFormError(
         `Les dates de l'hôtel doivent rester entre le ${new Date(
           tripDepartureDate
         ).toLocaleDateString("fr-FR")} et le ${new Date(tripReturnDate).toLocaleDateString(
@@ -42,7 +46,7 @@ export default function HebergementManager({
       return;
     }
     if (checkIn >= checkOut) {
-      setError("La date de check-out doit être après la date de check-in.");
+      setHotelFormError("La date de check-out doit être après la date de check-in.");
       return;
     }
 
@@ -53,7 +57,7 @@ export default function HebergementManager({
       (th) => th.check_in_date < checkOut && checkIn < th.check_out_date
     );
     if (overlap) {
-      setError(
+      setHotelFormError(
         `Chevauchement avec ${overlap.hotel_name} (${new Date(
           overlap.check_in_date
         ).toLocaleDateString("fr-FR")} → ${new Date(overlap.check_out_date).toLocaleDateString(
@@ -78,7 +82,7 @@ export default function HebergementManager({
       setCheckOut("");
       router.refresh();
     } catch (err) {
-      setError(err.message);
+      setHotelFormError(err.message);
     }
   };
 
@@ -345,6 +349,9 @@ export default function HebergementManager({
             >
               Ajouter
             </button>
+            {hotelFormError && (
+              <p className="w-full text-sm text-red-700">{hotelFormError}</p>
+            )}
           </form>
         )}
       </section>
