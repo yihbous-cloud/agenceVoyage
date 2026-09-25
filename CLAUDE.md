@@ -402,6 +402,15 @@ Règle métier explicite de l'utilisateur : le prix affiché au public n'est **p
 - **`program_hotels`/"Hôtels habituels de ce programme"** (§3vicies) n'est **pas** supprimé : sert encore de repli pour le menu "Hôtel souhaité" à l'inscription (`GET /api/admin/trips/[tripId]/hotels`, §3quaterdecies) tant que le voyage n'a pas encore d'hôtels dans son hébergement — mais ne pré-remplit plus jamais `trip_hotels` lui-même
 - Sans impact sur les voyages déjà créés : leurs `trip_hotels` existants (avec ou sans dates correctement corrigées à la main) restent tels quels, aucune migration ni nettoyage nécessaire
 
+## 3tretrigies. Voyages modifiables directement depuis la fiche programme
+
+Sur `/admin/programmes/[id]`, la liste "Voyages" (`TripsList.jsx`) n'ouvrait auparavant qu'un lien "Modifier" vers une page séparée (`/admin/voyages/[tripId]`) pour changer les champs d'un voyage (dates, aéroports, escales, compagnie, places, les 4 prix par type de chambre — §3unetrigies). L'utilisateur voulait pouvoir tout modifier **sans quitter la fiche programme**, avec la même parité de champs qu'à la création (§3octovicies "Premier voyage").
+
+- **`TripsList.jsx`** devient un accordéon : "Modifier" (renommé "Fermer" quand ouvert) déplie désormais, **sous la ligne du tableau**, le même `TripForm` (`app/admin/voyages/TripForm.jsx`) déjà utilisé par la page dédiée — réutilisé tel quel, aucune duplication de la logique de formulaire. Un seul voyage déplié à la fois (`expandedId` en state local)
+- Le bloc déplié garde aussi les liens rapides Hébergement / Listes / Billets d'avion / Inscrits (identiques à ceux de `/admin/voyages/[tripId]/page.js`), pour ne rien perdre de l'ancien point d'entrée
+- **`listTripsForProgram`** (`lib/programsAdmin.js`) faisait déjà `SELECT t.*` — tous les champs nécessaires à `TripForm` (prix, aéroports, escales...) étaient donc déjà disponibles côté page, aucun changement de requête nécessaire ; seul `app/admin/programmes/[id]/page.js` charge en plus `listAirlines()` (déjà utilisé ailleurs) pour le menu Compagnie aérienne du formulaire
+- La page séparée `/admin/voyages/[tripId]` **reste** en place et fonctionnelle (accessible par URL directe, ex. depuis un lien externe ou un ancien favori) — seul le lien depuis `TripsList.jsx` a changé de comportement, elle n'est plus le seul chemin
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

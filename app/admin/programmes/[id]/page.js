@@ -4,6 +4,7 @@ import { getProgramById, listTripsForProgram } from "@/lib/programsAdmin";
 import { listAllFaqsForProgram } from "@/lib/programFaqs";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 import { listHotels } from "@/lib/hotels";
+import { listAirlines } from "@/lib/airlines";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import ProgramForm from "../ProgramForm";
@@ -13,12 +14,13 @@ import ProgramFaqManager from "./ProgramFaqManager";
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
 
-  const [program, trips, faqs, defaultHotels, hotels, session] = await Promise.all([
+  const [program, trips, faqs, defaultHotels, hotels, airlines, session] = await Promise.all([
     getProgramById(id),
     listTripsForProgram(id),
     listAllFaqsForProgram(id),
     listDefaultHotelsForProgram(id),
     listHotels(),
+    listAirlines(),
     getSession(),
   ]);
 
@@ -54,7 +56,7 @@ export default async function ProgramDetailPage({ params }) {
             </Link>
           )}
         </div>
-        <TripsList trips={trips} canManage={canManageTrips} />
+        <TripsList trips={trips} airlines={airlines} canManage={canManageTrips} />
       </div>
 
       <div className="max-w-2xl space-y-3">
