@@ -16,7 +16,21 @@ const STATUS_STYLES = {
 
 export default function TripsList({ trips, airlines = [], canManage }) {
   const router = useRouter();
-  const [expandedId, setExpandedId] = useState(null);
+  // Dépliés par défaut : la plupart des programmes n'ont qu'un seul voyage,
+  // et le personnel s'attend à voir/modifier tous les champs (programme +
+  // voyage) dès l'ouverture de la fiche, sans clic supplémentaire.
+  const [collapsedIds, setCollapsedIds] = useState(() => new Set());
+  const toggleCollapsed = (id) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Supprimer ce voyage ?")) return;
@@ -66,10 +80,10 @@ export default function TripsList({ trips, airlines = [], canManage }) {
                 <td className="px-4 py-3 text-right space-x-3">
                   <button
                     type="button"
-                    onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                    onClick={() => toggleCollapsed(t.id)}
                     className="text-emerald-700 hover:underline"
                   >
-                    {expandedId === t.id ? "Fermer" : "Modifier"}
+                    {collapsedIds.has(t.id) ? "Modifier" : "Fermer"}
                   </button>
                   {canManage && (
                     <button
@@ -99,10 +113,9 @@ export default function TripsList({ trips, airlines = [], canManage }) {
         </table>
       </div>
 
-      {expandedId != null &&
-        trips
-          .filter((t) => t.id === expandedId)
-          .map((t) => (
+      {trips
+        .filter((t) => !collapsedIds.has(t.id))
+        .map((t) => (
             <div key={t.id} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-sm text-zinc-500">
                 <Link
