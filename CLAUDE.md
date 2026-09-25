@@ -412,6 +412,14 @@ Sur `/admin/programmes/[id]`, la liste "Voyages" (`TripsList.jsx`) n'ouvrait aup
 - La page séparée `/admin/voyages/[tripId]` **reste** en place et fonctionnelle (accessible par URL directe, ex. depuis un lien externe ou un ancien favori) — seul le lien depuis `TripsList.jsx` a changé de comportement, elle n'est plus le seul chemin
 - ⚠️ **Piège rencontré en développant cette section** : renommer un state React (`expandedId` → `collapsedIds`) en plusieurs modifications séparées a laissé, entre deux sauvegardes, une référence obsolète (`expandedId`) dans le JSX déjà réécrit ailleurs — Turbopack recompile et sert **chaque** sauvegarde intermédiaire, et une session utilisateur avec Fast Refresh connecté peut planter en plein milieu (`ReferenceError`, page blanche ou rechargement forcé), ce qui a été pris à tort pour "aucun changement visible" par l'utilisateur pendant le débogage. Repéré via `preview_logs` : les erreurs client (`[browser] Uncaught ...`) y apparaissent aussi, pas seulement les erreurs serveur — à vérifier systématiquement en plus des logs serveur après une modification d'un composant client (`"use client"`) en plusieurs étapes
 
+## 3quattertrigies. Menu "Ajouter un hôtel" limité aux hôtels habituels du programme
+
+`/admin/voyages/[tripId]/hebergement` : le menu déroulant du formulaire "Ajouter un hôtel" (Hôtel / Check-in / Check-out) proposait tout le **catalogue global** (`listHotels()`, tous pays/villes confondus) — peu pratique une fois le catalogue étoffé, alors que le voyage n'utilise en pratique que les hôtels habituels de son programme (§3vicies).
+
+- **`app/admin/voyages/[tripId]/hebergement/page.js`** : charge désormais `listDefaultHotelsForProgram(trip.program_id)` (`trip.program_id` déjà renvoyé par `getTripSummary`, `lib/roomAssignment.js`) et le passe comme prop `hotels` à `HebergementManager.jsx` à la place du catalogue complet — **seul** ce menu est concerné (`groupByCity(hotels, "city")`, seule utilisation du prop `hotels` dans ce composant) ; l'affichage des hôtels déjà attachés au voyage (`tripHotels`) et les `<select>` de la section "Chambres" utilisent une prop distincte, non affectée
+- **Repli non bloquant** : si le programme n'a **aucun** hôtel habituel défini (`program_hotels` vide), le menu retombe sur le catalogue complet plutôt que d'être vide et bloquer le personnel — cohérent avec le principe déjà appliqué à la préférence d'hôtel en inscription (§3quaterdecies, "le menu reste vide comme avant, non bloquant")
+- `lib/programHotels.js` : commentaire d'en-tête corrigé (mentionnait encore l'auto-attachement retiré en §3duotrigies)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

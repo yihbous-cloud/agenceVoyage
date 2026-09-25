@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { listHotels } from "@/lib/hotels";
+import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 import {
   getTripSummary,
   listTripHotels,
@@ -19,14 +20,22 @@ export default async function HebergementPage({ params }) {
     notFound();
   }
 
-  const [hotels, tripHotels, rooms, unassigned, assigned, session] = await Promise.all([
-    listHotels(),
-    listTripHotels(tripId),
-    listRoomsForTrip(tripId),
-    listUnassignedRegistrations(tripId),
-    listAssignedRegistrationsForTrip(tripId),
-    getSession(),
-  ]);
+  const [programHotels, allHotels, tripHotels, rooms, unassigned, assigned, session] =
+    await Promise.all([
+      listDefaultHotelsForProgram(trip.program_id),
+      listHotels(),
+      listTripHotels(tripId),
+      listRoomsForTrip(tripId),
+      listUnassignedRegistrations(tripId),
+      listAssignedRegistrationsForTrip(tripId),
+      getSession(),
+    ]);
+
+  // Le menu "Ajouter un hôtel" se limite aux hôtels habituels du programme
+  // (choisis à sa création, §3vicies) — sauf si le programme n'en a aucun,
+  // auquel cas on retombe sur le catalogue complet plutôt que de bloquer
+  // le personnel (§3quattertrigies).
+  const hotels = programHotels.length > 0 ? programHotels : allHotels;
 
   const canManage = await hasPermission(session, "hebergement.manage");
 
