@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { COUNTRIES } from "@/lib/worldPlaces";
+import { POPULAR_DESTINATION_COUNTRIES } from "@/lib/worldPlaces";
 
 const PROGRAM_TYPES = ["omra", "hajj", "tourisme", "autre"];
 const FAMILIES = [
@@ -406,7 +406,7 @@ export default function ProgramForm({
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
               <datalist id="trip-destination-countries">
-                {COUNTRIES.map((c) => (
+                {POPULAR_DESTINATION_COUNTRIES.map((c) => (
                   <option key={c} value={c} />
                 ))}
               </datalist>
