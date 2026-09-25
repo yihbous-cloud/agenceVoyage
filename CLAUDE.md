@@ -428,6 +428,14 @@ Suite à §3unetrigies (retrait de "simple" du choix de préférence à l'inscri
 - **`HebergementManager.jsx`** : `ROOM_TYPES` → `BOOKABLE_ROOM_TYPES` pour le menu "Type" ; `ROOM_TYPE_CAPACITY` reste importé tel quel (dérivation de la Capacité verrouillée, §3terdecies, fonctionne pour n'importe quel type y compris "simple" si jamais réintroduit un jour)
 - Une chambre "simple" existante en base (créée avant ce changement) continue de fonctionner normalement (affectation, affichage) — seule sa **création** depuis ce formulaire n'est plus proposée
 
+## 3sextrigies. "Hôtels du voyage" classé par date plutôt que par ville
+
+Le tri par ville (`h.city ASC`, §3novemdecies) faisait apparaître les hôtels dans un ordre alphabétique de ville sans rapport avec l'itinéraire réel — ex. Médine (02/12→06/12) listée **après** Makka (06/12→17/12) alors qu'on y séjourne en premier, contre-intuitif à la lecture.
+
+- **`listTripHotels`** (`lib/roomAssignment.js`) : `ORDER BY h.city ASC, th.check_in_date ASC` → `ORDER BY th.check_in_date ASC, h.city ASC` — les villes servent désormais de simple départage à date égale, plus de critère de tri principal
+- Effet en cascade sans changement de code côté `HebergementManager.jsx` : `groupByCity()` conserve l'ordre d'apparition du tableau reçu pour ordonner ses groupes — comme le tableau est maintenant trié par date, le sous-titre de ville qui apparaît en premier est celui du séjour le plus proche dans le temps (section "Hôtels du voyage" **et** le menu "Hôtel" du formulaire "Créer une chambre", qui partagent la même source)
+- Champ d'application volontairement limité à `listTripHotels` : `listRoomsForTrip` (section "Chambres") garde son tri par ville (aucune plainte à ce sujet, et une chambre n'a pas de "date" propre à trier)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
