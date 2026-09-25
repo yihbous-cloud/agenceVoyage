@@ -87,6 +87,10 @@ export default function NewRegistrationForm({ trips }) {
       setTravelers((prev) => [prev[0] || emptyTraveler()]);
     } else if (type === "binome") {
       setTravelers((prev) => [prev[0] || emptyTraveler(), prev[1] || emptyTraveler()]);
+      // Un binôme, c'est exactement 2 personnes — la chambre double est la
+      // seule qui a du sens, verrouillée tant que le type reste "binôme"
+      // (voir le <select> plus bas).
+      setPreferredRoomType("double");
     }
     // "groupe" : on garde la liste actuelle telle quelle (au moins 1)
   };
@@ -322,12 +326,13 @@ export default function NewRegistrationForm({ trips }) {
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          Type de chambre souhaité (optionnel)
+          Type de chambre souhaité{inscriptionType !== "binome" && " (optionnel)"}
         </label>
         <select
           value={preferredRoomType}
           onChange={(e) => setPreferredRoomType(e.target.value)}
-          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          disabled={inscriptionType === "binome"}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100 disabled:text-zinc-500"
         >
           <option value="">Aucune préférence</option>
           {PREFERRED_ROOM_TYPES.map((t) => (
@@ -336,6 +341,11 @@ export default function NewRegistrationForm({ trips }) {
             </option>
           ))}
         </select>
+        {inscriptionType === "binome" && (
+          <p className="mt-1 text-xs text-zinc-500">
+            Chambre double automatique pour un binôme.
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
