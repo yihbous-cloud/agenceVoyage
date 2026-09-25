@@ -252,6 +252,14 @@ export default function HebergementManager({
   const tripHotelsByCity = groupByCity(tripHotels, "city");
   const roomsByCity = groupByCity(rooms, "hotel_city");
 
+  // Un hôtel déjà attaché au voyage n'a plus besoin d'apparaître dans le
+  // menu "Ajouter un hôtel" — évite un doublon accidentel (voir CLAUDE.md).
+  const attachedHotelIds = new Set(tripHotels.map((th) => th.hotel_id));
+  const selectableHotelsByCity = groupByCity(
+    hotels.filter((h) => !attachedHotelIds.has(h.id)),
+    "city"
+  );
+
   // Un voyageur avec une préférence hôtel/type exprimée à l'inscription
   // (§3quaterdecies) n'a pas besoin de voir tous les hôtels/chambres du
   // voyage dans "Assigner à..." — seulement les chambres qui correspondent
@@ -350,7 +358,7 @@ export default function HebergementManager({
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               >
                 <option value="">Sélectionner...</option>
-                {groupByCity(hotels, "city").map((group) => (
+                {selectableHotelsByCity.map((group) => (
                   <optgroup key={group.city} label={group.city}>
                     {group.items.map((h) => (
                       <option key={h.id} value={h.id}>
