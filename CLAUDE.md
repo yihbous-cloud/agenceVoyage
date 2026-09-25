@@ -451,6 +451,18 @@ Remarque de l'utilisateur : certains programmes Omra s'organisent en deux étape
 2. L'ajouter à "Hôtels habituels de ce programme" (`/admin/programmes/[id]`), aux côtés des hôtels de Mecque/Médine
 3. Sur `/admin/voyages/[tripId]/hebergement`, l'attacher avec ses propres dates (ex. jour 1 → jour 5), puis attacher les hôtels d'Arabie Saoudite avec les dates restantes (ex. jour 5 → retour) — la section "Hôtels du voyage" les affiche déjà triés par date (§3sextrigies), Istanbul apparaît naturellement en premier
 
+⚠️ **Bug trouvé en testant ce scénario** : rien n'empêchait deux hôtels du même voyage d'avoir des périodes qui se chevauchent (ex. check-out Istanbul le 19/12, check-in Médine le 18/12 — un jour où le voyageur serait dans les deux hôtels à la fois), tant que chaque période individuelle restait comprise dans les dates du voyage (§3octodecies, seule vérification existante). Corrigé en §3octotrigies.
+
+## 3octotrigies. Vérification de chevauchement entre hôtels du même voyage
+
+Un voyageur ne peut être que dans un seul hôtel à la fois, même quand le voyage a plusieurs villes (Istanbul + Médine + Makka...) — aucune vérification ne l'empêchait avant cette section.
+
+- **`lib/roomAssignment.js`** : nouvelle fonction `findOverlappingTripHotel(tripId, checkInDate, checkOutDate)` — repère un hôtel déjà attaché au voyage dont la période chevauche celle proposée (`existing.check_in < nouveau.check_out ET nouveau.check_in < existing.check_out`, intervalles semi-ouverts : un check-out le même jour qu'un check-in suivant est autorisé, c'est le jour de transition normal, pas un chevauchement)
+- **`POST /api/admin/trips/[tripId]/hotels`** (source de vérité) : appelle cette fonction après les vérifications existantes (dates dans les bornes du voyage, check-in < check-out) et refuse (400) avec un message nommant l'hôtel en conflit et ses dates si un chevauchement est trouvé
+- **`HebergementManager.jsx`** (`handleAddHotel`) : même vérification côté client, sur le tableau `tripHotels` déjà chargé (pas d'appel réseau supplémentaire) — retour immédiat avant même la requête au serveur, même message d'erreur
+- Comparaison de chaînes `"YYYY-MM-DD"` directe des deux côtés (client et serveur) : `lib/db.js` configure `dateStrings: true` sur le pool MySQL, les colonnes `DATE` ne sont donc jamais des objets `Date` mais des chaînes déjà au format comparable lexicographiquement — cohérent avec la vérification de bornage déjà existante (§3octodecies) qui faisait la même hypothèse
+- Pas de correctif rétroactif sur les données déjà en base : un voyage existant avec un chevauchement créé avant cette vérification (comme celui découvert pendant les tests) reste tel quel jusqu'à correction manuelle (supprimer puis rajouter l'hôtel avec les bonnes dates) — aucune fonction d'édition des dates d'un `trip_hotels` n'existe, seulement suppression + réajout
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

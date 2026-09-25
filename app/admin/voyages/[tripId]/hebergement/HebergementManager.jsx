@@ -46,6 +46,23 @@ export default function HebergementManager({
       return;
     }
 
+    // Un voyageur ne peut pas être dans deux hôtels en même temps, même dans
+    // des villes différentes (ex. escale-séjour avant l'Arabie Saoudite) —
+    // revalidé aussi côté serveur (source de vérité), voir CLAUDE.md.
+    const overlap = tripHotels.find(
+      (th) => th.check_in_date < checkOut && checkIn < th.check_out_date
+    );
+    if (overlap) {
+      setError(
+        `Chevauchement avec ${overlap.hotel_name} (${new Date(
+          overlap.check_in_date
+        ).toLocaleDateString("fr-FR")} → ${new Date(overlap.check_out_date).toLocaleDateString(
+          "fr-FR"
+        )}) : un voyageur ne peut pas être dans deux hôtels en même temps.`
+      );
+      return;
+    }
+
     try {
       const res = await fetch(`/api/admin/trips/${tripId}/hotels`, {
         method: "POST",

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { listTripHotels, addTripHotel, getTripSummary } from "@/lib/roomAssignment";
+import {
+  listTripHotels,
+  addTripHotel,
+  getTripSummary,
+  findOverlappingTripHotel,
+} from "@/lib/roomAssignment";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 
 export async function GET(request, { params }) {
@@ -61,6 +66,18 @@ export async function POST(request, { params }) {
   if (checkInDate >= checkOutDate) {
     return NextResponse.json(
       { message: "La date de check-out doit être après la date de check-in" },
+      { status: 400 }
+    );
+  }
+
+  // Un voyageur ne peut pas être dans deux hôtels en même temps, même dans
+  // des villes différentes — voir CLAUDE.md.
+  const overlap = await findOverlappingTripHotel(tripId, checkInDate, checkOutDate);
+  if (overlap) {
+    return NextResponse.json(
+      {
+        message: `Chevauchement avec ${overlap.hotel_name} (${overlap.check_in_date} → ${overlap.check_out_date}) : un voyageur ne peut pas être dans deux hôtels en même temps.`,
+      },
       { status: 400 }
     );
   }
