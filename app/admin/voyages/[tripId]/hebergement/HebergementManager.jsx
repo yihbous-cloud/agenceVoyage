@@ -4,6 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROOM_TYPE_CAPACITY, BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
 
+// Bulle d'erreur ancrée sous un champ de date, dans le style de la
+// validation native du navigateur (fond blanc, icône orange, petit triangle
+// pointant vers le champ) — le parent doit être en `position: relative`.
+function ErrorBubble({ message }) {
+  return (
+    <div className="absolute left-0 top-full z-10 mt-2 w-72 max-w-[80vw]">
+      <div className="absolute -top-1.5 left-4 h-3 w-3 rotate-45 border-l border-t border-zinc-300 bg-white" />
+      <div className="relative flex items-start gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 shadow-lg">
+        <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-sm bg-orange-500 text-xs font-bold text-white">
+          !
+        </span>
+        <p className="text-sm text-zinc-800">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function HebergementManager({
   tripId,
   tripDepartureDate,
@@ -24,9 +41,16 @@ export default function HebergementManager({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   // Erreur dédiée à ce formulaire (plutôt que le `error` général de la page,
-  // partagé par d'autres actions) : s'affiche directement sous les champs de
-  // date, là où l'erreur de chevauchement est la plus lisible.
+  // partagé par d'autres actions) : s'affiche directement sous le champ
+  // fautif (Check-in ou Check-out, selon l'erreur — voir hotelFormErrorField
+  // ci-dessous), pas systématiquement sous Check-out.
   const [hotelFormError, setHotelFormError] = useState(null);
+  const [hotelFormErrorField, setHotelFormErrorField] = useState("checkOut");
+
+  const setHotelFieldError = (message, field) => {
+    setHotelFormError(message);
+    setHotelFormErrorField(field);
+  };
 
   const handleAddHotel = async (e) => {
     e.preventDefault();
@@ -34,35 +58,53 @@ export default function HebergementManager({
 
     // Les dates de séjour à l'hôtel ne doivent pas sortir des dates du
     // voyage — vérifié aussi côté serveur (source de vérité), voir
-    // CLAUDE.md.
-    if (checkIn < tripDepartureDate || checkOut > tripReturnDate) {
-      setHotelFormError(
-        `Les dates de l'hôtel doivent rester entre le ${new Date(
+    // CLAUDE.md. Les deux bornes sont vérifiées séparément pour pouvoir
+    // signaler le bon champ (celui qui sort réellement des dates du voyage).
+    if (checkIn < tripDepartureDate) {
+      setHotelFieldError(
+        `La date de check-in doit être égale ou postérieure au ${new Date(
           tripDepartureDate
-        ).toLocaleDateString("fr-FR")} et le ${new Date(tripReturnDate).toLocaleDateString(
-          "fr-FR"
-        )} (dates du voyage).`
+        ).toLocaleDateString("fr-FR")} (date de départ du voyage).`,
+        "checkIn"
+      );
+      return;
+    }
+    if (checkOut > tripReturnDate) {
+      setHotelFieldError(
+        `La date de check-out doit être égale ou antérieure au ${new Date(
+          tripReturnDate
+        ).toLocaleDateString("fr-FR")} (date de retour du voyage).`,
+        "checkOut"
       );
       return;
     }
     if (checkIn >= checkOut) {
-      setHotelFormError("La date de check-out doit être après la date de check-in.");
+      setHotelFieldError(
+        "La date de check-out doit être après la date de check-in.",
+        "checkOut"
+      );
       return;
     }
 
     // Un voyageur ne peut pas être dans deux hôtels en même temps, même dans
     // des villes différentes (ex. escale-séjour avant l'Arabie Saoudite) —
-    // revalidé aussi côté serveur (source de vérité), voir CLAUDE.md.
+    // revalidé aussi côté serveur (source de vérité), voir CLAUDE.md. Le
+    // champ à corriger dépend de l'ordre chronologique : si l'hôtel en
+    // conflit commence avant le nouveau check-in, c'est le check-in qui doit
+    // être repoussé après son check-out ; sinon c'est le check-out qui
+    // empiète trop loin sur un hôtel suivant, à ramener avant son check-in.
     const overlap = tripHotels.find(
       (th) => th.check_in_date < checkOut && checkIn < th.check_out_date
     );
     if (overlap) {
-      setHotelFormError(
+      const conflictField = overlap.check_in_date < checkIn ? "checkIn" : "checkOut";
+      setHotelFieldError(
         `Chevauchement avec ${overlap.hotel_name} (${new Date(
           overlap.check_in_date
         ).toLocaleDateString("fr-FR")} → ${new Date(overlap.check_out_date).toLocaleDateString(
           "fr-FR"
-        )}) : un voyageur ne peut pas être dans deux hôtels en même temps.`
+        )}) : un voyageur ne peut pas être dans deux hôtels en même temps.`,
+        conflictField
       );
       return;
     }
@@ -82,7 +124,7 @@ export default function HebergementManager({
       setCheckOut("");
       router.refresh();
     } catch (err) {
-      setHotelFormError(err.message);
+      setHotelFieldError(err.message, "checkOut");
     }
   };
 
@@ -319,7 +361,7 @@ export default function HebergementManager({
                 ))}
               </select>
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-zinc-700">Check-in</label>
               <input
                 type="date"
@@ -330,6 +372,9 @@ export default function HebergementManager({
                 onChange={(e) => setCheckIn(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
+              {hotelFormError && hotelFormErrorField === "checkIn" && (
+                <ErrorBubble message={hotelFormError} />
+              )}
             </div>
             <div className="relative">
               <label className="block text-sm font-medium text-zinc-700">Check-out</label>
@@ -342,16 +387,8 @@ export default function HebergementManager({
                 onChange={(e) => setCheckOut(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
-              {hotelFormError && (
-                <div className="absolute left-0 top-full z-10 mt-2 w-72 max-w-[80vw]">
-                  <div className="absolute -top-1.5 left-4 h-3 w-3 rotate-45 border-l border-t border-zinc-300 bg-white" />
-                  <div className="relative flex items-start gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 shadow-lg">
-                    <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-sm bg-orange-500 text-xs font-bold text-white">
-                      !
-                    </span>
-                    <p className="text-sm text-zinc-800">{hotelFormError}</p>
-                  </div>
-                </div>
+              {hotelFormError && hotelFormErrorField === "checkOut" && (
+                <ErrorBubble message={hotelFormError} />
               )}
             </div>
             <button
