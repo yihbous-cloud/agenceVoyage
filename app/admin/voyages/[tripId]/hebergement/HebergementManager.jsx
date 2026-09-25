@@ -331,7 +331,7 @@ export default function HebergementManager({
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-zinc-700">Check-out</label>
               <input
                 type="date"
@@ -342,6 +342,17 @@ export default function HebergementManager({
                 onChange={(e) => setCheckOut(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
+              {hotelFormError && (
+                <div className="absolute left-0 top-full z-10 mt-2 w-72 max-w-[80vw]">
+                  <div className="absolute -top-1.5 left-4 h-3 w-3 rotate-45 border-l border-t border-zinc-300 bg-white" />
+                  <div className="relative flex items-start gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 shadow-lg">
+                    <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-sm bg-orange-500 text-xs font-bold text-white">
+                      !
+                    </span>
+                    <p className="text-sm text-zinc-800">{hotelFormError}</p>
+                  </div>
+                </div>
+              )}
             </div>
             <button
               type="submit"
@@ -349,9 +360,6 @@ export default function HebergementManager({
             >
               Ajouter
             </button>
-            {hotelFormError && (
-              <p className="w-full text-sm text-red-700">{hotelFormError}</p>
-            )}
           </form>
         )}
       </section>
