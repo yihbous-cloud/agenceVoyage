@@ -436,6 +436,21 @@ Le tri par ville (`h.city ASC`, §3novemdecies) faisait apparaître les hôtels 
 - Effet en cascade sans changement de code côté `HebergementManager.jsx` : `groupByCity()` conserve l'ordre d'apparition du tableau reçu pour ordonner ses groupes — comme le tableau est maintenant trié par date, le sous-titre de ville qui apparaît en premier est celui du séjour le plus proche dans le temps (section "Hôtels du voyage" **et** le menu "Hôtel" du formulaire "Créer une chambre", qui partagent la même source)
 - Champ d'application volontairement limité à `listTripHotels` : `listRoomsForTrip` (section "Chambres") garde son tri par ville (aucune plainte à ce sujet, et une chambre n'a pas de "date" propre à trier)
 
+## 3septtrigies. Champs aéroport en zone de texte déroulante (nom + code IATA)
+
+Les champs aéroport (départ/arrivée aller, départ/arrivée retour, escale aller/retour — §3septvicies/§3novovicies) étaient de simples champs texte à 3 lettres : le personnel devait connaître le code IATA par cœur (`JED`, `IST`, `KUL`...). Remplacés par le même pattern `<input list>` + `<datalist>` que Pays/Ville des hôtels (§3octies) ou Pays de destination (§3trigies), avec une liste affichant **le nom complet de l'aéroport et son code** ensemble.
+
+- **`lib/airportsReference.js`** (nouveau) : `AIRPORTS_REFERENCE` (~31 aéroports — le Maroc au complet pour les départs, plus les destinations les plus courantes de l'agence : Arabie Saoudite, Turquie, Émirats, Égypte, Malaisie/Asie, Europe, Tunisie/Algérie — même logique de curation que `POPULAR_DESTINATION_COUNTRIES`, §3trigies). Distinct de `lib/airports.js`, volontairement limité aux aéroports marocains de départ pour le pSEO villes de départ (§3quinquies) — usage différent, pas de fusion
+- `formatAirportOption(a)` → `"Aéroport d'Istanbul (IST) — Istanbul"` (texte affiché dans la liste déroulante, cherchable par nom, ville **ou** code puisque tout est dans la même chaîne) ; `airportInputValue(iata)` reconstruit ce texte à partir d'un code stocké en base (édition d'un voyage existant), retombe sur le code brut si l'aéroport n'est pas dans la référence (compatibilité avec une saisie libre antérieure) ; `extractIataFromInput(value)` fait l'inverse à la soumission (extrait le code entre parenthèses, ou accepte un code à 3 lettres tapé directement en repli)
+- **`TripForm.jsx`** et la section "Premier voyage" de `ProgramForm.jsx` : les 6 champs aéroport utilisent ce pattern, un seul `<datalist id="airport-options">` partagé par formulaire. Un aéroport absent de la liste reste saisissable librement (datalist, pas un select fermé) — le payload envoie alors le code tel quel s'il ressemble à 3 lettres, sinon les 3 premiers caractères en majuscules (repli best-effort, cohérent avec l'ancien `maxLength={3}` qui limitait déjà la saisie libre à 3 caractères)
+
+### Programmes Omra avec escale-séjour (ex. Istanbul, Kuala Lumpur) avant l'Arabie Saoudite
+
+Remarque de l'utilisateur : certains programmes Omra s'organisent en deux étapes — un séjour touristique de plusieurs jours dans une ville tierce (Istanbul, Kuala Lumpur...) **avant** de rejoindre l'Arabie Saoudite pour l'Omra elle-même, avec son propre hôtel sur place. **Déjà supporté sans changement de code**, par le même mécanisme multi-villes qui gère Mecque + Médine (§3novemdecies) : `POST /api/admin/trips/[tripId]/hotels` n'impose aucune contrainte de pays/ville, seulement que les dates du séjour restent comprises dans les dates globales du voyage (§3octodecies). Pour ce cas :
+1. Créer l'hôtel d'Istanbul dans le catalogue (`/admin/hotels`) s'il n'existe pas encore (ville "Istanbul", pays "Turquie" — déjà référencés dans `lib/worldPlaces.js`)
+2. L'ajouter à "Hôtels habituels de ce programme" (`/admin/programmes/[id]`), aux côtés des hôtels de Mecque/Médine
+3. Sur `/admin/voyages/[tripId]/hebergement`, l'attacher avec ses propres dates (ex. jour 1 → jour 5), puis attacher les hôtels d'Arabie Saoudite avec les dates restantes (ex. jour 5 → retour) — la section "Hôtels du voyage" les affiche déjà triés par date (§3sextrigies), Istanbul apparaît naturellement en premier
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

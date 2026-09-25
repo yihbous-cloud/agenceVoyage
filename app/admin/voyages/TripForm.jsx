@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AIRPORTS_REFERENCE, airportInputValue, extractIataFromInput, formatAirportOption } from "@/lib/airportsReference";
 
 const STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
@@ -15,21 +16,23 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   const [destinationCountry, setDestinationCountry] = useState(
     trip?.destination_country || "Arabie Saoudite"
   );
-  const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
-  const [destinationIata, setDestinationIata] = useState(trip?.destination_iata || "");
-  const [returnOriginIata, setReturnOriginIata] = useState(trip?.return_origin_iata || "");
+  const [originIata, setOriginIata] = useState(airportInputValue(trip?.origin_iata));
+  const [destinationIata, setDestinationIata] = useState(airportInputValue(trip?.destination_iata));
+  const [returnOriginIata, setReturnOriginIata] = useState(
+    airportInputValue(trip?.return_origin_iata)
+  );
   const [returnDestinationIata, setReturnDestinationIata] = useState(
-    trip?.return_destination_iata || ""
+    airportInputValue(trip?.return_destination_iata)
   );
   const [hasOutboundLayover, setHasOutboundLayover] = useState(
     !!trip?.outbound_layover_iata
   );
   const [outboundLayoverIata, setOutboundLayoverIata] = useState(
-    trip?.outbound_layover_iata || ""
+    airportInputValue(trip?.outbound_layover_iata)
   );
   const [hasReturnLayover, setHasReturnLayover] = useState(!!trip?.return_layover_iata);
   const [returnLayoverIata, setReturnLayoverIata] = useState(
-    trip?.return_layover_iata || ""
+    airportInputValue(trip?.return_layover_iata)
   );
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
@@ -53,12 +56,14 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       departureDate,
       returnDate,
       destinationCountry,
-      originIata: originIata || null,
-      destinationIata: destinationIata || null,
-      returnOriginIata: returnOriginIata || null,
-      returnDestinationIata: returnDestinationIata || null,
-      outboundLayoverIata: hasOutboundLayover ? outboundLayoverIata || null : null,
-      returnLayoverIata: hasReturnLayover ? returnLayoverIata || null : null,
+      originIata: extractIataFromInput(originIata) || null,
+      destinationIata: extractIataFromInput(destinationIata) || null,
+      returnOriginIata: extractIataFromInput(returnOriginIata) || null,
+      returnDestinationIata: extractIataFromInput(returnDestinationIata) || null,
+      outboundLayoverIata: hasOutboundLayover
+        ? extractIataFromInput(outboundLayoverIata) || null
+        : null,
+      returnLayoverIata: hasReturnLayover ? extractIataFromInput(returnLayoverIata) || null : null,
       airlineId: airlineId || null,
       totalSeats: Number(totalSeats),
       priceDouble: Number(priceDouble),
@@ -198,29 +203,35 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         </div>
       </div>
 
+      <datalist id="airport-options">
+        {AIRPORTS_REFERENCE.map((a) => (
+          <option key={a.iata} value={formatAirportOption(a)} />
+        ))}
+      </datalist>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport de départ — aller (IATA)
+            Aéroport de départ — aller
           </label>
           <input
-            maxLength={3}
+            list="airport-options"
             value={originIata}
-            onChange={(e) => setOriginIata(e.target.value.toUpperCase())}
-            placeholder="ex: CMN"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+            onChange={(e) => setOriginIata(e.target.value)}
+            placeholder="Taper une ville ou un code..."
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport d&apos;arrivée — aller (IATA)
+            Aéroport d&apos;arrivée — aller
           </label>
           <input
-            maxLength={3}
+            list="airport-options"
             value={destinationIata}
-            onChange={(e) => setDestinationIata(e.target.value.toUpperCase())}
-            placeholder="ex: JED"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+            onChange={(e) => setDestinationIata(e.target.value)}
+            placeholder="Taper une ville ou un code..."
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
       </div>
@@ -228,33 +239,35 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport de départ — retour (IATA, optionnel)
+            Aéroport de départ — retour (optionnel)
           </label>
           <input
-            maxLength={3}
+            list="airport-options"
             value={returnOriginIata}
-            onChange={(e) => setReturnOriginIata(e.target.value.toUpperCase())}
+            onChange={(e) => setReturnOriginIata(e.target.value)}
             placeholder="Vide = arrivée aller inversée"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport d&apos;arrivée — retour (IATA, optionnel)
+            Aéroport d&apos;arrivée — retour (optionnel)
           </label>
           <input
-            maxLength={3}
+            list="airport-options"
             value={returnDestinationIata}
-            onChange={(e) => setReturnDestinationIata(e.target.value.toUpperCase())}
+            onChange={(e) => setReturnDestinationIata(e.target.value)}
             placeholder="Vide = départ aller inversé"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
       </div>
       <p className="-mt-2 text-xs text-zinc-500">
-        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel. Aéroports du retour
-        laissés vides = mêmes aéroports que l&apos;aller, sens inversé (cas le plus courant) ;
-        à renseigner uniquement si le retour se fait depuis/vers un aéroport différent.
+        Tapez le nom d&apos;une ville ou d&apos;un aéroport pour voir les suggestions (code IATA
+        affiché entre parenthèses) — un aéroport absent de la liste reste saisissable librement.
+        Nécessaires pour la recherche de vols Duffel. Aéroports du retour laissés vides = mêmes
+        aéroports que l&apos;aller, sens inversé (cas le plus courant) ; à renseigner uniquement
+        si le retour se fait depuis/vers un aéroport différent.
       </p>
 
       <div className="grid grid-cols-2 gap-4">
@@ -272,11 +285,11 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
           </label>
           {hasOutboundLayover && (
             <input
-              maxLength={3}
+              list="airport-options"
               value={outboundLayoverIata}
-              onChange={(e) => setOutboundLayoverIata(e.target.value.toUpperCase())}
-              placeholder="ex: IST"
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+              onChange={(e) => setOutboundLayoverIata(e.target.value)}
+              placeholder="Taper une ville ou un code..."
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
           )}
         </div>
@@ -294,11 +307,11 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
           </label>
           {hasReturnLayover && (
             <input
-              maxLength={3}
+              list="airport-options"
               value={returnLayoverIata}
-              onChange={(e) => setReturnLayoverIata(e.target.value.toUpperCase())}
-              placeholder="ex: IST"
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+              onChange={(e) => setReturnLayoverIata(e.target.value)}
+              placeholder="Taper une ville ou un code..."
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
           )}
         </div>
