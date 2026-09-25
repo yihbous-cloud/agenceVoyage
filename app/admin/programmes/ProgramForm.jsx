@@ -9,8 +9,15 @@ const FAMILIES = [
   { value: "voyage_organise", label: "Voyage organisé" },
 ];
 const SEASONS = ["mawlid", "rajab", "chaabane", "ramadan", "chawal"];
+const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
-export default function ProgramForm({ program, hotels = [], defaultHotelIds = [], canDelete }) {
+export default function ProgramForm({
+  program,
+  hotels = [],
+  airlines = [],
+  defaultHotelIds = [],
+  canDelete,
+}) {
   const router = useRouter();
   const isEdit = !!program;
 
@@ -35,10 +42,30 @@ export default function ProgramForm({ program, hotels = [], defaultHotelIds = []
   const [selectedHotelIds, setSelectedHotelIds] = useState(
     defaultHotelIds.map((id) => String(id))
   );
+
+  // Premier voyage, saisi en parallèle uniquement à la création du programme
+  // (voir CLAUDE.md) — un programme reste libre d'avoir d'autres voyages à
+  // des dates différentes ensuite, ajoutés depuis sa fiche.
+  const [tripReferenceCode, setTripReferenceCode] = useState("");
+  const [tripStatus, setTripStatus] = useState("planifie");
+  const [tripDepartureDate, setTripDepartureDate] = useState("");
+  const [tripReturnDate, setTripReturnDate] = useState("");
+  const [tripDestinationCountry, setTripDestinationCountry] = useState("Arabie Saoudite");
+  const [tripAirlineId, setTripAirlineId] = useState("");
+  const [tripOriginIata, setTripOriginIata] = useState("");
+  const [tripDestinationIata, setTripDestinationIata] = useState("");
+  const [tripOutboundLayoverIata, setTripOutboundLayoverIata] = useState("");
+  const [tripReturnLayoverIata, setTripReturnLayoverIata] = useState("");
+  const [tripTotalSeats, setTripTotalSeats] = useState(0);
+  const [tripPricePerPerson, setTripPricePerPerson] = useState(0);
+  const [tripFlightTicketPrice, setTripFlightTicketPrice] = useState("");
+  const [tripCurrency, setTripCurrency] = useState("MAD");
+
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [createdProgramId, setCreatedProgramId] = useState(null);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -100,7 +127,52 @@ export default function ProgramForm({ program, hotels = [], defaultHotelIds = []
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
 
-      router.push("/admin/programmes");
+      if (isEdit) {
+        router.push("/admin/programmes");
+        router.refresh();
+        return;
+      }
+
+      const { id: programId } = await res.json();
+
+      const tripPayload = {
+        referenceCode: tripReferenceCode,
+        departureDate: tripDepartureDate,
+        returnDate: tripReturnDate,
+        destinationCountry: tripDestinationCountry,
+        originIata: tripOriginIata || null,
+        destinationIata: tripDestinationIata || null,
+        outboundLayoverIata: tripOutboundLayoverIata || null,
+        returnLayoverIata: tripReturnLayoverIata || null,
+        airlineId: tripAirlineId || null,
+        totalSeats: Number(tripTotalSeats),
+        pricePerPerson: Number(tripPricePerPerson),
+        flightTicketPrice: tripFlightTicketPrice === "" ? null : Number(tripFlightTicketPrice),
+        currency: tripCurrency,
+        status: tripStatus,
+        notes: null,
+      };
+
+      const tripRes = await fetch(`/api/admin/programs/${programId}/trips`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tripPayload),
+      });
+
+      if (!tripRes.ok) {
+        const tripData = await tripRes.json();
+        // Le programme est déjà créé à ce stade : on ne bloque pas dessus,
+        // on laisse le personnel ajouter le voyage manuellement depuis sa fiche.
+        setCreatedProgramId(programId);
+        throw new Error(
+          `Programme créé, mais le voyage n'a pas pu l'être : ${
+            tripData.message || "erreur serveur"
+          }. Ajoutez-le depuis la fiche du programme.`
+        );
+      }
+
+      const tripData = await tripRes.json();
+      router.push(`/admin/voyages/${tripData.id}/hebergement`);
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -338,6 +410,200 @@ export default function ProgramForm({ program, hotels = [], defaultHotelIds = []
         )}
       </div>
 
+      {!isEdit && (
+        <div className="space-y-4 rounded-lg border border-zinc-200 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Premier voyage</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Un programme peut avoir plusieurs voyages à des dates différentes — ce premier
+              voyage est créé en parallèle du programme pour aller plus vite ; les suivants
+              s&apos;ajoutent ensuite depuis la fiche du programme.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Référence (ex: GF-OMR-2027-03)
+              </label>
+              <input
+                required
+                value={tripReferenceCode}
+                onChange={(e) => setTripReferenceCode(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Statut</label>
+              <select
+                value={tripStatus}
+                onChange={(e) => setTripStatus(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              >
+                {TRIP_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Date d&apos;aller</label>
+              <input
+                type="date"
+                required
+                value={tripDepartureDate}
+                onChange={(e) => setTripDepartureDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Date de retour</label>
+              <input
+                type="date"
+                required
+                value={tripReturnDate}
+                onChange={(e) => setTripReturnDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Pays de destination
+              </label>
+              <input
+                value={tripDestinationCountry}
+                onChange={(e) => setTripDestinationCountry(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Compagnie aérienne
+              </label>
+              <select
+                value={tripAirlineId}
+                onChange={(e) => setTripAirlineId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              >
+                <option value="">Aucune</option>
+                {airlines.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Aéroport de départ (IATA)
+              </label>
+              <input
+                maxLength={3}
+                value={tripOriginIata}
+                onChange={(e) => setTripOriginIata(e.target.value.toUpperCase())}
+                placeholder="ex: CMN"
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Aéroport d&apos;arrivée (IATA)
+              </label>
+              <input
+                maxLength={3}
+                value={tripDestinationIata}
+                onChange={(e) => setTripDestinationIata(e.target.value.toUpperCase())}
+                placeholder="ex: JED"
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+              />
+            </div>
+          </div>
+          <p className="-mt-2 text-xs text-zinc-500">
+            Codes IATA à 3 lettres. Mêmes aéroports pour l&apos;aller et le retour (sens inversé
+            au retour).
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Escale aller (IATA, optionnel)
+              </label>
+              <input
+                maxLength={3}
+                value={tripOutboundLayoverIata}
+                onChange={(e) => setTripOutboundLayoverIata(e.target.value.toUpperCase())}
+                placeholder="Vide = vol direct"
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">
+                Escale retour (IATA, optionnel)
+              </label>
+              <input
+                maxLength={3}
+                value={tripReturnLayoverIata}
+                onChange={(e) => setTripReturnLayoverIata(e.target.value.toUpperCase())}
+                placeholder="Vide = vol direct"
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Places totales</label>
+              <input
+                type="number"
+                min="0"
+                value={tripTotalSeats}
+                onChange={(e) => setTripTotalSeats(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Prix programme</label>
+              <input
+                type="number"
+                step="0.01"
+                value={tripPricePerPerson}
+                onChange={(e) => setTripPricePerPerson(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700">Prix billet avion</label>
+              <input
+                type="number"
+                step="0.01"
+                value={tripFlightTicketPrice}
+                onChange={(e) => setTripFlightTicketPrice(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Devise</label>
+            <input
+              value={tripCurrency}
+              onChange={(e) => setTripCurrency(e.target.value)}
+              className="mt-1 w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
@@ -370,12 +636,27 @@ export default function ProgramForm({ program, hotels = [], defaultHotelIds = []
         Publié (visible sur le site public)
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {error}
+          {createdProgramId && (
+            <>
+              {" "}
+              <a
+                href={`/admin/programmes/${createdProgramId}`}
+                className="underline hover:no-underline"
+              >
+                Voir le programme
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
       <div className="flex items-center justify-between">
         <button
           type="submit"
-          disabled={submitting || uploading}
+          disabled={submitting || uploading || !!createdProgramId}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {submitting ? "Enregistrement..." : "Enregistrer"}

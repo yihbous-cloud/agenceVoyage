@@ -350,6 +350,15 @@ Dates et aéroports aller/retour existaient déjà sur `/admin/programmes/[id]/v
 - `TripForm.jsx` : "Date d'aller"/"Date de retour" (relabellisé pour clarté), "Escale aller"/"Escale retour" (IATA, optionnels, vide = vol direct) juste après les champs d'aéroport de départ/arrivée
 - `createTrip`/`updateTrip` (`lib/programsAdmin.js`) : `outboundLayoverIata`/`returnLayoverIata` ajoutés à l'INSERT/UPDATE, mêmes routes API qu'avant (`body` déjà transmis tel quel, aucun changement de route nécessaire)
 
+## 3octovicies. Premier voyage saisi en parallèle du programme (UX de création)
+
+Demande de suite à §3septvicies : le personnel voulait pouvoir saisir les champs du voyage (dates, aéroports, escales, compagnie, places, prix, devise) **directement sur l'écran de création du programme**, sans devoir d'abord enregistrer le programme puis cliquer séparément sur "+ Nouveau voyage". ⚠️ Ce n'est **pas** un retour sur la décision de §3vicies/§3septvicies : le modèle de données ne change pas (dates/aéroports restent sur `trips`, pas sur `programs` — un programme garde la possibilité d'avoir plusieurs voyages à des dates différentes) ; seule l'**ergonomie de la première création** change.
+
+- **`ProgramForm.jsx`** : nouvelle section "Premier voyage", affichée **uniquement à la création** (`!isEdit` — une fois le programme créé, l'ajout de voyages supplémentaires reste sur sa fiche via `TripsList`/"+ Nouveau voyage", inchangé). Reprend exactement les champs de `TripForm.jsx` (référence, statut, dates, pays de destination, compagnie, aéroports IATA, escales aller/retour, places, prix programme, prix billet, devise) ; référence/dates restent requis, comme sur `TripForm.jsx`
+- **Soumission en deux appels séquentiels, pas transactionnels** : `POST /api/admin/programs` puis, si la première réussit, `POST /api/admin/programs/[id]/trips` avec les champs du voyage — deux routes existantes, aucune n'a changé. Si le deuxième appel échoue (ex. référence de voyage déjà utilisée), **le programme reste créé** : le formulaire affiche l'erreur avec un lien vers la fiche du programme pour y ajouter le voyage manuellement, et désactive le bouton "Enregistrer" (éviterait sinon de recréer un deuxième programme en double en resoumettant)
+- Succès complet : redirection vers `/admin/voyages/[tripId]/hebergement`, même comportement que la création d'un voyage depuis `TripForm.jsx` (attacher les hôtels devient l'étape suivante immédiate, voir §3novemdecies)
+- `app/admin/programmes/new/page.js` charge désormais aussi `listAirlines()` (déjà utilisé par `/admin/programmes/[id]/voyages/new`) pour peupler le menu déroulant Compagnie aérienne du premier voyage
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
