@@ -39,6 +39,8 @@ export async function POST(request, { params }) {
     const offers = await searchOffers({
       originIata: trip.origin_iata,
       destinationIata: trip.destination_iata,
+      returnOriginIata: trip.return_origin_iata,
+      returnDestinationIata: trip.return_destination_iata,
       departureDate: trip.departure_date,
       returnDate: trip.return_date,
       passengerCount: registrationIds.length,

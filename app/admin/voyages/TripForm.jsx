@@ -17,18 +17,23 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   );
   const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
   const [destinationIata, setDestinationIata] = useState(trip?.destination_iata || "");
+  const [returnOriginIata, setReturnOriginIata] = useState(trip?.return_origin_iata || "");
+  const [returnDestinationIata, setReturnDestinationIata] = useState(
+    trip?.return_destination_iata || ""
+  );
+  const [hasOutboundLayover, setHasOutboundLayover] = useState(
+    !!trip?.outbound_layover_iata
+  );
   const [outboundLayoverIata, setOutboundLayoverIata] = useState(
     trip?.outbound_layover_iata || ""
   );
+  const [hasReturnLayover, setHasReturnLayover] = useState(!!trip?.return_layover_iata);
   const [returnLayoverIata, setReturnLayoverIata] = useState(
     trip?.return_layover_iata || ""
   );
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
   const [pricePerPerson, setPricePerPerson] = useState(trip?.price_per_person ?? 0);
-  const [flightTicketPrice, setFlightTicketPrice] = useState(
-    trip?.flight_ticket_price ?? ""
-  );
   const [currency, setCurrency] = useState(trip?.currency || "MAD");
   const [status, setStatus] = useState(trip?.status || "planifie");
   const [notes, setNotes] = useState(trip?.notes || "");
@@ -47,12 +52,13 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       destinationCountry,
       originIata: originIata || null,
       destinationIata: destinationIata || null,
-      outboundLayoverIata: outboundLayoverIata || null,
-      returnLayoverIata: returnLayoverIata || null,
+      returnOriginIata: returnOriginIata || null,
+      returnDestinationIata: returnDestinationIata || null,
+      outboundLayoverIata: hasOutboundLayover ? outboundLayoverIata || null : null,
+      returnLayoverIata: hasReturnLayover ? returnLayoverIata || null : null,
       airlineId: airlineId || null,
       totalSeats: Number(totalSeats),
       pricePerPerson: Number(pricePerPerson),
-      flightTicketPrice: flightTicketPrice === "" ? null : Number(flightTicketPrice),
       currency,
       status,
       notes: notes || null,
@@ -189,7 +195,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport de départ (IATA)
+            Aéroport de départ — aller (IATA)
           </label>
           <input
             maxLength={3}
@@ -201,7 +207,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Aéroport d&apos;arrivée (IATA)
+            Aéroport d&apos;arrivée — aller (IATA)
           </label>
           <input
             maxLength={3}
@@ -212,39 +218,87 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
           />
         </div>
       </div>
-      <p className="-mt-2 text-xs text-zinc-500">
-        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel. Mêmes aéroports pour
-        l&apos;aller et le retour (sens inversé au retour).
-      </p>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Escale aller (IATA, optionnel)
+            Aéroport de départ — retour (IATA, optionnel)
           </label>
           <input
             maxLength={3}
-            value={outboundLayoverIata}
-            onChange={(e) => setOutboundLayoverIata(e.target.value.toUpperCase())}
-            placeholder="Vide = vol direct"
+            value={returnOriginIata}
+            onChange={(e) => setReturnOriginIata(e.target.value.toUpperCase())}
+            placeholder="Vide = arrivée aller inversée"
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Escale retour (IATA, optionnel)
+            Aéroport d&apos;arrivée — retour (IATA, optionnel)
           </label>
           <input
             maxLength={3}
-            value={returnLayoverIata}
-            onChange={(e) => setReturnLayoverIata(e.target.value.toUpperCase())}
-            placeholder="Vide = vol direct"
+            value={returnDestinationIata}
+            onChange={(e) => setReturnDestinationIata(e.target.value.toUpperCase())}
+            placeholder="Vide = départ aller inversé"
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
           />
         </div>
       </div>
+      <p className="-mt-2 text-xs text-zinc-500">
+        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel. Aéroports du retour
+        laissés vides = mêmes aéroports que l&apos;aller, sens inversé (cas le plus courant) ;
+        à renseigner uniquement si le retour se fait depuis/vers un aéroport différent.
+      </p>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input
+              type="checkbox"
+              checked={hasOutboundLayover}
+              onChange={(e) => {
+                setHasOutboundLayover(e.target.checked);
+                if (!e.target.checked) setOutboundLayoverIata("");
+              }}
+            />
+            Voyage avec escale (Aller)
+          </label>
+          {hasOutboundLayover && (
+            <input
+              maxLength={3}
+              value={outboundLayoverIata}
+              onChange={(e) => setOutboundLayoverIata(e.target.value.toUpperCase())}
+              placeholder="ex: IST"
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+            />
+          )}
+        </div>
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input
+              type="checkbox"
+              checked={hasReturnLayover}
+              onChange={(e) => {
+                setHasReturnLayover(e.target.checked);
+                if (!e.target.checked) setReturnLayoverIata("");
+              }}
+            />
+            Voyage avec escale (Retour)
+          </label>
+          {hasReturnLayover && (
+            <input
+              maxLength={3}
+              value={returnLayoverIata}
+              onChange={(e) => setReturnLayoverIata(e.target.value.toUpperCase())}
+              placeholder="ex: IST"
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">Places totales</label>
           <input
@@ -264,18 +318,6 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
             step="0.01"
             value={pricePerPerson}
             onChange={(e) => setPricePerPerson(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Prix billet avion
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={flightTicketPrice}
-            onChange={(e) => setFlightTicketPrice(e.target.value)}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
