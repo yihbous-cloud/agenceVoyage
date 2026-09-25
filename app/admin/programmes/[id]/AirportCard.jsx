@@ -9,7 +9,7 @@ import {
   formatAirportOption,
 } from "@/lib/airportsReference";
 
-export default function AirportCard({ trip, airlines, canManage }) {
+export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
   const router = useRouter();
 
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
@@ -61,6 +61,7 @@ export default function AirportCard({ trip, airlines, canManage }) {
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -69,21 +70,11 @@ export default function AirportCard({ trip, airlines, canManage }) {
   };
 
   if (!trip) {
-    return (
-      <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Aéroport</h2>
-        <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>
-      </div>
-    );
+    return <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>;
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-900">Aéroport</h2>
-
+    <form onSubmit={handleSubmit} className="space-y-4">
       <datalist id="airport-card-options">
         {AIRPORTS_REFERENCE.map((a) => (
           <option key={a.iata} value={formatAirportOption(a)} />

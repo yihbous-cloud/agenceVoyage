@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function DisplayCard({ program, canManage }) {
+export default function DisplayCard({ program, canManage, onSuccess }) {
   const router = useRouter();
 
   const [slug, setSlug] = useState(program.slug || "");
@@ -68,6 +68,7 @@ export default function DisplayCard({ program, canManage }) {
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -76,11 +77,7 @@ export default function DisplayCard({ program, canManage }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-900">Affichage</h2>
+    <form onSubmit={handleSubmit} className="space-y-4">
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">

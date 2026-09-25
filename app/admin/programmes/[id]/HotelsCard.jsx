@@ -12,6 +12,7 @@ export default function HotelsCard({
   roomsCount,
   primaryTripId,
   canManage,
+  onSuccess,
 }) {
   const router = useRouter();
   const [selectedHotelIds, setSelectedHotelIds] = useState(
@@ -51,6 +52,7 @@ export default function HotelsCard({
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -59,12 +61,7 @@ export default function HotelsCard({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-900">Hôtels</h2>
-
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700">
           Hôtels habituels de ce programme

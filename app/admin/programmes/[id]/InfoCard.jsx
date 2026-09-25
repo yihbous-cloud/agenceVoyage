@@ -11,7 +11,7 @@ const FAMILIES = [
 ];
 const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
-export default function InfoCard({ program, trip, canManage }) {
+export default function InfoCard({ program, trip, canManage, onSuccess }) {
   const router = useRouter();
 
   const [title, setTitle] = useState(program.title || "");
@@ -74,6 +74,7 @@ export default function InfoCard({ program, trip, canManage }) {
       }
 
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -94,12 +95,7 @@ export default function InfoCard({ program, trip, canManage }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-900">Informations</h2>
-
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Titre</label>
         <input

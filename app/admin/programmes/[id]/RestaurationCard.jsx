@@ -122,17 +122,11 @@ export default function RestaurationCard({ tripId, initialOffers, canManage }) {
   };
 
   if (!tripId) {
-    return (
-      <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Restauration</h2>
-        <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>
-      </div>
-    );
+    return <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>;
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-zinc-900">Restauration</h2>
+    <div className="space-y-4">
 
       <div className="space-y-3">
         {initialOffers.map((offer) =>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function PricingCard({ trip, canManage }) {
+export default function PricingCard({ trip, canManage, onSuccess }) {
   const router = useRouter();
 
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
@@ -38,6 +38,7 @@ export default function PricingCard({ trip, canManage }) {
         throw new Error(data.message || "Erreur lors de l'enregistrement");
       }
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,20 +47,11 @@ export default function PricingCard({ trip, canManage }) {
   };
 
   if (!trip) {
-    return (
-      <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Tarification</h2>
-        <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>
-      </div>
-    );
+    return <p className="text-sm text-zinc-500">Aucun voyage — rien à configurer pour l&apos;instant.</p>;
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-900">Tarification</h2>
+    <form onSubmit={handleSubmit} className="space-y-4">
 
       <div className="grid grid-cols-2 gap-4">
         <div>
