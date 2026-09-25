@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ROOM_TYPE_CAPACITY, ROOM_TYPES } from "@/lib/roomTypes";
+import { ROOM_TYPE_CAPACITY, BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
 
 export default function HebergementManager({
   tripId,
@@ -462,7 +462,7 @@ export default function HebergementManager({
                 onChange={(e) => setRoomType(e.target.value)}
                 className="mt-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               >
-                {ROOM_TYPES.map((t) => (
+                {BOOKABLE_ROOM_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>

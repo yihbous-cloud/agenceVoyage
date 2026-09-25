@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PREFERRED_ROOM_TYPES, pickTripPrice } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES, pickTripPrice } from "@/lib/roomTypes";
 import TravelerFields from "./TravelerFields";
 
 const emptyTraveler = () => ({
@@ -335,7 +335,7 @@ export default function NewRegistrationForm({ trips }) {
           className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100 disabled:text-zinc-500"
         >
           <option value="">Aucune préférence</option>
-          {PREFERRED_ROOM_TYPES.map((t) => (
+          {BOOKABLE_ROOM_TYPES.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>

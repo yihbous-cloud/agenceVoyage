@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { PREFERRED_ROOM_TYPES } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
 
 const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "annule"];
 const VISA_OPTIONS = ["non_demande", "en_cours", "accorde", "refuse"];
@@ -197,7 +197,7 @@ export default function EditRegistrationForm({
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             >
               <option value="">Aucune préférence</option>
-              {PREFERRED_ROOM_TYPES.map((t) => (
+              {BOOKABLE_ROOM_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
