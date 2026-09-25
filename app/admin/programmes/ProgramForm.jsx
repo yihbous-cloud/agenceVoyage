@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { COUNTRIES } from "@/lib/worldPlaces";
 
 const PROGRAM_TYPES = ["omra", "hajj", "tourisme", "autre"];
 const FAMILIES = [
   { value: "omra_hajj", label: "Omra & Hajj" },
   { value: "voyage_organise", label: "Voyage organisé" },
 ];
-const SEASONS = ["mawlid", "rajab", "chaabane", "ramadan", "chawal"];
 const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
 export default function ProgramForm({
@@ -25,7 +25,10 @@ export default function ProgramForm({
   const [slug, setSlug] = useState(program?.slug || "");
   const [programType, setProgramType] = useState(program?.program_type || "omra");
   const [family, setFamily] = useState(program?.family || "omra_hajj");
-  const [season, setSeason] = useState(program?.season || "");
+  // Champ Saison retiré du formulaire (voir CLAUDE.md) — une valeur déjà
+  // enregistrée sur un programme existant est préservée telle quelle à
+  // l'édition (state en lecture seule, jamais réécrite depuis l'UI).
+  const [season] = useState(program?.season || "");
   const [theme, setTheme] = useState(program?.theme || "");
   const [shortDescription, setShortDescription] = useState(
     program?.short_description || ""
@@ -47,6 +50,7 @@ export default function ProgramForm({
   // (voir CLAUDE.md) — un programme reste libre d'avoir d'autres voyages à
   // des dates différentes ensuite, ajoutés depuis sa fiche.
   const [tripReferenceCode, setTripReferenceCode] = useState("");
+  const [tripReferenceTouched, setTripReferenceTouched] = useState(false);
   const [tripStatus, setTripStatus] = useState("planifie");
   const [tripDepartureDate, setTripDepartureDate] = useState("");
   const [tripReturnDate, setTripReturnDate] = useState("");
@@ -62,13 +66,21 @@ export default function ProgramForm({
   const [tripReturnLayoverIata, setTripReturnLayoverIata] = useState("");
   const [tripTotalSeats, setTripTotalSeats] = useState(0);
   const [tripPricePerPerson, setTripPricePerPerson] = useState(0);
-  const [tripCurrency, setTripCurrency] = useState("MAD");
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [createdProgramId, setCreatedProgramId] = useState(null);
+
+  // Référence du premier voyage alignée sur le titre du programme tant que
+  // le personnel ne l'a pas modifiée à la main (même logique que la
+  // génération du slug côté serveur, mais ici visible en direct).
+  useEffect(() => {
+    if (!isEdit && !tripReferenceTouched) {
+      setTripReferenceCode(title);
+    }
+  }, [title, isEdit, tripReferenceTouched]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -152,7 +164,6 @@ export default function ProgramForm({
         airlineId: tripAirlineId || null,
         totalSeats: Number(tripTotalSeats),
         pricePerPerson: Number(tripPricePerPerson),
-        currency: tripCurrency,
         status: tripStatus,
         notes: null,
       };
@@ -185,11 +196,8 @@ export default function ProgramForm({
     }
   };
 
-  const toggleHotel = (hotelId) => {
-    const id = String(hotelId);
-    setSelectedHotelIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const handleHotelsSelectChange = (e) => {
+    setSelectedHotelIds(Array.from(e.target.selectedOptions, (o) => o.value));
   };
 
   const hotelsByCity = [];
@@ -228,17 +236,6 @@ export default function ProgramForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Slug (URL) — vide = généré depuis le titre
-          </label>
-          <input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="omra-ramadan-premium"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
           <label className="block text-sm font-medium text-zinc-700">Type</label>
           <select
             value={programType}
@@ -252,9 +249,6 @@ export default function ProgramForm({
             ))}
           </select>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-zinc-700">
             Famille (catalogue public)
@@ -275,102 +269,19 @@ export default function ProgramForm({
             Détermine le hub public (/omra-hajj ou /voyages-organises).
           </p>
         </div>
-
-        {family === "omra_hajj" && (
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">
-              Saison (calendrier hégirien)
-            </label>
-            <select
-              value={season}
-              onChange={(e) => setSeason(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            >
-              <option value="">— Non précisée —</option>
-              {SEASONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {family === "voyage_organise" && (
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">
-              Thème / envie
-            </label>
-            <input
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              placeholder="plage, culture, aventure, famille, couple..."
-              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
-        )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-700">
-          Description courte
-        </label>
-        <textarea
-          value={shortDescription}
-          onChange={(e) => setShortDescription(e.target.value)}
-          rows={2}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-zinc-700">
-          Description complète
-        </label>
-        <textarea
-          value={fullDescription}
-          onChange={(e) => setFullDescription(e.target.value)}
-          rows={5}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-zinc-700">
-          Image de couverture
-        </label>
-
-        {coverImageUrl && (
-          <div className="mt-2 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={coverImageUrl}
-              alt=""
-              className="h-24 w-36 rounded-lg border border-zinc-200 object-cover"
-            />
-            <button
-              type="button"
-              onClick={() => setCoverImageUrl("")}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Supprimer l&apos;image
-            </button>
-          </div>
-        )}
-
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={handleFileChange}
-          disabled={uploading}
-          className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
-        />
-        {uploading && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
-        {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
-        <p className="mt-1 text-xs text-zinc-500">
-          JPG, PNG, WEBP ou GIF — 5 Mo maximum.
-        </p>
-      </div>
+      {family === "voyage_organise" && (
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">Thème / envie</label>
+          <input
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            placeholder="plage, culture, aventure, famille, couple..."
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
@@ -390,27 +301,27 @@ export default function ProgramForm({
             .
           </p>
         ) : (
-          <div className="mt-2 max-h-64 space-y-3 overflow-y-auto rounded-lg border border-zinc-200 p-3">
-            {hotelsByCity.map((group) => (
-              <div key={group.city}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  {group.city}
-                </p>
-                <div className="mt-1 space-y-1">
+          <>
+            <select
+              multiple
+              value={selectedHotelIds}
+              onChange={handleHotelsSelectChange}
+              className="mt-2 h-48 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              {hotelsByCity.map((group) => (
+                <optgroup key={group.city} label={group.city}>
                   {group.items.map((h) => (
-                    <label key={h.id} className="flex items-center gap-2 text-sm text-zinc-700">
-                      <input
-                        type="checkbox"
-                        checked={selectedHotelIds.includes(String(h.id))}
-                        onChange={() => toggleHotel(h.id)}
-                      />
+                    <option key={h.id} value={h.id}>
                       {h.name}
-                    </label>
+                    </option>
                   ))}
-                </div>
-              </div>
-            ))}
-          </div>
+                </optgroup>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-zinc-400">
+              Ctrl/Cmd + clic (ou glisser) pour sélectionner plusieurs hôtels.
+            </p>
+          </>
         )}
       </div>
 
@@ -433,9 +344,15 @@ export default function ProgramForm({
               <input
                 required
                 value={tripReferenceCode}
-                onChange={(e) => setTripReferenceCode(e.target.value)}
+                onChange={(e) => {
+                  setTripReferenceCode(e.target.value);
+                  setTripReferenceTouched(true);
+                }}
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
+              <p className="mt-1 text-xs text-zinc-500">
+                Pré-remplie depuis le titre du programme, modifiable.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700">Statut</label>
@@ -482,10 +399,17 @@ export default function ProgramForm({
                 Pays de destination
               </label>
               <input
+                list="trip-destination-countries"
                 value={tripDestinationCountry}
                 onChange={(e) => setTripDestinationCountry(e.target.value)}
+                placeholder="Taper pour rechercher..."
                 className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
               />
+              <datalist id="trip-destination-countries">
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700">
@@ -633,49 +557,117 @@ export default function ProgramForm({
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700">Devise</label>
-            <input
-              value={tripCurrency}
-              onChange={(e) => setTripCurrency(e.target.value)}
-              className="mt-1 w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Meta title (SEO)
-          </label>
-          <input
-            value={metaTitle}
-            onChange={(e) => setMetaTitle(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Meta description (SEO)
-          </label>
-          <input
-            value={metaDescription}
-            onChange={(e) => setMetaDescription(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-      </div>
+      <div className="space-y-4 rounded-lg border border-zinc-200 p-4">
+        <h2 className="text-sm font-semibold text-zinc-900">Affichage public (site)</h2>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-        <input
-          type="checkbox"
-          checked={isPublished}
-          onChange={(e) => setIsPublished(e.target.checked)}
-        />
-        Publié (visible sur le site public)
-      </label>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Slug (URL) — vide = généré depuis le titre
+          </label>
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="omra-ramadan-premium"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Description courte
+          </label>
+          <textarea
+            value={shortDescription}
+            onChange={(e) => setShortDescription(e.target.value)}
+            rows={2}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Description complète
+          </label>
+          <textarea
+            value={fullDescription}
+            onChange={(e) => setFullDescription(e.target.value)}
+            rows={5}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Image de couverture
+          </label>
+
+          {coverImageUrl && (
+            <div className="mt-2 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverImageUrl}
+                alt=""
+                className="h-24 w-36 rounded-lg border border-zinc-200 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setCoverImageUrl("")}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Supprimer l&apos;image
+              </button>
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleFileChange}
+            disabled={uploading}
+            className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
+          />
+          {uploading && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
+          {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+          <p className="mt-1 text-xs text-zinc-500">
+            JPG, PNG, WEBP ou GIF — 5 Mo maximum.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Meta title (SEO)
+            </label>
+            <input
+              value={metaTitle}
+              onChange={(e) => setMetaTitle(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">
+              Meta description (SEO)
+            </label>
+            <input
+              value={metaDescription}
+              onChange={(e) => setMetaDescription(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          <input
+            type="checkbox"
+            checked={isPublished}
+            onChange={(e) => setIsPublished(e.target.checked)}
+          />
+          Publié (visible sur le site public)
+        </label>
+      </div>
 
       {error && (
         <p className="text-sm text-red-600">
