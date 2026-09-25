@@ -34,7 +34,7 @@ export default function ProgramDetail({
     },
     offers: trips.map((trip) => ({
       "@type": "Offer",
-      price: trip.price_per_person,
+      price: trip.starting_price,
       priceCurrency: trip.currency,
       availability:
         trip.seats_remaining > 0
@@ -164,7 +164,8 @@ export default function ProgramDetail({
                     )}
                   </div>
                   <p className="font-display text-lg text-[#A8863C]">
-                    {trip.price_per_person} {trip.currency}
+                    <span className="block text-xs font-sans text-muted">à partir de</span>
+                    {trip.starting_price} {trip.currency}
                   </p>
                 </div>
                 <p className="mt-2 text-sm text-muted">

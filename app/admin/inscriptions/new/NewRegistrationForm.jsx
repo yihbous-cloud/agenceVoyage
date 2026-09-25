@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ROOM_TYPES } from "@/lib/roomTypes";
+import { ROOM_TYPES, pickTripPrice } from "@/lib/roomTypes";
 import TravelerFields from "./TravelerFields";
 
 const emptyTraveler = () => ({
@@ -127,14 +127,15 @@ export default function NewRegistrationForm({ trips }) {
         }
         groupId = groupData.id;
 
-        // Montant dû par défaut = prix du voyage × nombre de voyageurs, pour
-        // ne pas partir de 0 — reste modifiable ensuite (page du groupe).
-        if (selectedTrip?.price_per_person != null) {
+        // Montant dû par défaut = prix du voyage (selon le type de chambre
+        // demandé, sinon le plus bas) × nombre de voyageurs, pour ne pas
+        // partir de 0 — reste modifiable ensuite (page du groupe).
+        if (selectedTrip) {
           await fetch(`/api/admin/groups/${groupId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              totalDue: Number(selectedTrip.price_per_person) * travelers.length,
+              totalDue: pickTripPrice(selectedTrip, preferredRoomType) * travelers.length,
             }),
           });
         }
@@ -198,7 +199,7 @@ export default function NewRegistrationForm({ trips }) {
         {selectedTrip && (
           <p className="mt-1 text-sm text-zinc-600">
             Prix : <span className="font-semibold text-zinc-900">
-              {Number(selectedTrip.price_per_person).toLocaleString("fr-FR", {
+              {pickTripPrice(selectedTrip, preferredRoomType).toLocaleString("fr-FR", {
                 minimumFractionDigits: 2,
               })}{" "}
               {selectedTrip.currency}
@@ -209,10 +210,9 @@ export default function NewRegistrationForm({ trips }) {
                 {" "}
                 ·{" "}
                 <span className="font-semibold text-zinc-900">
-                  {(Number(selectedTrip.price_per_person) * travelers.length).toLocaleString(
-                    "fr-FR",
-                    { minimumFractionDigits: 2 }
-                  )}{" "}
+                  {(
+                    pickTripPrice(selectedTrip, preferredRoomType) * travelers.length
+                  ).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}{" "}
                   {selectedTrip.currency}
                 </span>{" "}
                 pour {travelers.length} voyageurs

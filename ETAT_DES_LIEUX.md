@@ -122,7 +122,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 
 ### 4.5 Visa (`lib/visaTypes.js`, `lib/visaServices.js`)
 - Catalogue de types de visa : réutilisables globalement (`program_id` NULL) ou spécifiques à un programme — chaque type a son propre prix et sa propre liste de documents requis
-- ⚠️ Depuis la migration 013, le visa n'est **plus géré par inscription liée à un voyage** (prix inclus dans `trips.price_per_person`, voir CLAUDE.md §3sedecies) : `VisaSection.jsx` et les routes associées ont été retirés de `/admin/inscriptions/[id]`
+- ⚠️ Depuis la migration 013, le visa n'est **plus géré par inscription liée à un voyage** (prix inclus dans le prix du voyage — 4 paliers par type de chambre depuis la migration 019, CLAUDE.md §3unetrigies) : `VisaSection.jsx` et les routes associées ont été retirés de `/admin/inscriptions/[id]`
 - **Service visa autonome** (`/admin/visa-services`, hors voyage) : un client peut demander uniquement une aide visa, avec son propre suivi financier (`visa_service_requests.total_due`, `payments.visa_service_id`) et sa propre checklist de documents (`visa_service_documents`, générée automatiquement à la création)
 
 ### 4.6 Services facturés (`lib/services.js`)

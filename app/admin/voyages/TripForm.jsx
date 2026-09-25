@@ -33,7 +33,10 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   );
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
-  const [pricePerPerson, setPricePerPerson] = useState(trip?.price_per_person ?? 0);
+  const [priceDouble, setPriceDouble] = useState(trip?.price_double ?? 0);
+  const [priceTriple, setPriceTriple] = useState(trip?.price_triple ?? 0);
+  const [priceQuadruple, setPriceQuadruple] = useState(trip?.price_quadruple ?? 0);
+  const [priceQuintuple, setPriceQuintuple] = useState(trip?.price_quintuple ?? 0);
   const [currency, setCurrency] = useState(trip?.currency || "MAD");
   const [status, setStatus] = useState(trip?.status || "planifie");
   const [notes, setNotes] = useState(trip?.notes || "");
@@ -58,7 +61,10 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       returnLayoverIata: hasReturnLayover ? returnLayoverIata || null : null,
       airlineId: airlineId || null,
       totalSeats: Number(totalSeats),
-      pricePerPerson: Number(pricePerPerson),
+      priceDouble: Number(priceDouble),
+      priceTriple: Number(priceTriple),
+      priceQuadruple: Number(priceQuadruple),
+      priceQuintuple: Number(priceQuintuple),
       currency,
       status,
       notes: notes || null,
@@ -298,29 +304,71 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Places totales</label>
-          <input
-            type="number"
-            min="0"
-            value={totalSeats}
-            onChange={(e) => setTotalSeats(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">Places totales</label>
+        <input
+          type="number"
+          min="0"
+          value={totalSeats}
+          onChange={(e) => setTotalSeats(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-zinc-700">Prix par personne, par type de chambre</p>
+        <div className="mt-1 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-zinc-500">Chambre double / binôme</label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={priceDouble}
+              onChange={(e) => setPriceDouble(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-500">Chambre triple</label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={priceTriple}
+              onChange={(e) => setPriceTriple(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-500">Chambre quadruple</label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={priceQuadruple}
+              onChange={(e) => setPriceQuadruple(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-500">
+              Chambre quintuple — prix affiché au public
+            </label>
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={priceQuintuple}
+              onChange={(e) => setPriceQuintuple(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">
-            Prix programme
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={pricePerPerson}
-            onChange={(e) => setPricePerPerson(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
+        <p className="mt-1 text-xs text-zinc-500">
+          Le prix affiché publiquement est toujours le plus bas des quatre (généralement le prix
+          quintuple).
+        </p>
       </div>
 
       <div>
