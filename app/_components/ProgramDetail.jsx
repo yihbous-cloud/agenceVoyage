@@ -162,6 +162,19 @@ export default function ProgramDetail({
                           })`}
                       </p>
                     )}
+                    {trip.meal_offers?.length > 0 && (
+                      <div className="mt-2 text-sm text-muted">
+                        <p className="font-medium text-ink">Restauration</p>
+                        <ul className="mt-1 space-y-1">
+                          {trip.meal_offers.map((offer) => (
+                            <li key={offer.id}>
+                              <span className="text-ink">{offer.title}</span>
+                              {offer.description && ` — ${offer.description}`}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   <p className="font-display text-lg text-[#A8863C]">
                     <span className="block text-xs font-sans text-muted">à partir de</span>

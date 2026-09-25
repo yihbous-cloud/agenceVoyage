@@ -163,6 +163,7 @@ CREATE TABLE trips (
     departure_date DATE NOT NULL,
     return_date DATE NOT NULL,
     destination_country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
+    destination_city VARCHAR(100) NULL COMMENT 'Ville de destination (liste Pays->Villes, lib/worldPlaces.js) — distincte du code aéroport précis (destination_iata) (migration 020)',
     origin_iata CHAR(3) NULL COMMENT 'Code IATA aéroport de départ à l''aller, ex: CMN (recherche de vols Duffel) ; sens inversé par défaut au retour si return_origin_iata/return_destination_iata non renseignés',
     destination_iata CHAR(3) NULL COMMENT 'Code IATA aéroport d''arrivée à l''aller, ex: JED',
     outbound_layover_iata CHAR(3) NULL COMMENT 'aéroport d''escale à l''aller, NULL = vol direct (migration 017)',
@@ -200,6 +201,22 @@ CREATE TABLE program_faqs (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
     INDEX idx_program_faq_program (program_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Offres de restauration par voyage (liste répétable, même pattern que
+-- program_faqs ci-dessus) — affichées sur la fiche publique du programme
+-- quand publiées (migration 020, voir CLAUDE.md)
+CREATE TABLE trip_meal_offers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT UNSIGNED NOT NULL,
+    agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_published BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =====================================================================

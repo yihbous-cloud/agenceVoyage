@@ -25,9 +25,16 @@ export async function PUT(request, { params }) {
   const { tripId } = await params;
   const body = await request.json();
 
-  if (!body.referenceCode || !body.departureDate || !body.returnDate) {
+  // Mise à jour partielle : une carte (Informations, Aéroport, Tarification...)
+  // n'envoie que ses propres champs — on ne rend un champ requis que quand
+  // il fait partie de cet envoi précis (voir CLAUDE.md).
+  if (
+    (body.referenceCode !== undefined && !body.referenceCode) ||
+    (body.departureDate !== undefined && !body.departureDate) ||
+    (body.returnDate !== undefined && !body.returnDate)
+  ) {
     return NextResponse.json(
-      { message: "referenceCode, departureDate et returnDate sont requis" },
+      { message: "referenceCode, departureDate et returnDate ne peuvent pas être vides" },
       { status: 400 }
     );
   }

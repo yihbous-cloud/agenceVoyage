@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { updateProgram, deleteProgram, slugify } from "@/lib/programsAdmin";
+import { updateProgram, deleteProgram, slugify, getProgramById } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 
 export async function PUT(request, { params }) {
@@ -13,10 +13,13 @@ export async function PUT(request, { params }) {
   const { id } = await params;
   const body = await request.json();
 
-  if (!body.title) {
+  // Mise à jour partielle : une carte (Informations, Affichage, Hôtels...)
+  // n'envoie que ses propres champs — on ne rend un champ requis que quand
+  // il fait partie de cet envoi précis (voir CLAUDE.md).
+  if (body.title !== undefined && !body.title) {
     return NextResponse.json({ message: "Le titre est requis" }, { status: 400 });
   }
-  if (!["omra_hajj", "voyage_organise"].includes(body.family)) {
+  if (body.family !== undefined && !["omra_hajj", "voyage_organise"].includes(body.family)) {
     return NextResponse.json(
       { message: "La famille (Omra & Hajj / Voyages organisés) est requise" },
       { status: 400 }
@@ -24,10 +27,17 @@ export async function PUT(request, { params }) {
   }
 
   try {
-    await updateProgram(id, {
-      ...body,
-      slug: body.slug?.trim() || slugify(body.title),
-    });
+    const payload = { ...body };
+    if (body.slug !== undefined) {
+      const trimmed = body.slug?.trim();
+      if (trimmed) {
+        payload.slug = trimmed;
+      } else {
+        const title = body.title !== undefined ? body.title : (await getProgramById(id))?.title;
+        payload.slug = slugify(title || "");
+      }
+    }
+    await updateProgram(id, payload);
     if (Array.isArray(body.defaultHotelIds)) {
       await setDefaultHotelsForProgram(id, body.defaultHotelIds);
     }

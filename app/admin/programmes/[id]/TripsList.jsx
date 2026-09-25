@@ -99,13 +99,10 @@ export default function TripsList({ trips, airlines = [], canManage }) {
             {trips.length === 0 && (
               <tr>
                 <td className="px-4 py-3 text-zinc-500" colSpan={6}>
-                  Aucun voyage pour ce programme — le prix et les dates se
-                  définissent par voyage (un même programme peut avoir plusieurs
-                  départs à des prix différents), pas sur le programme lui-même.
-                  Cliquez sur « + Nouveau voyage » ci-dessus pour en ajouter un ;
-                  tant qu&apos;aucun voyage n&apos;existe, ce programme n&apos;est
-                  pas réservable et n&apos;apparaît pas dans le formulaire
-                  d&apos;inscription.
+                  Aucun voyage supplémentaire — le voyage principal de ce programme se
+                  gère via les cartes ci-dessus (Informations, Aéroport, Hôtels,
+                  Tarification...). Cliquez sur « + Nouveau voyage » pour ajouter un
+                  autre départ à une date différente.
                 </td>
               </tr>
             )}

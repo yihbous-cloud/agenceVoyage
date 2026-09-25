@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AIRPORTS_REFERENCE, airportInputValue, extractIataFromInput, formatAirportOption } from "@/lib/airportsReference";
+import { POPULAR_DESTINATION_COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
 
 const STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
@@ -16,6 +17,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   const [destinationCountry, setDestinationCountry] = useState(
     trip?.destination_country || "Arabie Saoudite"
   );
+  const [destinationCity, setDestinationCity] = useState(trip?.destination_city || "");
   const [originIata, setOriginIata] = useState(airportInputValue(trip?.origin_iata));
   const [destinationIata, setDestinationIata] = useState(airportInputValue(trip?.destination_iata));
   const [returnOriginIata, setReturnOriginIata] = useState(
@@ -56,6 +58,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       departureDate,
       returnDate,
       destinationCountry,
+      destinationCity: destinationCity || null,
       originIata: extractIataFromInput(originIata) || null,
       destinationIata: extractIataFromInput(destinationIata) || null,
       returnOriginIata: extractIataFromInput(returnOriginIata) || null,
@@ -179,28 +182,56 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
             Pays de destination
           </label>
           <input
+            list="trip-destination-countries"
             value={destinationCountry}
-            onChange={(e) => setDestinationCountry(e.target.value)}
+            onChange={(e) => {
+              setDestinationCountry(e.target.value);
+              setDestinationCity("");
+            }}
+            placeholder="Taper pour rechercher..."
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
+          <datalist id="trip-destination-countries">
+            {POPULAR_DESTINATION_COUNTRIES.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Compagnie aérienne
+            Ville de destination
           </label>
-          <select
-            value={airlineId}
-            onChange={(e) => setAirlineId(e.target.value)}
+          <input
+            list="trip-destination-cities"
+            value={destinationCity}
+            onChange={(e) => setDestinationCity(e.target.value)}
+            placeholder="Taper pour rechercher..."
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Aucune</option>
-            {airlines.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+          />
+          <datalist id="trip-destination-cities">
+            {getCitiesForCountry(destinationCountry).map((c) => (
+              <option key={c} value={c} />
             ))}
-          </select>
+          </datalist>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Compagnie aérienne
+        </label>
+        <select
+          value={airlineId}
+          onChange={(e) => setAirlineId(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        >
+          <option value="">Aucune</option>
+          {airlines.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <datalist id="airport-options">
