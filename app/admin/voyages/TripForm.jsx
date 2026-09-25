@@ -17,6 +17,12 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   );
   const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
   const [destinationIata, setDestinationIata] = useState(trip?.destination_iata || "");
+  const [outboundLayoverIata, setOutboundLayoverIata] = useState(
+    trip?.outbound_layover_iata || ""
+  );
+  const [returnLayoverIata, setReturnLayoverIata] = useState(
+    trip?.return_layover_iata || ""
+  );
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
   const [pricePerPerson, setPricePerPerson] = useState(trip?.price_per_person ?? 0);
@@ -41,6 +47,8 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
       destinationCountry,
       originIata: originIata || null,
       destinationIata: destinationIata || null,
+      outboundLayoverIata: outboundLayoverIata || null,
+      returnLayoverIata: returnLayoverIata || null,
       airlineId: airlineId || null,
       totalSeats: Number(totalSeats),
       pricePerPerson: Number(pricePerPerson),
@@ -127,7 +135,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-zinc-700">Date de départ</label>
+          <label className="block text-sm font-medium text-zinc-700">Date d&apos;aller</label>
           <input
             type="date"
             required
@@ -205,8 +213,36 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         </div>
       </div>
       <p className="-mt-2 text-xs text-zinc-500">
-        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel.
+        Codes IATA à 3 lettres, nécessaires pour la recherche de vols Duffel. Mêmes aéroports pour
+        l&apos;aller et le retour (sens inversé au retour).
       </p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Escale aller (IATA, optionnel)
+          </label>
+          <input
+            maxLength={3}
+            value={outboundLayoverIata}
+            onChange={(e) => setOutboundLayoverIata(e.target.value.toUpperCase())}
+            placeholder="Vide = vol direct"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Escale retour (IATA, optionnel)
+          </label>
+          <input
+            maxLength={3}
+            value={returnLayoverIata}
+            onChange={(e) => setReturnLayoverIata(e.target.value.toUpperCase())}
+            placeholder="Vide = vol direct"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase placeholder:normal-case"
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div>

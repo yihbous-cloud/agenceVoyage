@@ -342,6 +342,14 @@ Aucune requête métier (`lib/*.js`) ne filtre encore par `agency_id`, et tous l
 3. **Branding dynamique** : "Golden Fantastic" est codé en dur dans `app/(site)/layout.js`, `app/admin/layout.js`, le JSON-LD ; basculer `getAgencySettings` sur `agencies` ; sitemap/robots/`llms.txt`/flux RSS par agence ; uploads (`public/uploads/*`) à séparer par agence
 4. Déploiement : DNS wildcard + certificat pour `*.<ROOT_DOMAIN>` (le système n'est pas encore déployé)
 
+## 3septvicies. Escale aller/retour sur le voyage (migration `017_add_trip_layovers.sql`)
+
+Dates et aéroports aller/retour existaient déjà sur `/admin/programmes/[id]/voyages/new` (`trips.departure_date`/`return_date`/`origin_iata`/`destination_iata`) — **pas** sur `/admin/programmes/new` : un programme peut avoir plusieurs voyages à des dates et parfois des itinéraires différents, une date/aéroport fixée au niveau programme n'aurait pas de sens (confirmé explicitement avant implémentation, cohérent avec la décision déjà prise de ne rien mettre de daté sur le formulaire programme, voir §3vicies).
+
+- `trips.outbound_layover_iata`/`return_layover_iata` (CHAR(3), tous deux nullable) — l'itinéraire (`origin_iata`/`destination_iata`) reste un **seul** couple partagé aller/retour (mêmes aéroports, sens inversé au retour) ; seule l'escale éventuelle peut différer entre les deux vols (ex. escale à Istanbul à l'aller, retour direct)
+- `TripForm.jsx` : "Date d'aller"/"Date de retour" (relabellisé pour clarté), "Escale aller"/"Escale retour" (IATA, optionnels, vide = vol direct) juste après les champs d'aéroport de départ/arrivée
+- `createTrip`/`updateTrip` (`lib/programsAdmin.js`) : `outboundLayoverIata`/`returnLayoverIata` ajoutés à l'INSERT/UPDATE, mêmes routes API qu'avant (`body` déjà transmis tel quel, aucun changement de route nécessaire)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

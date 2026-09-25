@@ -165,6 +165,8 @@ CREATE TABLE trips (
     destination_country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
     origin_iata CHAR(3) NULL COMMENT 'Code IATA aéroport de départ, ex: CMN (recherche de vols Duffel)',
     destination_iata CHAR(3) NULL COMMENT 'Code IATA aéroport d''arrivée, ex: JED',
+    outbound_layover_iata CHAR(3) NULL COMMENT 'aéroport d''escale à l''aller, NULL = vol direct (migration 017)',
+    return_layover_iata CHAR(3) NULL COMMENT 'aéroport d''escale au retour, NULL = vol direct (migration 017)',
     airline_id SMALLINT UNSIGNED NULL,
     total_seats INT UNSIGNED NOT NULL DEFAULT 0,
     price_per_person DECIMAL(10,2) NOT NULL DEFAULT 0.00,
