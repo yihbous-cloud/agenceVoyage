@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "annule"];
 const VISA_OPTIONS = ["non_demande", "en_cours", "accorde", "refuse"];
@@ -42,6 +43,7 @@ export default function EditRegistrationForm({
   const [existingGroupId, setExistingGroupId] = useState(registration.group_id || "");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const canEditStatus = ["direction", "ventes"].includes(role);
   const canEditFinance = ["direction", "comptabilite"].includes(role);
@@ -113,13 +115,14 @@ export default function EditRegistrationForm({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Supprimer définitivement cette inscription ?")) return;
+    if (!(await confirm("Supprimer définitivement cette inscription ?"))) return;
     await fetch(`/api/admin/registrations/${registration.id}`, { method: "DELETE" });
     router.push("/admin/inscriptions");
     router.refresh();
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -324,5 +327,7 @@ export default function EditRegistrationForm({
         )}
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }

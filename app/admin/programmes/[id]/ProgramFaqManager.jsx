@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 function FaqForm({ initial, onSubmit, onCancel, submitting }) {
   const [question, setQuestion] = useState(initial?.question || "");
@@ -71,6 +72,7 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
   const [adding, setAdding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (data) => {
     setSubmitting(true);
@@ -117,7 +119,7 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer cette question ?")) return;
+    if (!(await confirm("Supprimer cette question ?"))) return;
     await fetch(`/api/admin/program-faqs/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -188,6 +190,7 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
             + Ajouter une question
           </button>
         ))}
+      {confirmDialog}
     </div>
   );
 }

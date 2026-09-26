@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 export default function MessagesList({ initialMessages, canManage }) {
   const router = useRouter();
+  const [confirm, confirmDialog] = useConfirm();
 
   const toggleStatus = async (msg) => {
     const nextStatus = msg.status === "traite" ? "nouveau" : "traite";
@@ -16,7 +18,7 @@ export default function MessagesList({ initialMessages, canManage }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce message ?")) return;
+    if (!(await confirm("Supprimer ce message ?"))) return;
     await fetch(`/api/admin/contact-messages/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -78,6 +80,7 @@ export default function MessagesList({ initialMessages, canManage }) {
       {initialMessages.length === 0 && (
         <p className="text-sm text-zinc-500">Aucun message.</p>
       )}
+      {confirmDialog}
     </div>
   );
 }

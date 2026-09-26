@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROOM_TYPE_CAPACITY, BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 // Bulle d'erreur ancrée sous un champ de date, dans le style de la
 // validation native du navigateur (fond blanc, icône orange, petit triangle
@@ -35,6 +36,7 @@ export default function HebergementManager({
   const router = useRouter();
   const [error, setError] = useState(null);
   const [autoAssignResult, setAutoAssignResult] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   // --- Ajout d'un hôtel au voyage ---
   const [hotelId, setHotelId] = useState("");
@@ -129,7 +131,7 @@ export default function HebergementManager({
   };
 
   const handleRemoveTripHotel = async (id) => {
-    if (!confirm("Retirer cet hôtel du voyage ? Les chambres associées seront supprimées.")) return;
+    if (!(await confirm("Retirer cet hôtel du voyage ? Les chambres associées seront supprimées."))) return;
     await fetch(`/api/admin/trip-hotels/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -161,7 +163,7 @@ export default function HebergementManager({
   };
 
   const handleDeleteRoom = async (id) => {
-    if (!confirm("Supprimer cette chambre ?")) return;
+    if (!(await confirm("Supprimer cette chambre ?"))) return;
     await fetch(`/api/admin/rooms/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -708,6 +710,7 @@ export default function HebergementManager({
           )}
         </ul>
       </section>
+      {confirmDialog}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 export default function VisaTypeForm({ visaType, programs, canDelete }) {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function VisaTypeForm({ visaType, programs, canDelete }) {
   );
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const updateDocument = (index, field, value) => {
     setDocuments((docs) =>
@@ -69,13 +71,14 @@ export default function VisaTypeForm({ visaType, programs, canDelete }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Supprimer ce type de visa ?")) return;
+    if (!(await confirm("Supprimer ce type de visa ?"))) return;
     await fetch(`/api/admin/visa-types/${visaType.id}`, { method: "DELETE" });
     router.push("/admin/visa-types");
     router.refresh();
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Nom</label>
@@ -197,5 +200,7 @@ export default function VisaTypeForm({ visaType, programs, canDelete }) {
         )}
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }

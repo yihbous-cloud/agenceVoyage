@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BOOKABLE_ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 // La formule de restauration d'un tarif suit toujours celle du catalogue de
 // l'hôtel choisi (hotels.board_basis, §3quaterquadragies) — plus un choix
@@ -210,6 +211,7 @@ export default function TiersCard({ trip, hotels, initialTiers, canManage }) {
   const [adding, setAdding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (data) => {
     setSubmitting(true);
@@ -256,7 +258,7 @@ export default function TiersCard({ trip, hotels, initialTiers, canManage }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce tarif ?")) return;
+    if (!(await confirm("Supprimer ce tarif ?"))) return;
     const res = await fetch(`/api/admin/trip-hotel-tiers/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const d = await res.json();
@@ -345,6 +347,7 @@ export default function TiersCard({ trip, hotels, initialTiers, canManage }) {
             + Ajouter un tarif
           </button>
         ))}
+      {confirmDialog}
     </div>
   );
 }

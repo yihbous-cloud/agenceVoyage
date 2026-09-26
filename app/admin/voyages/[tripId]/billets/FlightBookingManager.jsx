@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 function defaultPassenger(reg) {
   const [givenName, ...rest] = reg.full_name.trim().split(/\s+/);
@@ -37,6 +38,7 @@ export default function FlightBookingManager({ tripId, bookable, bookings, canBo
   const [searching, setSearching] = useState(false);
   const [booking, setBooking] = useState(false);
   const [result, setResult] = useState(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const toggleSelected = (id) => {
     setSelectedIds((prev) => {
@@ -85,9 +87,9 @@ export default function FlightBookingManager({ tripId, bookable, bookings, canBo
 
   const handleConfirmPurchase = async () => {
     if (
-      !confirm(
+      !(await confirm(
         "Confirmer l'achat de ce(s) billet(s) ? Cette action déclenche une vraie commande auprès de Duffel."
-      )
+      ))
     ) {
       return;
     }
@@ -351,6 +353,7 @@ export default function FlightBookingManager({ tripId, bookable, bookings, canBo
           </table>
         </div>
       </section>
+      {confirmDialog}
     </div>
   );
 }

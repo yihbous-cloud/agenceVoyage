@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AIRLINES, getAirlineByName } from "@/lib/airlinesReference";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const TEMPLATE_KEYS = [
   "ram_template",
@@ -18,6 +19,7 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
   const [exportTemplateKey, setExportTemplateKey] = useState("generic_template");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   // Le nom est le seul champ actif : une correspondance exacte avec la
   // référence remplit et verrouille IATA + Gabarit (dérivés, pas de saisie
@@ -63,7 +65,7 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer cette compagnie ?")) return;
+    if (!(await confirm("Supprimer cette compagnie ?"))) return;
     const res = await fetch(`/api/admin/airlines/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -171,6 +173,7 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
         </form>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

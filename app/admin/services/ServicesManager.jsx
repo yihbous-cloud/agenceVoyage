@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 export default function ServicesManager({ initialServices, canManage }) {
   const router = useRouter();
@@ -9,6 +10,7 @@ export default function ServicesManager({ initialServices, canManage }) {
   const [defaultPrice, setDefaultPrice] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -39,7 +41,7 @@ export default function ServicesManager({ initialServices, canManage }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce service ?")) return;
+    if (!(await confirm("Supprimer ce service ?"))) return;
     await fetch(`/api/admin/services/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -122,6 +124,7 @@ export default function ServicesManager({ initialServices, canManage }) {
         </form>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const CUSTOM_LINK_VALUE = "custom";
 
@@ -234,6 +235,7 @@ export default function SlidesManager({ initialSlides, programs }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (form) => {
     const res = await fetch("/api/admin/slides", {
@@ -262,7 +264,7 @@ export default function SlidesManager({ initialSlides, programs }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer cette diapositive ?")) return;
+    if (!(await confirm("Supprimer cette diapositive ?"))) return;
     const res = await fetch(`/api/admin/slides/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -434,6 +436,7 @@ export default function SlidesManager({ initialSlides, programs }) {
           + Nouvelle diapositive
         </button>
       )}
+      {confirmDialog}
     </div>
   );
 }

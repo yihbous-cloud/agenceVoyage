@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 export default function NewsForm({ post, canDelete }) {
   const router = useRouter();
   const isEdit = !!post;
+  const [confirm, confirmDialog] = useConfirm();
 
   const [title, setTitle] = useState(post?.title || "");
   const [slug, setSlug] = useState(post?.slug || "");
@@ -57,13 +59,14 @@ export default function NewsForm({ post, canDelete }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Supprimer cette actualité ?")) return;
+    if (!(await confirm("Supprimer cette actualité ?"))) return;
     await fetch(`/api/admin/news/${post.id}`, { method: "DELETE" });
     router.push("/admin/actualites");
     router.refresh();
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Titre</label>
@@ -168,5 +171,7 @@ export default function NewsForm({ post, canDelete }) {
         )}
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }

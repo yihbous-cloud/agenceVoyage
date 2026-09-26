@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const PROGRAM_TYPES = ["omra", "hajj", "tourisme", "autre"];
 const FAMILIES = [
@@ -40,6 +41,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
@@ -127,7 +129,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Supprimer ce programme ?")) return;
+    if (!(await confirm("Supprimer ce programme ?"))) return;
     const res = await fetch(`/api/admin/programs/${program.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -139,6 +141,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Titre</label>
@@ -428,5 +431,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
         </div>
       )}
     </form>
+    {confirmDialog}
+    </>
   );
 }

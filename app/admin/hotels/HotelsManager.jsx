@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
 import { BOOKABLE_ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
 import Modal from "@/app/admin/_components/Modal";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const RESERVED_ROOMS_FIELD = {
   double: "reservedRoomsDouble",
@@ -231,6 +232,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (payload) => {
     setSubmitting(true);
@@ -277,7 +279,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer cet hôtel ?")) return;
+    if (!(await confirm("Supprimer cet hôtel ?"))) return;
     await fetch(`/api/admin/hotels/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -386,6 +388,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
         </Modal>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const BUILT_IN_ROLES = ["direction", "ventes", "comptabilite", "suivi"];
 
@@ -18,6 +19,7 @@ export default function RolesManager({ roles, permissions, initialGrantedKeys })
   const router = useRouter();
   const [grantedKeys, setGrantedKeys] = useState(() => new Set(initialGrantedKeys));
   const [dirty, setDirty] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -103,7 +105,7 @@ export default function RolesManager({ roles, permissions, initialGrantedKeys })
   };
 
   const handleDeleteRole = async (role) => {
-    if (!confirm(`Supprimer le rôle "${role.name}" ?`)) return;
+    if (!(await confirm(`Supprimer le rôle "${role.name}" ?`))) return;
     const res = await fetch(`/api/admin/roles/${role.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -235,6 +237,7 @@ export default function RolesManager({ roles, permissions, initialGrantedKeys })
           + Nouveau rôle
         </button>
       )}
+      {confirmDialog}
     </div>
   );
 }

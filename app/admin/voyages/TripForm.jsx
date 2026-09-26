@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AIRPORTS_REFERENCE, airportInputValue, extractIataFromInput, formatAirportOption } from "@/lib/airportsReference";
 import { POPULAR_DESTINATION_COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
 export default function TripForm({ programId, trip, airlines, canDelete }) {
   const router = useRouter();
   const isEdit = !!trip;
+  const [confirm, confirmDialog] = useConfirm();
 
   const [referenceCode, setReferenceCode] = useState(trip?.reference_code || "");
   const [departureDate, setDepartureDate] = useState(trip?.departure_date || "");
@@ -112,7 +114,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Supprimer ce voyage ?")) return;
+    if (!(await confirm("Supprimer ce voyage ?"))) return;
     const res = await fetch(`/api/admin/trips/${trip.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -124,6 +126,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -455,5 +458,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         )}
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }

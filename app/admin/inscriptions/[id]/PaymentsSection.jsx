@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const PAYMENT_METHODS = ["especes", "virement", "cheque", "carte", "autre"];
 
@@ -14,6 +15,7 @@ export default function PaymentsSection({ apiBasePath, payments, totalDue, canMa
   const [method, setMethod] = useState("especes");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = Number(totalDue) - totalPaid;
@@ -46,7 +48,7 @@ export default function PaymentsSection({ apiBasePath, payments, totalDue, canMa
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce paiement ?")) return;
+    if (!(await confirm("Supprimer ce paiement ?"))) return;
     await fetch(`/api/admin/payments/${id}`, { method: "DELETE" });
     router.refresh();
   };
@@ -146,6 +148,7 @@ export default function PaymentsSection({ apiBasePath, payments, totalDue, canMa
         </form>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

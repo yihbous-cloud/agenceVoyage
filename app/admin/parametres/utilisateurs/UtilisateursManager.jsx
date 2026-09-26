@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/app/admin/_components/useConfirm";
 
 const emptyForm = { fullName: "", email: "", phone: "", password: "", roleId: "", isActive: true };
 
@@ -145,6 +146,7 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
   const router = useRouter();
   const [editingId, setEditingId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   const handleCreate = async (form) => {
     const res = await fetch("/api/admin/staff-users", {
@@ -173,7 +175,7 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce compte ?")) return;
+    if (!(await confirm("Supprimer ce compte ?"))) return;
     const res = await fetch(`/api/admin/staff-users/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
@@ -291,6 +293,7 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
           + Nouvel utilisateur
         </button>
       )}
+      {confirmDialog}
     </div>
   );
 }
