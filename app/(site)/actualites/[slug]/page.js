@@ -39,7 +39,7 @@ export default async function NewsDetailPage({ params }) {
   };
 
   return (
-    <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
+    <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -48,7 +48,7 @@ export default async function NewsDetailPage({ params }) {
       <p className="text-xs text-zinc-400">
         {new Date(post.published_at).toLocaleDateString("fr-FR")}
       </p>
-      <h1 className="mt-1 text-3xl font-bold text-zinc-900">{post.title}</h1>
+      <h1 className="mt-1 text-2xl font-bold text-zinc-900 sm:text-3xl">{post.title}</h1>
       <div className="mt-6 whitespace-pre-line text-zinc-700">
         {post.content || post.excerpt}
       </div>

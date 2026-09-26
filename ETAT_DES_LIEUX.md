@@ -165,7 +165,8 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - **JSON-LD enrichi** : `BreadcrumbList` (composant partagé `app/_components/BreadcrumbJsonLd.jsx`) sur les hubs, le détail programme et les villes de départ ; `datePublished`/`dateModified` sur `TouristTrip` (depuis `programs.created_at`/`updated_at`)
 - **AIO** : `next/image` sur toutes les images publiques (Core Web Vitals), flux RSS (`/feed.xml`), API JSON publique en lecture seule (`/api/public/programs`), `robots.txt` avec bots IA listés explicitement
 - **`LocalBusiness`** (schema.org) : implémenté dans `app/(site)/layout.js`, à partir des vraies coordonnées `agency_settings` (adresse/téléphone désormais renseignés) — actif uniquement quand les deux sont présents. Coordonnées aussi affichées sur `/a-propos` et `/contact`
-- **Non implémenté** (voir §7) : architecture multilingue AR/FR (décision documentée dans CLAUDE.md §3quinquies, implémentation différée)
+- **Sélecteur de langue visiteur (FR/AR/EN) + RTL/LTR** : cookie `gf_locale`, mécanisme entièrement client-side (`LocaleProvider`/`SiteHeader`/`LanguageSwitcher`, CLAUDE.md §3cinquantedeuxquadragies) — préserve le rendu statique/ISR des pages publiques. **Traduction non faite** : seuls `nav`/`footer`/`langSwitcher` sont couverts par `lib/i18n/`, le contenu des pages reste en français quelle que soit la langue choisie. Site public finalisé responsive (mobile/tablette/desktop)
+- **Non implémenté** (voir §7) : architecture multilingue AR/FR **par URL** (`/fr/`, `/ar/` avec `hreflang` — décision documentée dans CLAUDE.md §3quinquies, implémentation différée), traduction réelle du contenu de page
 
 ---
 
@@ -236,7 +237,8 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 ### ❌ Non commencées
 - **Connexion n8n + WhatsApp Business Cloud API** : le schéma existe (`whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log`) mais aucune intégration réelle, aucun webhook, aucune interface d'administration des questions/réponses ou des rappels programmés
 - Support d'une police arabe dans les exports PDF (actuellement colonne retirée du PDF, présente uniquement dans l'Excel)
-- Architecture multilingue AR/FR : décision documentée (CLAUDE.md §3quinquies), implémentation (restructuration des routes + traduction) volontairement différée
+- Architecture multilingue AR/FR **par URL** (`/fr/`, `/ar/`, `hreflang`) : décision documentée (CLAUDE.md §3quinquies), implémentation volontairement différée — le sélecteur de langue cookie (§4.12) couvre le besoin visiteur immédiat sans cette restructuration
+- Traduction réelle du contenu des pages publiques en anglais/arabe (le sélecteur de langue existe, seuls nav/footer sont traduits — voir §4.12)
 - Actions hors-code du plan SEO (§9 du plan) : Google Business Profile, Search Console/Bing Webmaster Tools, netlinking/presse/Wikidata, statistiques propriétaires chiffrées, articles de guide/pilier, pipeline Lighthouse CI
 
 ### 📋 À ajouter / pistes d'amélioration (non demandées explicitement mais identifiées)

@@ -42,7 +42,7 @@ export default function ReservationForm({ tripId }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 bg-gold px-5 py-2 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light"
+        className="mt-4 bg-gold px-5 py-2.5 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light sm:py-2"
       >
         S&apos;inscrire
       </button>
@@ -57,7 +57,7 @@ export default function ReservationForm({ tripId }) {
           required
           value={form.fullName}
           onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -69,7 +69,7 @@ export default function ReservationForm({ tripId }) {
           value={form.phoneWhatsapp}
           onChange={(e) => setForm({ ...form, phoneWhatsapp: e.target.value })}
           placeholder="+212 6XX XXX XXX"
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -80,21 +80,21 @@ export default function ReservationForm({ tripId }) {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={submitting}
-          className="bg-gold px-5 py-2 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light disabled:opacity-60"
+          className="bg-gold px-5 py-2.5 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light disabled:opacity-60 sm:py-2"
         >
           {submitting ? "Envoi..." : "Confirmer l'inscription"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-sm text-muted hover:text-ink"
+          className="px-2 py-2 text-sm text-muted hover:text-ink"
         >
           Annuler
         </button>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useLocale } from "./LocaleProvider";
 
 const AUTOPLAY_DELAY = 6000;
 
@@ -15,6 +16,7 @@ const FAMILY_LABELS = {
 // fondu (toutes les diapositives sont empilées, seule l'opacité change) —
 // pas de bibliothèque tierce, cohérent avec le reste du projet.
 export default function HeroSlider({ slides }) {
+  const { dir } = useLocale();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef(null);
@@ -109,17 +111,17 @@ export default function HeroSlider({ slides }) {
             type="button"
             onClick={() => goTo(activeIndex - 1)}
             aria-label="Diapositive précédente"
-            className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
+            className="absolute start-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
           >
-            ‹
+            {dir === "rtl" ? "›" : "‹"}
           </button>
           <button
             type="button"
             onClick={() => goTo(activeIndex + 1)}
             aria-label="Diapositive suivante"
-            className="absolute right-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
+            className="absolute end-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
           >
-            ›
+            {dir === "rtl" ? "‹" : "›"}
           </button>
 
           <div className="absolute inset-x-0 bottom-6 z-20 flex justify-center gap-2">

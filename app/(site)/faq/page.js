@@ -47,17 +47,17 @@ export default function FaqPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl flex-1 px-6 py-16">
+    <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <h1 className="text-3xl font-bold text-zinc-900">Questions fréquentes</h1>
+      <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">Questions fréquentes</h1>
 
       <div className="mt-8 space-y-6">
         {FAQ_ITEMS.map((item) => (
-          <div key={item.question} className="rounded-xl border border-zinc-200 bg-white p-6">
+          <div key={item.question} className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
             <h2 className="font-semibold text-zinc-900">{item.question}</h2>
             <p className="mt-2 text-sm text-zinc-600">{item.answer}</p>
           </div>

@@ -40,14 +40,14 @@ export default function ContactForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-zinc-200 bg-white p-6">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Nom complet</label>
         <input
           required
           value={form.fullName}
           onChange={set("fullName")}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -57,7 +57,7 @@ export default function ContactForm() {
           required
           value={form.email}
           onChange={set("email")}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -65,7 +65,7 @@ export default function ContactForm() {
         <input
           value={form.phone}
           onChange={set("phone")}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -73,7 +73,7 @@ export default function ContactForm() {
         <input
           value={form.subject}
           onChange={set("subject")}
-          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm sm:py-2"
         />
       </div>
       <div>
@@ -89,7 +89,7 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+        className="w-full rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60 sm:py-2"
       >
         {submitting ? "Envoi..." : "Envoyer"}
       </button>

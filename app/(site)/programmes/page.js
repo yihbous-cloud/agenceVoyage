@@ -12,8 +12,8 @@ export const metadata = {
 // pour ne pas casser un lien existant vers /programmes.
 export default function ProgrammesRedirectPage() {
   return (
-    <main className="mx-auto flex max-w-3xl flex-1 flex-col items-center gap-6 px-6 py-24 text-center">
-      <h1 className="text-3xl font-bold text-zinc-900">Nos programmes</h1>
+    <main className="mx-auto flex max-w-3xl flex-1 flex-col items-center gap-6 px-4 py-16 text-center sm:px-6 sm:py-24">
+      <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">Nos programmes</h1>
       <p className="max-w-xl text-zinc-600">
         Nos programmes sont désormais répartis en deux catalogues dédiés :
       </p>

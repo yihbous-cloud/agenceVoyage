@@ -704,6 +704,60 @@ Suite directe de §3cinquantequadragies : une seule image ne peut pas bien cadre
 
 Le champ mobile reste **optionnel** — sans lui, l'image desktop est réutilisée (recadrée en bande centrale, moins optimal mais jamais vide).
 
+## 3cinquantedeuxquadragies. Sélecteur de langue (FR/AR/EN), infrastructure RTL/LTR, finalisation responsive du site public
+
+Demande explicite : un sélecteur de langue visiteur (FR/AR/EN) avec adaptation LTR/RTL, **sans traduction réelle pour l'instant**, plus la finalisation du responsive (mobile/tablette/desktop) sur toutes les pages publiques. CLAUDE.md (§3quinquies) documentait déjà une cible multilingue à URLs préfixées (`/fr/...`, `/ar/...`) avec `hreflang` — explicitement **reportée**, restructurer les URLs sans vraies traductions arabes recréerait le risque de contenu fin/dupliqué que cette cible visait justement à éviter. Approche retenue à la place, validée avec l'utilisateur avant implémentation : un **cookie de préférence de langue**, aucune URL modifiée — livrable immédiatement, sans risque SEO, le vrai routage `/fr/`/`/ar/` restant le chantier documenté pour une session dédiée future une fois une traduction arabe réelle prête.
+
+### Infrastructure de traduction (scaffolding uniquement)
+
+- **`lib/i18n/`** (nouveau dossier, même logique que `lib/worldPlaces.js`/`lib/airportsReference.js` — données de référence statiques) : `locales.js` (`SUPPORTED_LOCALES = ["fr","en","ar"]`, `DEFAULT_LOCALE = "fr"`, `LOCALE_COOKIE_NAME = "gf_locale"`, `isRtl(locale)`), `fr.js`/`en.js`/`ar.js` (dictionnaires plats `{ nav, footer, langSwitcher }`, **seules ces trois sections sont couvertes** — le contenu des pages, FAQ, descriptions de programme... reste hors périmètre, un futur chantier de traduction à part entière), `getDictionary.js` (repli sur `fr` pour toute clé/locale absente, jamais de `undefined` affiché)
+- `en.js`/`ar.js` dupliquent le texte français comme *placeholder* explicite (commentaire `// TODO: traduction anglaise/arabe`) — aucune traduction réelle produite, conformément à la demande
+- Pas de fonction `t("clé.plate")` façon bibliothèque i18n : accès direct `dict.nav.omraHajj`, cohérent avec le style déjà en place (`SEASON_LABELS`/`FAMILY_LABELS` utilisés directement en JSX). Zéro nouvelle dépendance npm (aucune lib i18n/RTL ajoutée)
+
+### ⚠️ Piège rencontré et corrigé : `cookies()` casse le rendu statique/ISR
+
+Première implémentation : lecture du cookie **côté serveur** dans `app/(site)/layout.js` (`await cookies()` depuis `next/headers`, même idiome que `lib/session.js`) pour poser `<html lang dir>` dès le rendu serveur. `next build` a révélé une régression sérieuse : `cookies()`/`headers()` dans un layout force **tout l'arbre de rendu sous ce layout** en dynamique (`ƒ`) — `/`, `/a-propos`, `/actualites`, `/confidentialite`, `/faq`, `/mentions-legales`, `/programmes` sont tous passés de `○` (statique) à `ƒ` (dynamique), perdant leur `revalidate = 300` ISR. Le SEO/GEO étant la priorité stratégique n°1 du projet (§1), traité comme une régression bloquante, pas un détail mineur.
+
+**Solution retenue — mécanisme entièrement client-side** : le layout reste `<html lang="fr" dir="ltr">` codé en dur (identique octet pour octet au comportement d'avant cette fonctionnalité), aucun `cookies()`/`headers()` nulle part dans `app/(site)/layout.js`. Un nouveau composant client corrige `lang`/`dir` **après montage** :
+
+- **`app/_components/LocaleProvider.jsx`** (`"use client"`) : contexte React (`useLocale()` → `{ locale, dict, dir, setLocale }`). Au montage, lit `document.cookie` (`readCookieLocale()`) et met à jour `document.documentElement.lang`/`dir` via `useEffect` ; `setLocale(next)` écrit le cookie (`path=/`, `max-age` 1 an, `samesite=lax`) et déclenche le re-render du contexte — pas de `router.refresh()` (inutile, rien à recharger côté serveur)
+- **Compromis assumé** : un visiteur revenant avec une autre langue déjà choisie voit un bref "flash" en français au tout premier rendu, le temps que l'effet s'exécute après montage — accepté comme le prix nécessaire pour préserver le rendu statique/ISR (priorité SEO), documenté en commentaire dans le fichier
+- `next build` re-vérifié après la réécriture : liste exacte des pages statiques/ISR restaurée (voir Vérification)
+
+### Composants publics
+
+- **`app/_components/LanguageSwitcher.jsx`** — `<select>` natif (`FR`/`EN`/`AR`, pas d'emoji drapeau), toujours visible dans le header à toutes les tailles d'écran (hors tiroir mobile repliable — un choix de langue est une préférence persistante, pas une destination de nav)
+- **`app/_components/SiteHeader.jsx`** (nouveau, `"use client"`, remplace le `<header>` inline de `app/(site)/layout.js`) : logo + `LanguageSwitcher` + CTA "Devis gratuit" toujours visibles ; les 6 liens de nav passent dans un menu **hamburger** sous `lg:` (1024px, seuil justifié par le contenu : logo + 6 liens + CTA + sélecteur = 9 éléments) ; tiroir mobile (`useState`) qui se ferme au clic sur un lien et au changement de route (`usePathname()` + `useEffect`) — aucun `left-`/`right-` codé en dur dans le tiroir (uniquement `flex`/`gap`), RTL-safe par construction
+- **`app/_components/SiteFooter.jsx`** (nouveau, extrait du layout pour pouvoir utiliser `useLocale()` sans forcer le layout parent en client)
+
+### Adaptation RTL
+
+Règle générale adoptée : propriétés logiques (`start-`/`end-`, `text-start`/`text-end`, `ms-`/`me-`/`ps-`/`pe-`) plutôt que physiques (`left-`/`right-`/`ml-`/`mr-`/`text-left`/`text-right`) — Tailwind v4 les retourne automatiquement sous `dir="rtl"`, sans variante `rtl:` à ajouter après coup.
+
+- **`HeroSlider.jsx`** : flèches précédent/suivant `left-4`/`right-4` → `start-4`/`end-4` ; le glyphe (`‹`/`›`) suit `dir` (via `useLocale()`) et s'inverse sous RTL pour continuer à pointer visuellement dans le bon sens
+- **`HomeShowcaseCard.jsx`** : `text-right` → `text-end` (prix), **et 4 instances supplémentaires trouvées au-delà de l'audit initial** — l'audit de recherche n'avait grepé que `ml-/mr-/pl-/pr-/text-left/text-right`, manquant une famille de classes différente (positionnement absolu) : `-left-11` → `-start-11` (ruban de saison), `right-0 bottom-0` → `end-0 bottom-0` (étiquette prix Omra/Hajj), `top-4 left-4` → `top-4 start-4` (étiquette thème voyage organisé), `right-0 bottom-4` → `end-0 bottom-4` (étiquette destination)
+- **`app/(site)/page.js`** : bouton flottant "retour en haut" `right-6 bottom-6` → `end-6 bottom-6` (même famille de classes manquée par l'audit)
+
+### Finalisation responsive
+
+- **`ProgramDetail.jsx`** (page de conversion, zéro classe responsive avant cette passe) : padding `px-6 py-12` → `px-4 py-8 sm:px-6 sm:py-12` ; image de couverture `h-64` → `h-48 sm:h-64` ; titre `text-3xl` → `text-2xl sm:text-3xl` ; bloc prix `mt-2 sm:mt-0` (évite qu'il colle au bloc au-dessus une fois empilé sur mobile)
+- **`ReservationForm.jsx`**/**`ContactForm.jsx`** : cibles tactiles trop justes sur mobile (`py-2` ≈ 34-36px) → `py-2.5 sm:py-2` sur tous les champs et boutons d'action ; bouton "Annuler" (lien texte sans padding) gagne `px-2 py-2` pour une zone cliquable correcte
+- **Pages statiques** (`a-propos`, `actualites/[slug]`, `confidentialite`, `faq`, `mentions-legales`, `programmes`) : motif mécanique `px-6 py-16` → `px-4 py-10 sm:px-6 sm:py-16`, titres `text-3xl` → `text-2xl sm:text-3xl`
+- **Déjà responsive, non touchées** (confirmé par audit avant implémentation) : `/omra-hajj`, `/voyages-organises`, `/villes-depart/[ville]`, `/actualites`, `/contact` (page conteneur), reste de `/` (`page.js`)
+
+### Vérification effectuée
+
+- `next build` : liste des pages statiques/ISR identique à avant la fonctionnalité (`/` avec `revalidate` 5m ; `/a-propos`, `/confidentialite`, `/contact`, `/faq`, `/mentions-legales`, `/programmes` en `○` statique) — la régression du paragraphe ci-dessus est bien résolue
+- Test en direct dans le navigateur (site public accessible sans connexion, contrairement à `/admin`) : 375px (mobile), 768px (tablette), 1440px (desktop) sur `/`, `/omra-hajj`, une fiche programme, `/contact`, `/faq` — aucun débordement horizontal (`scrollWidth === clientWidth`) sur aucune des 5 pages à aucune largeur
+- Header : hamburger seul visible sous 1024px (mobile **et** tablette 768px, comme prévu par le seuil `lg:`), les 6 liens + CTA visibles sans hamburger à 1440px ; tiroir mobile s'ouvre/se ferme correctement (icône bascule menu/fermeture, libellé accessible bascule "Menu"/"Fermer")
+- Changement de langue testé en direct (`<select>` → `ar`) : confirmé via DOM que `document.documentElement.lang`/`dir` passent bien à `"ar"`/`"rtl"`, et visuellement que le tiroir mobile se réordonne correctement (texte aligné à droite, bouton fermer/sélecteur de langue basculés du côté "start" visuel)
+- Logique des flèches `HeroSlider` vérifiée par lecture de code (`dir === "rtl" ? "›" : "‹"` etc.) plutôt que visuellement : le seul slide actif en base au moment du test ne déclenche pas l'affichage des flèches (`slides.length > 1` requis, comportement correct, pas un bug)
+- Logs serveur (`preview_logs`) sans erreur sur le serveur de dev courant ; une erreur `cookies is not defined` visible dans `read_console_messages` provient d'un historique HMR d'un serveur de dev précédent (avant la réécriture client-only) — confirmé stale : `app/(site)/layout.js` ne contient plus aucun appel `cookies()` (seule une mention en commentaire expliquant pourquoi), le serveur de dev courant n'a jamais loggé cette erreur
+
+### Hors périmètre (rappel)
+
+Aucune traduction réelle de contenu de page ; aucune restructuration d'URL (`/fr/`, `/ar/` restent le chantier futur documenté, §3quinquies) ; aucun changement sur `sitemap.js`/`robots.js`/`llms.txt`/`feed.xml` (aucune URL ne change dans cette passe) ; aucune nouvelle dépendance npm.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

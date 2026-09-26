@@ -211,7 +211,7 @@ export default async function Home() {
       <a
         href="#top"
         aria-label="Retour en haut"
-        className="fixed right-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center border border-gold bg-ink text-xl text-gold shadow-lg"
+        className="fixed end-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center border border-gold bg-ink text-xl text-gold shadow-lg"
       >
         ↑
       </a>

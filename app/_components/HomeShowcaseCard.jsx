@@ -43,12 +43,12 @@ export default function HomeShowcaseCard({ program }) {
             imagePlaceholder
           )}
           {program.season && (
-            <div className="absolute top-5 -left-11 w-40 -rotate-45 bg-ink py-1.5 text-center text-[11px] font-semibold tracking-widest text-gold-pale uppercase">
+            <div className="absolute top-5 -start-11 w-40 -rotate-45 bg-ink py-1.5 text-center text-[11px] font-semibold tracking-widest text-gold-pale uppercase">
               {SEASON_LABELS[program.season] || program.season}
             </div>
           )}
           {program.starting_price && (
-            <div className="absolute right-0 bottom-0 bg-gold px-4 py-2 font-display text-lg text-ink">
+            <div className="absolute end-0 bottom-0 bg-gold px-4 py-2 font-display text-lg text-ink">
               {program.starting_price} {program.currency}
             </div>
           )}
@@ -100,12 +100,12 @@ export default function HomeShowcaseCard({ program }) {
           imagePlaceholder
         )}
         {program.theme && (
-          <div className="absolute top-4 left-4 bg-gold px-3.5 py-1.5 text-xs font-semibold tracking-wide text-ink uppercase">
+          <div className="absolute top-4 start-4 bg-gold px-3.5 py-1.5 text-xs font-semibold tracking-wide text-ink uppercase">
             {program.theme}
           </div>
         )}
         {program.destination_country && (
-          <div className="absolute right-0 bottom-4 bg-ink/90 px-4 py-2 text-sm tracking-wide text-gold-pale">
+          <div className="absolute end-0 bottom-4 bg-ink/90 px-4 py-2 text-sm tracking-wide text-gold-pale">
             {program.destination_country}
           </div>
         )}
@@ -123,7 +123,7 @@ export default function HomeShowcaseCard({ program }) {
           Découvrir
         </span>
         {program.starting_price && (
-          <div className="text-right text-xs text-white/55">
+          <div className="text-end text-xs text-white/55">
             à partir de
             <div className="font-display text-lg text-gold">
               {program.starting_price} {program.currency}

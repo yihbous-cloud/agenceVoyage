@@ -65,7 +65,7 @@ export default function ProgramDetail({
 
   return (
     <main className="flex-1 bg-cream">
-      <div className="mx-auto max-w-4xl px-6 py-12">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -79,7 +79,7 @@ export default function ProgramDetail({
         )}
 
         {!isOmraHajj && program.cover_image_url && (
-          <div className="relative mb-6 h-64 w-full overflow-hidden">
+          <div className="relative mb-6 h-48 w-full overflow-hidden sm:h-64">
             <Image
               src={program.cover_image_url}
               alt=""
@@ -106,7 +106,7 @@ export default function ProgramDetail({
           </span>
         </div>
 
-        <h1 className="mt-3 font-display text-3xl font-normal text-ink">
+        <h1 className="mt-3 font-display text-2xl font-normal text-ink sm:text-3xl">
           {program.title}
         </h1>
         <p className="mt-4 whitespace-pre-line text-muted">
@@ -176,7 +176,7 @@ export default function ProgramDetail({
                       </div>
                     )}
                   </div>
-                  <p className="font-display text-lg text-[#A8863C]">
+                  <p className="mt-2 font-display text-lg text-[#A8863C] sm:mt-0">
                     <span className="block text-xs font-sans text-muted">à partir de</span>
                     {trip.starting_price} {trip.currency}
                   </p>
