@@ -229,16 +229,16 @@ CREATE TABLE hotels (
     city VARCHAR(100) NOT NULL COMMENT 'ex: La Mecque, Médine, Istanbul, Paris',
     landmark_name VARCHAR(100) NULL COMMENT 'point de repère de proximité (ex: Haram, Masjid Nabawi, Tour Eiffel)',
     country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
-    star_rating TINYINT UNSIGNED NULL,
+    star_rating VARCHAR(10) NULL COMMENT 'ex: 3, 4, 4+, 5+ (texte libre depuis migration 023)',
     board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul' COMMENT 'Formule de restauration proposée par l''hôtel (migration 022)',
     landmark_distance_m INT UNSIGNED NULL COMMENT 'distance en mètres jusqu''à landmark_name',
     contact_info VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    reserved_rooms_simple INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Quota de chambres réservées pour l''agence par type, planification (migration 022) — distinct des chambres réelles de rooms',
-    reserved_rooms_double INT UNSIGNED NOT NULL DEFAULT 0,
-    reserved_rooms_triple INT UNSIGNED NOT NULL DEFAULT 0,
-    reserved_rooms_quadruple INT UNSIGNED NOT NULL DEFAULT 0,
-    reserved_rooms_quintuple INT UNSIGNED NOT NULL DEFAULT 0
+    reserved_rooms_simple INT UNSIGNED NULL COMMENT 'Quota de chambres réservées pour l''agence par type, planification (migration 022) — distinct des chambres réelles de rooms ; NULL = ce type n''existe pas dans cet hôtel, 0 = existe mais aucune réservée (migration 023)',
+    reserved_rooms_double INT UNSIGNED NULL,
+    reserved_rooms_triple INT UNSIGNED NULL,
+    reserved_rooms_quadruple INT UNSIGNED NULL,
+    reserved_rooms_quintuple INT UNSIGNED NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Hôtels par défaut d'un programme : fixés une fois à la création du

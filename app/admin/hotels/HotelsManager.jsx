@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
-import { ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
 
 const RESERVED_ROOMS_FIELD = {
-  simple: "reservedRoomsSimple",
   double: "reservedRoomsDouble",
   triple: "reservedRoomsTriple",
   quadruple: "reservedRoomsQuadruple",
@@ -22,7 +21,6 @@ const initialForm = {
   landmarkDistanceM: "",
   contactInfo: "",
   boardBasis: "logement_seul",
-  reservedRoomsSimple: "",
   reservedRoomsDouble: "",
   reservedRoomsTriple: "",
   reservedRoomsQuadruple: "",
@@ -56,14 +54,15 @@ export default function HotelsManager({ initialHotels, canManage }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          starRating: form.starRating === "" ? null : Number(form.starRating),
+          starRating: form.starRating === "" ? null : form.starRating,
           landmarkDistanceM:
             form.landmarkDistanceM === "" ? null : Number(form.landmarkDistanceM),
-          reservedRoomsSimple: Number(form.reservedRoomsSimple) || 0,
-          reservedRoomsDouble: Number(form.reservedRoomsDouble) || 0,
-          reservedRoomsTriple: Number(form.reservedRoomsTriple) || 0,
-          reservedRoomsQuadruple: Number(form.reservedRoomsQuadruple) || 0,
-          reservedRoomsQuintuple: Number(form.reservedRoomsQuintuple) || 0,
+          reservedRoomsDouble: form.reservedRoomsDouble === "" ? null : Number(form.reservedRoomsDouble),
+          reservedRoomsTriple: form.reservedRoomsTriple === "" ? null : Number(form.reservedRoomsTriple),
+          reservedRoomsQuadruple:
+            form.reservedRoomsQuadruple === "" ? null : Number(form.reservedRoomsQuadruple),
+          reservedRoomsQuintuple:
+            form.reservedRoomsQuintuple === "" ? null : Number(form.reservedRoomsQuintuple),
         }),
       });
       if (!res.ok) {
@@ -119,7 +118,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
                   {BOARD_BASIS_OPTIONS.find((o) => o.value === h.board_basis)?.label || "—"}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">
-                  {ROOM_TYPES.map((rt) => ({ rt, count: h[`reserved_rooms_${rt}`] }))
+                  {BOOKABLE_ROOM_TYPES.map((rt) => ({ rt, count: h[`reserved_rooms_${rt}`] }))
                     .filter(({ count }) => count > 0)
                     .map(({ rt, count }) => `${count} ${rt}`)
                     .join(", ") || "—"}
@@ -198,11 +197,9 @@ export default function HotelsManager({ initialHotels, canManage }) {
           <div>
             <label className="block text-sm font-medium text-zinc-700">Étoiles</label>
             <input
-              type="number"
-              min="1"
-              max="5"
               value={form.starRating}
               onChange={set("starRating")}
+              placeholder="ex : 4, 5+"
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
           </div>
@@ -256,11 +253,12 @@ export default function HotelsManager({ initialHotels, canManage }) {
               Chambres réservées pour l&apos;agence, par type
             </label>
             <p className="mt-1 text-xs text-zinc-400">
-              Quota de planification (vide/0 = aucune) — distinct des chambres réelles créées par
-              voyage dans l&apos;hébergement.
+              Quota de planification, distinct des chambres réelles créées par voyage dans
+              l&apos;hébergement. Laisser vide si ce type de chambre n&apos;existe pas dans cet
+              hôtel (ex : pas de chambre quintuple) — vide et 0 ont un sens différent.
             </p>
-            <div className="mt-2 grid grid-cols-5 gap-3">
-              {ROOM_TYPES.map((rt) => (
+            <div className="mt-2 grid grid-cols-4 gap-3">
+              {BOOKABLE_ROOM_TYPES.map((rt) => (
                 <div key={rt}>
                   <label className="block text-xs capitalize text-zinc-500">{rt}</label>
                   <input
