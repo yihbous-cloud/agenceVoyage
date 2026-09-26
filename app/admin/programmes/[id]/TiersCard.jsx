@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+
+// La formule de restauration d'un tarif suit toujours celle du catalogue de
+// l'hôtel choisi (hotels.board_basis, §3quaterquadragies) — plus un choix
+// indépendant, verrouillée dans l'UI (voir CLAUDE.md).
+function boardBasisForHotel(hotels, hotelId) {
+  const hotel = hotels.find((h) => String(h.id) === String(hotelId));
+  return hotel?.board_basis || "logement_seul";
+}
 
 function groupHotelsByCity(hotels) {
   const groups = [];
@@ -22,20 +30,19 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
 
   const [label, setLabel] = useState(initial?.label || "");
   const [makkahHotelId, setMakkahHotelId] = useState(initial?.makkah_hotel_id || "");
-  const [makkahBoardBasis, setMakkahBoardBasis] = useState(
-    initial?.makkah_board_basis || "logement_seul"
-  );
   const [madinahHotelId, setMadinahHotelId] = useState(initial?.madinah_hotel_id || "");
-  const [madinahBoardBasis, setMadinahBoardBasis] = useState(
-    initial?.madinah_board_basis || "logement_seul"
-  );
+
+  // Dérivées du catalogue hôtel, jamais éditées indépendamment — voir
+  // boardBasisForHotel ci-dessus.
+  const makkahBoardBasis = boardBasisForHotel(hotels, makkahHotelId);
+  const madinahBoardBasis = boardBasisForHotel(hotels, madinahHotelId);
 
   const initialPrices = {};
   for (const p of initial?.prices || []) {
     initialPrices[p.room_type] = { pricePerPerson: p.price_per_person, seatsLimit: p.seats_limit ?? "" };
   }
   const [priceRows, setPriceRows] = useState(
-    ROOM_TYPES.reduce(
+    BOOKABLE_ROOM_TYPES.reduce(
       (acc, rt) => ({
         ...acc,
         [rt]: initialPrices[rt] || { pricePerPerson: "", seatsLimit: "" },
@@ -50,7 +57,7 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const prices = ROOM_TYPES.filter((rt) => priceRows[rt].pricePerPerson !== "").map((rt) => ({
+    const prices = BOOKABLE_ROOM_TYPES.filter((rt) => priceRows[rt].pricePerPerson !== "").map((rt) => ({
       roomType: rt,
       pricePerPerson: priceRows[rt].pricePerPerson,
       seatsLimit: priceRows[rt].seatsLimit === "" ? null : Number(priceRows[rt].seatsLimit),
@@ -99,9 +106,9 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
             ))}
           </select>
           <select
+            disabled
             value={makkahBoardBasis}
-            onChange={(e) => setMakkahBoardBasis(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            className="mt-2 w-full rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
           >
             {BOARD_BASIS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -130,9 +137,9 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
             ))}
           </select>
           <select
+            disabled
             value={madinahBoardBasis}
-            onChange={(e) => setMadinahBoardBasis(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            className="mt-2 w-full rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
           >
             {BOARD_BASIS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -142,6 +149,10 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
           </select>
         </div>
       </div>
+      <p className="-mt-2 text-xs text-zinc-500">
+        La restauration est celle définie sur la fiche de l&apos;hôtel choisi (catalogue), pas
+        modifiable ici.
+      </p>
 
       <div>
         <p className="text-sm font-medium text-zinc-700">Prix par personne, par type de chambre</p>
@@ -150,7 +161,7 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
           illimité.
         </p>
         <div className="mt-2 space-y-2">
-          {ROOM_TYPES.map((rt) => (
+          {BOOKABLE_ROOM_TYPES.map((rt) => (
             <div key={rt} className="grid grid-cols-3 items-center gap-2">
               <span className="text-sm capitalize text-zinc-700">{rt}</span>
               <input
