@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
+import { ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+
+const RESERVED_ROOMS_FIELD = {
+  simple: "reservedRoomsSimple",
+  double: "reservedRoomsDouble",
+  triple: "reservedRoomsTriple",
+  quadruple: "reservedRoomsQuadruple",
+  quintuple: "reservedRoomsQuintuple",
+};
 
 const initialForm = {
   name: "",
@@ -12,6 +21,12 @@ const initialForm = {
   landmarkName: "",
   landmarkDistanceM: "",
   contactInfo: "",
+  boardBasis: "logement_seul",
+  reservedRoomsSimple: "",
+  reservedRoomsDouble: "",
+  reservedRoomsTriple: "",
+  reservedRoomsQuadruple: "",
+  reservedRoomsQuintuple: "",
 };
 
 export default function HotelsManager({ initialHotels, canManage }) {
@@ -44,6 +59,11 @@ export default function HotelsManager({ initialHotels, canManage }) {
           starRating: form.starRating === "" ? null : Number(form.starRating),
           landmarkDistanceM:
             form.landmarkDistanceM === "" ? null : Number(form.landmarkDistanceM),
+          reservedRoomsSimple: Number(form.reservedRoomsSimple) || 0,
+          reservedRoomsDouble: Number(form.reservedRoomsDouble) || 0,
+          reservedRoomsTriple: Number(form.reservedRoomsTriple) || 0,
+          reservedRoomsQuadruple: Number(form.reservedRoomsQuadruple) || 0,
+          reservedRoomsQuintuple: Number(form.reservedRoomsQuintuple) || 0,
         }),
       });
       if (!res.ok) {
@@ -75,6 +95,8 @@ export default function HotelsManager({ initialHotels, canManage }) {
               <th className="px-4 py-3">Ville</th>
               <th className="px-4 py-3">Étoiles</th>
               <th className="px-4 py-3">Point de repère</th>
+              <th className="px-4 py-3">Restauration</th>
+              <th className="px-4 py-3">Chambres réservées</th>
               {canManage && <th className="px-4 py-3" />}
             </tr>
           </thead>
@@ -93,6 +115,15 @@ export default function HotelsManager({ initialHotels, canManage }) {
                     ? `${h.landmark_distance_m} m${h.landmark_name ? ` du ${h.landmark_name}` : ""}`
                     : "—"}
                 </td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {BOARD_BASIS_OPTIONS.find((o) => o.value === h.board_basis)?.label || "—"}
+                </td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {ROOM_TYPES.map((rt) => ({ rt, count: h[`reserved_rooms_${rt}`] }))
+                    .filter(({ count }) => count > 0)
+                    .map(({ rt, count }) => `${count} ${rt}`)
+                    .join(", ") || "—"}
+                </td>
                 {canManage && (
                   <td className="px-4 py-3 text-right">
                     <button
@@ -107,7 +138,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
             ))}
             {initialHotels.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-zinc-500" colSpan={5}>
+                <td className="px-4 py-3 text-zinc-500" colSpan={7}>
                   Aucun hôtel.
                 </td>
               </tr>
@@ -205,6 +236,43 @@ export default function HotelsManager({ initialHotels, canManage }) {
               onChange={set("contactInfo")}
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Restauration</label>
+            <select
+              value={form.boardBasis}
+              onChange={set("boardBasis")}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              {BOARD_BASIS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-zinc-700">
+              Chambres réservées pour l&apos;agence, par type
+            </label>
+            <p className="mt-1 text-xs text-zinc-400">
+              Quota de planification (vide/0 = aucune) — distinct des chambres réelles créées par
+              voyage dans l&apos;hébergement.
+            </p>
+            <div className="mt-2 grid grid-cols-5 gap-3">
+              {ROOM_TYPES.map((rt) => (
+                <div key={rt}>
+                  <label className="block text-xs capitalize text-zinc-500">{rt}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form[RESERVED_ROOMS_FIELD[rt]]}
+                    onChange={set(RESERVED_ROOMS_FIELD[rt])}
+                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
           <div className="col-span-2">
             <button

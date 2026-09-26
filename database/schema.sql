@@ -230,9 +230,15 @@ CREATE TABLE hotels (
     landmark_name VARCHAR(100) NULL COMMENT 'point de repère de proximité (ex: Haram, Masjid Nabawi, Tour Eiffel)',
     country VARCHAR(100) NOT NULL DEFAULT 'Arabie Saoudite',
     star_rating TINYINT UNSIGNED NULL,
+    board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul' COMMENT 'Formule de restauration proposée par l''hôtel (migration 022)',
     landmark_distance_m INT UNSIGNED NULL COMMENT 'distance en mètres jusqu''à landmark_name',
     contact_info VARCHAR(255) NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reserved_rooms_simple INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Quota de chambres réservées pour l''agence par type, planification (migration 022) — distinct des chambres réelles de rooms',
+    reserved_rooms_double INT UNSIGNED NOT NULL DEFAULT 0,
+    reserved_rooms_triple INT UNSIGNED NOT NULL DEFAULT 0,
+    reserved_rooms_quadruple INT UNSIGNED NOT NULL DEFAULT 0,
+    reserved_rooms_quintuple INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Hôtels par défaut d'un programme : fixés une fois à la création du

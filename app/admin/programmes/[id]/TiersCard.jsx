@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ROOM_TYPES } from "@/lib/roomTypes";
-
-const BOARD_BASIS_OPTIONS = [
-  { value: "logement_seul", label: "Logement seul" },
-  { value: "petit_dejeuner", label: "Petit-déjeuner" },
-  { value: "demi_pension", label: "Demi-pension" },
-];
+import { ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
 
 function groupHotelsByCity(hotels) {
   const groups = [];

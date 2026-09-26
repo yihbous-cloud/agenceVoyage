@@ -69,7 +69,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/voyages/[tripId]/hebergement` | Hôtels du voyage, chambres, affectation manuelle et automatique des voyageurs | Tous (lecture) / direction, suivi (gestion) |
 | `/admin/voyages/[tripId]/listes` | Génération des 3 listes exportables (voyageurs, visas, compagnie aérienne) en Excel/PDF | Tous |
 | `/admin/voyages/[tripId]/billets` | Recherche et achat de billets d'avion réels via Duffel (individuel ou groupé) | Tous (lecture) / direction, ventes (achat) |
-| `/admin/hotels` | Catalogue d'hôtels partenaires | Tous (lecture) / direction, suivi (gestion) |
+| `/admin/hotels` | Catalogue d'hôtels partenaires — formule de restauration et quota de chambres réservées par type par hôtel (CLAUDE.md §3quaterquadragies) | Tous (lecture) / direction, suivi (gestion) |
 | `/admin/visa-types` | Catalogue des types de visa (documents requis + prix) | Tous (lecture) / direction, suivi (gestion) |
 | `/admin/services` | Catalogue générique de services facturables | Tous (lecture) / direction, comptabilité (gestion) |
 | `/admin/airlines` | Catalogue de compagnies aériennes (nom, code IATA, gabarit d'export) | Tous (lecture) / direction (gestion) |
