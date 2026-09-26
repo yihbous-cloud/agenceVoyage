@@ -8,10 +8,12 @@ import {
   extractIataFromInput,
   formatAirportOption,
 } from "@/lib/airportsReference";
+import { AIRPORTS } from "@/lib/airports";
 
 export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
   const router = useRouter();
 
+  const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [destinationIata, setDestinationIata] = useState(
     airportInputValue(trip?.destination_iata)
@@ -44,6 +46,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          originIata: originIata || null,
           airlineId: airlineId || null,
           destinationIata: extractIataFromInput(destinationIata) || null,
           returnOriginIata: extractIataFromInput(returnOriginIata) || null,
@@ -80,6 +83,25 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
           <option key={a.iata} value={formatAirportOption(a)} />
         ))}
       </datalist>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Ville de départ (Maroc)
+        </label>
+        <select
+          disabled={!canManage}
+          value={originIata}
+          onChange={(e) => setOriginIata(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+        >
+          <option value="">Sélectionner...</option>
+          {Object.entries(AIRPORTS).map(([iata, info]) => (
+            <option key={iata} value={iata}>
+              {info.city} ({iata})
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">Compagnie aérienne</label>
@@ -141,8 +163,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
         </div>
       </div>
       <p className="-mt-2 text-xs text-zinc-500">
-        La ville de départ se modifie dans la carte "Informations". Aéroports du retour laissés
-        vides = mêmes aéroports que l&apos;aller, sens inversé.
+        Aéroports du retour laissés vides = mêmes aéroports que l&apos;aller, sens inversé.
       </p>
 
       <div className="grid grid-cols-2 gap-4">

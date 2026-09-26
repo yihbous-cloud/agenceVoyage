@@ -7,7 +7,6 @@ import ModuleTile from "./ModuleTile";
 import InfoCard from "./InfoCard";
 import AirportCard from "./AirportCard";
 import HotelsCard from "./HotelsCard";
-import DisplayCard from "./DisplayCard";
 import RestaurationCard from "./RestaurationCard";
 import PricingCard from "./PricingCard";
 import TiersCard from "./TiersCard";
@@ -50,8 +49,10 @@ export default function ProgramManagerGrid({
       key: "info",
       title: "Informations",
       subtitle: primaryTrip
-        ? `${primaryTrip.reference_code} · ${primaryTrip.status}`
-        : "Aucun voyage",
+        ? `${primaryTrip.reference_code} · ${primaryTrip.status} · ${program.is_published ? "Publié" : "Brouillon"}`
+        : program.is_published
+        ? "Publié"
+        : "Brouillon",
     },
     {
       key: "airport",
@@ -65,11 +66,6 @@ export default function ProgramManagerGrid({
       key: "hotels",
       title: "Hôtels",
       subtitle: `${plural(defaultHotelIds.length, "hôtel habituel")} · ${plural(tripHotelsCount, "attaché")}`,
-    },
-    {
-      key: "display",
-      title: "Affichage",
-      subtitle: program.is_published ? "Publié" : "Brouillon",
     },
     {
       key: "restauration",
@@ -152,12 +148,6 @@ export default function ProgramManagerGrid({
             canManage={canManagePrograms}
             onSuccess={close}
           />
-        </Modal>
-      )}
-
-      {openModule === "display" && (
-        <Modal title="Affichage" onClose={close}>
-          <DisplayCard program={program} canManage={canManagePrograms} onSuccess={close} />
         </Modal>
       )}
 

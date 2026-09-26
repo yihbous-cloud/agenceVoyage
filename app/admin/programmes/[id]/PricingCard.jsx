@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 export default function PricingCard({ trip, canManage, onSuccess }) {
   const router = useRouter();
 
-  const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
   const [priceDouble, setPriceDouble] = useState(trip?.price_double ?? 0);
   const [priceTriple, setPriceTriple] = useState(trip?.price_triple ?? 0);
   const [priceQuadruple, setPriceQuadruple] = useState(trip?.price_quadruple ?? 0);
@@ -25,7 +24,6 @@ export default function PricingCard({ trip, canManage, onSuccess }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          totalSeats: Number(totalSeats),
           priceDouble: Number(priceDouble),
           priceTriple: Number(priceTriple),
           priceQuadruple: Number(priceQuadruple),
@@ -53,27 +51,14 @@ export default function PricingCard({ trip, canManage, onSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Places totales</label>
-          <input
-            type="number"
-            min="0"
-            disabled={!canManage}
-            value={totalSeats}
-            onChange={(e) => setTotalSeats(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Devise</label>
-          <input
-            disabled={!canManage}
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">Devise</label>
+        <input
+          disabled={!canManage}
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+        />
       </div>
 
       <div>
