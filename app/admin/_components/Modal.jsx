@@ -4,7 +4,8 @@ import { useEffect } from "react";
 
 // Même habillage que la modale de confirmation passeport
 // (TravelerFields.jsx) — fond noir semi-transparent, boîte blanche
-// centrée — généralisé ici avec un titre et un bouton fermer.
+// centrée — généralisé ici avec un titre et un bouton fermer. Partagé
+// entre plusieurs pages admin (voir CLAUDE.md).
 export default function Modal({ title, onClose, children }) {
   useEffect(() => {
     const handleKey = (e) => {

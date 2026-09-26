@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
 import { BOOKABLE_ROOM_TYPES, BOARD_BASIS_OPTIONS } from "@/lib/roomTypes";
+import Modal from "@/app/admin/_components/Modal";
 
 const RESERVED_ROOMS_FIELD = {
   double: "reservedRoomsDouble",
@@ -80,10 +81,7 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid max-w-2xl grid-cols-2 gap-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
+    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-zinc-700">Nom</label>
         <input
@@ -230,13 +228,9 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
 export default function HotelsManager({ initialHotels, canManage }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState(null);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  // Change de clé après une création réussie pour forcer le remontage du
-  // formulaire de création (state interne à HotelForm) et le vider —
-  // remplace l'ancien setForm(initialForm) devenu impossible à appeler
-  // depuis l'extérieur du composant.
-  const [createFormKey, setCreateFormKey] = useState(0);
 
   const handleCreate = async (payload) => {
     setSubmitting(true);
@@ -251,7 +245,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
         const data = await res.json();
         throw new Error(data.message || "Erreur lors de la création");
       }
-      setCreateFormKey((k) => k + 1);
+      setAdding(false);
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -290,6 +284,17 @@ export default function HotelsManager({ initialHotels, canManage }) {
 
   return (
     <div className="space-y-6">
+      {canManage && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setAdding(true)}
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+          >
+            Ajouter l&apos;hôtel
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
@@ -370,13 +375,15 @@ export default function HotelsManager({ initialHotels, canManage }) {
         </table>
       </div>
 
-      {canManage && (
-        <HotelForm
-          key={createFormKey}
-          submitting={submitting}
-          submitLabel="Ajouter l'hôtel"
-          onSubmit={handleCreate}
-        />
+      {adding && (
+        <Modal title="Ajouter un hôtel" onClose={() => setAdding(false)}>
+          <HotelForm
+            submitting={submitting}
+            submitLabel="Ajouter l'hôtel"
+            onCancel={() => setAdding(false)}
+            onSubmit={handleCreate}
+          />
+        </Modal>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

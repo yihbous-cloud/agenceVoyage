@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Modal from "./Modal";
+import Modal from "@/app/admin/_components/Modal";
 import ModuleTile from "./ModuleTile";
 import InfoCard from "./InfoCard";
 import AirportCard from "./AirportCard";
