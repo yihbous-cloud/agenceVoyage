@@ -528,6 +528,56 @@ Suite directe de §3novotrigies : les 6 cartes (Informations/Aéroport/Hôtels/A
 - **`RestaurationCard.jsx` fait exception** : pas de `onSuccess`, la modale reste ouverte après un ajout/modification/suppression — c'est un gestionnaire de liste (potentiellement plusieurs offres à ajouter d'affilée), fermer automatiquement à chaque action serait plus gênant qu'utile. Même logique pour "Voyages supplémentaires"/FAQ : restent des listes gérées en place dans leur modale, pas de fermeture automatique
 - **Vérification** : `next build` (compilation Turbopack + résolution de tous les imports) réussi sans erreur ; parse Babel/JSX sur les 3 fichiers touchés/créés (`page.js`, `ProgramManagerGrid.jsx`, `InfoCard.jsx`) ; redémarrage serveur propre, aucune erreur dans les logs. Aucune connexion admin possible (contrainte identifiants, inchangée) — l'ouverture réelle des modales et le rendu visuel des tuiles n'ont pas pu être vérifiés dans le navigateur, seulement par lecture de code et compilation réussie
 
+## 3unquadragies. Tarifs par palier d'hébergement — tiers hôtel Omra/Hajj (migration `021_add_trip_hotel_tiers.sql`)
+
+Demande initiale fournie sous forme de spécification technique (Prisma/Redis/TypeScript/`branch_id`) pour un système e-commerce de voyages — **rien de tout ça n'existe dans ce projet** (confirmé par grep : pas de `schema.prisma`, pas de `tsconfig.json`, pas de client Redis). Le concept métier a été adapté à la stack réelle (Next.js + `mysql2` brut, `agency_id` et non `branch_id`), après confirmation explicite de l'utilisateur. Traité comme les autres refontes architecturales du projet : plan complet (agents Explore + Plan, clarifications par AskUserQuestion, plan écrit, approbation) avant implémentation.
+
+**Le manque comblé** : un voyage Omra/Hajj n'avait qu'**un seul** jeu de 4 prix (`trips.price_double/triple/quadruple/quintuple`, §3unetrigies), sans lien entre un prix et un hôtel précis — impossible de vendre "Économique : Hôtel A (Mecque) + Hôtel C (Médine)" et "VIP : Hôtel B + Hôtel D" pour le même départ. Réservé aux voyages **Omra/Hajj** uniquement (`programs.family = 'omra_hajj'`, décision explicite de l'utilisateur) ; un voyage **sans** tier configuré continue de fonctionner exactement comme avant — les tiers sont additifs, jamais un remplacement.
+
+### Schéma
+
+- `trip_hotel_tiers` : `trip_id`, `label` (ex. "Économique"/"Standard"/"VIP"), `makkah_hotel_id`/`madinah_hotel_id` (FK **libres** vers `hotels`, sans contrainte de ville imposée — `hotels.city` reste du texte libre, voir §3octies, aucun mécanisme de ce projet ne garantit qu'un hôtel est "vraiment" à Mecque ou Médine, c'est un picker ouvert groupé par ville comme partout ailleurs dans l'admin), `makkah_board_basis`/`madinah_board_basis` (ENUM `logement_seul`/`petit_dejeuner`/`demi_pension`)
+- `trip_hotel_tier_prices` : `tier_id`, `room_type` (réutilise l'ENUM à 5 valeurs de `lib/roomTypes.js`, pas de nouvel ENUM), `price_per_person`, `seats_limit` (NULL = illimité) — unique par `(tier_id, room_type)`, un tier n'a pas besoin de prix pour chaque type de chambre
+- `registrations.selected_tier_id` (nullable, FK vers `trip_hotel_tiers`, **sans** `ON DELETE CASCADE` volontairement) — le "type de chambre" de la combinaison capacité se lit sur la colonne **déjà existante** `preferred_room_type`, pas de nouvelle colonne pour ça
+
+### `lib/tripHotelTiers.js` (nouveau)
+
+- `listTiersForTrip` : même pattern batch `IN (?)` construit à la main que `getOpenTripsForProgram` pour `meal_offers` (`pool.execute()` n'étend pas un tableau en paramètre)
+- `createTier`/`updateTier` : purge + réinsertion des prix (même compromis que `setRolePermissions`/`setDefaultHotelsForProgram`)
+- `deleteTier` : bloquée par la FK `fk_registrations_selected_tier` si au moins une inscription référence encore ce tier — la route API traduit `ER_ROW_IS_REFERENCED_2` en message convivial plutôt qu'un 500 brut
+- **`reserveTierRoomTypeCapacity(connection, tierId, roomType)`** — le cœur du blocage strict de capacité (décision explicite de l'utilisateur, pas un simple compteur informatif) : verrouille la ligne de prix (`SELECT ... FOR UPDATE`) avant de compter les inscriptions existantes sur ce `(tier_id, room_type)`, exactement le même schéma que `assignRegistrationToRoom` verrouillant une chambre avant de compter ses occupants (`lib/roomAssignment.js`). **Compose avec la connexion déjà ouverte par `createRegistration`** plutôt que d'ouvrir sa propre transaction — appelée en tout premier dans `lib/registrations.js::createRegistration`, avant tout autre travail, pour échouer vite si la place n'est plus disponible
+
+### `pickTierPrice` — piège déjà rencontré, évité ici
+
+`NewRegistrationForm.jsx` est un composant client qui importe `pickTripPrice` depuis `lib/roomTypes.js` précisément parce que ce fichier n'importe rien (pas de `./db`). Le nouveau `pickTierPrice` (analogue à `pickTripPrice` mais à partir des lignes `trip_hotel_tier_prices` d'un tier plutôt que des colonnes plates de `trips`) a été placé dans ce **même** fichier `lib/roomTypes.js`, jamais dans `lib/tripHotelTiers.js` (qui importe `./db`) — sinon `mysql2` se retrouverait entraîné dans le bundle navigateur, même piège déjà documenté en §3novotrigies avec `slugify`/`lib/airports.js`. Vérifié : `next build` réussit avec cet agencement.
+
+### Routes API
+
+Permission réutilisée : **`voyages.manage`** (même code que `trip-meal-offers`, le sibling le plus proche — un tarif est une structure de prix par voyage, pas une opération d'hébergement post-inscription `hebergement.manage`). Aucune nouvelle permission créée.
+- `GET`/`POST /api/admin/trips/[tripId]/tiers` — le `POST` valide côté serveur que le voyage existe et que `program_family === "omra_hajj"` (défense en profondeur, `lib/roomAssignment.js::getTripSummary` étendu avec `p.family AS program_family`)
+- `PUT`/`DELETE /api/admin/trip-hotel-tiers/[id]`
+
+### Interface admin — 9ᵉ tuile, conditionnelle
+
+`TiersCard.jsx` (nouveau, même convention liste+formulaire inline que `RestaurationCard.jsx`, §3novotrigies) ajouté à `ProgramManagerGrid.jsx` (§3quadragies) comme tuile **"Tarifs d'hébergement"**, affichée **uniquement si `program.family === "omra_hajj"`** — un programme voyage organisé ne voit jamais cette tuile, aucun changement pour lui. `app/admin/programmes/[id]/page.js` ne charge `listTiersForTrip` que dans ce même cas (sinon `[]`).
+
+### Inscription — sélection du tarif par le personnel (pas de calculateur public)
+
+Décision explicite de l'utilisateur : le tier est choisi **par le personnel**, dans `NewRegistrationForm.jsx`, exactement comme `preferredRoomType`/`hotelPreferences` aujourd'hui — **pas** de calculateur public sur la fiche programme. `listOpenTripsForSelect` (`lib/registrations.js`) a gagné `p.family` (absent jusqu'ici) pour que le formulaire sache n'afficher le sélecteur de tarif que pour un voyage `omra_hajj`. Le tarif choisi remplace `pickTripPrice` par `pickTierPrice` dans la prévisualisation de prix et le calcul du `total_due` par défaut (individuel et groupe) — sans tarif choisi, comportement exactement inchangé.
+
+### Prix public affiché — correction ciblée, portée volontairement limitée
+
+`getOpenTripsForProgram` (`lib/programs.js`) : après la requête batch `meal_offers` existante, une seconde requête batch calcule le prix minimum des tarifs par voyage ; `starting_price` (jusqu'ici toujours `LEAST(price_double, ...)`) n'est remplacé que pour les voyages qui ont effectivement des tiers — un voyage sans tier garde son calcul d'origine, aucun changement pour le cas courant. ⚠️ **Les deux autres fonctions utilisant `LEAST(...)`** (`getProgramsByFamily`/`getProgramsByDepartureCity`) ont la même limitation latente pour un programme à tiers mais sont restées **hors périmètre** de cette demande (portée explicitement limitée à la fiche programme) — à corriger dans une session dédiée si un jour un programme à tiers apparaît dans ces listes avec un prix incohérent.
+
+### Vérification effectuée
+
+- Migration appliquée (`SHOW CREATE TABLE trip_hotel_tiers`/`trip_hotel_tier_prices`, `DESCRIBE registrations`)
+- **Test non simulé du blocage de capacité**, script Node réel (pas de simulation, mêmes contraintes que §3novotrigies — connexion login admin impossible dans cet environnement) contre la vraie base de dev : création d'un tier `seatsLimit: 1`, première inscription réussie, deuxième inscription rejetée avec le message attendu, `deleteTier` bloqué tant qu'une inscription y réfère puis réussi après nettoyage
+- **Test de concurrence réelle** : deux `createRegistration` lancées en `Promise.allSettled` contre un même tarif `seatsLimit: 1` — exactement une résout, l'autre rejette avec le message de capacité épuisée, preuve que le verrou `FOR UPDATE` sérialise réellement (pas une course qui passe par chance en mono-thread)
+- **Régression "sans tier"** : une inscription classique sans `selectedTierId` sur un voyage sans tier calcule toujours son `total_due` via `pickTripPrice`, exactement comme avant
+- `next build` réussi (Turbopack, TypeScript, génération des pages statiques) — confirme en particulier que `pickTierPrice` reste importable depuis un composant client sans entraîner `mysql2`
+- Toutes les données de test nettoyées après vérification (aucune trace en base, confirmé par requête SQL directe)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

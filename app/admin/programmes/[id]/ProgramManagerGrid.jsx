@@ -10,6 +10,7 @@ import HotelsCard from "./HotelsCard";
 import DisplayCard from "./DisplayCard";
 import RestaurationCard from "./RestaurationCard";
 import PricingCard from "./PricingCard";
+import TiersCard from "./TiersCard";
 import TripsList from "./TripsList";
 import ProgramFaqManager from "./ProgramFaqManager";
 
@@ -25,6 +26,7 @@ export default function ProgramManagerGrid({
   tripHotelsCount,
   roomsCount,
   mealOffers,
+  tiers,
   otherTrips,
   faqs,
   canManagePrograms,
@@ -82,6 +84,15 @@ export default function ProgramManagerGrid({
           ? `à partir de ${lowestPrice} ${primaryTrip.currency}`
           : "À compléter",
     },
+    ...(program.family === "omra_hajj"
+      ? [
+          {
+            key: "tiers",
+            title: "Tarifs d'hébergement",
+            subtitle: plural(tiers.length, "tarif"),
+          },
+        ]
+      : []),
     {
       key: "trips",
       title: "Voyages supplémentaires",
@@ -163,6 +174,17 @@ export default function ProgramManagerGrid({
       {openModule === "pricing" && (
         <Modal title="Tarification" onClose={close}>
           <PricingCard trip={primaryTrip} canManage={canManageTrips} onSuccess={close} />
+        </Modal>
+      )}
+
+      {openModule === "tiers" && (
+        <Modal title="Tarifs d'hébergement" onClose={close}>
+          <TiersCard
+            trip={primaryTrip}
+            hotels={hotels}
+            initialTiers={tiers}
+            canManage={canManageTrips}
+          />
         </Modal>
       )}
 

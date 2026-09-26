@@ -269,6 +269,44 @@ CREATE TABLE rooms (
     INDEX idx_room_type (room_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Tarifs par palier d'hébergement (tiers), voyages Omra/Hajj uniquement
+-- (migration 021) — un tier associe un hôtel Mecque + un hôtel Médine précis
+-- (FK libres, sans contrainte de ville) et une formule de restauration par
+-- ville. Additif : un voyage sans tier configuré continue de fonctionner
+-- avec price_double/triple/quadruple/quintuple sur trips. Voir CLAUDE.md.
+CREATE TABLE trip_hotel_tiers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT UNSIGNED NOT NULL,
+    agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    label VARCHAR(100) NOT NULL COMMENT 'ex: Économique, Standard, VIP',
+    makkah_hotel_id BIGINT UNSIGNED NOT NULL,
+    makkah_board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul',
+    madinah_hotel_id BIGINT UNSIGNED NOT NULL,
+    madinah_board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul',
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY (makkah_hotel_id) REFERENCES hotels(id),
+    FOREIGN KEY (madinah_hotel_id) REFERENCES hotels(id),
+    INDEX idx_tier_trip (trip_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Prix par personne + limite de places (NULL = illimité) par type de
+-- chambre, pour un tier ci-dessus.
+CREATE TABLE trip_hotel_tier_prices (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tier_id BIGINT UNSIGNED NOT NULL,
+    agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NOT NULL,
+    price_per_person DECIMAL(10,2) NOT NULL,
+    seats_limit INT UNSIGNED NULL COMMENT 'NULL = illimité',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tier_id) REFERENCES trip_hotel_tiers(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_tier_room_type (tier_id, room_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- =====================================================================
 -- 5. VOYAGEURS & INSCRIPTIONS
 -- =====================================================================
@@ -321,6 +359,7 @@ CREATE TABLE registrations (
     room_id BIGINT UNSIGNED NULL COMMENT 'chambre assignée (peut être NULL avant répartition)',
     preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'DEPRECIEE (migration 010) — remplacée par registration_hotel_preferences (une préférence par ville, migration 015), conservée pour l’historique mais plus alimentée',
     preferred_room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NULL COMMENT 'type de chambre souhaité par le voyageur',
+    selected_tier_id BIGINT UNSIGNED NULL COMMENT 'Tarif d''hébergement choisi (trip_hotel_tiers), NULL = prix plat du voyage (migration 021)',
     group_id BIGINT UNSIGNED NULL COMMENT 'groupe d’inscription (binôme/famille/groupe), voir registration_groups',
     visa_status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
     total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'montant total dû pour cette inscription',
@@ -331,6 +370,7 @@ CREATE TABLE registrations (
     FOREIGN KEY (registered_by_staff_id) REFERENCES staff_users(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id),
     FOREIGN KEY (preferred_hotel_id) REFERENCES hotels(id),
+    FOREIGN KEY (selected_tier_id) REFERENCES trip_hotel_tiers(id),
     FOREIGN KEY (group_id) REFERENCES registration_groups(id),
     UNIQUE KEY uq_traveler_per_trip (trip_id, traveler_id),
     INDEX idx_reg_status (status),

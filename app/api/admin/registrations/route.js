@@ -21,6 +21,13 @@ export async function POST(request) {
     );
   }
 
+  if (body.selectedTierId && !body.preferredRoomType) {
+    return NextResponse.json(
+      { message: "Le type de chambre est requis pour choisir un tarif d'hébergement" },
+      { status: 400 }
+    );
+  }
+
   // Règle passeport : doit rester valide au moins 6 mois après la date du
   // voyage — revalidée côté serveur (le client peut être contourné), même
   // règle que PUT .../registrations/[id]/traveler (voir CLAUDE.md §3nonies).
@@ -49,6 +56,13 @@ export async function POST(request) {
         { message: "Ce voyageur est déjà inscrit à ce voyage" },
         { status: 409 }
       );
+    }
+    if (
+      err.message === "Places épuisées pour ce tarif et ce type de chambre" ||
+      err.message === "Ce tarif n'a pas de prix défini pour ce type de chambre" ||
+      err.message === "Le type de chambre est requis pour choisir un tarif d'hébergement"
+    ) {
+      return NextResponse.json({ message: err.message }, { status: 409 });
     }
     return NextResponse.json(
       { message: "Erreur serveur", detail: err.message },

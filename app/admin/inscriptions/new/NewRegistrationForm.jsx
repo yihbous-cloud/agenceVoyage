@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BOOKABLE_ROOM_TYPES, pickTripPrice } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES, pickTripPrice, pickTierPrice } from "@/lib/roomTypes";
 import TravelerFields from "./TravelerFields";
 
 const emptyTraveler = () => ({
@@ -44,6 +44,14 @@ export default function NewRegistrationForm({ trips }) {
   const [hotelPreferencesByCity, setHotelPreferencesByCity] = useState({});
   const [preferredRoomType, setPreferredRoomType] = useState("");
 
+  // Tarifs d'hébergement (Omra/Hajj uniquement, voir CLAUDE.md) — un tarif
+  // choisi remplace le prix plat du voyage par le prix de son type de
+  // chambre, et fait partie du payload de l'inscription.
+  const [tiers, setTiers] = useState([]);
+  const [tiersLoading, setTiersLoading] = useState(false);
+  const [tiersError, setTiersError] = useState(null);
+  const [selectedTierId, setSelectedTierId] = useState("");
+
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -65,6 +73,9 @@ export default function NewRegistrationForm({ trips }) {
     setHotelPreferencesByCity({});
     setTripHotels([]);
     setHotelsError(null);
+    setTiers([]);
+    setTiersError(null);
+    setSelectedTierId("");
     if (!value) return;
     setHotelsLoading(true);
     try {
@@ -79,7 +90,31 @@ export default function NewRegistrationForm({ trips }) {
     } finally {
       setHotelsLoading(false);
     }
+
+    const trip = trips.find((t) => String(t.id) === String(value));
+    if (trip?.family === "omra_hajj") {
+      setTiersLoading(true);
+      try {
+        const res = await fetch(`/api/admin/trips/${value}/tiers`);
+        if (res.ok) {
+          setTiers(await res.json());
+        } else {
+          setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (erreur serveur).");
+        }
+      } catch {
+        setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (connexion).");
+      } finally {
+        setTiersLoading(false);
+      }
+    }
   };
+
+  const selectedTier = tiers.find((t) => String(t.id) === String(selectedTierId));
+  const unitPrice = selectedTrip
+    ? selectedTier
+      ? pickTierPrice(selectedTier.prices, preferredRoomType)
+      : pickTripPrice(selectedTrip, preferredRoomType)
+    : 0;
 
   const handleTypeChange = (type) => {
     setInscriptionType(type);
@@ -131,15 +166,16 @@ export default function NewRegistrationForm({ trips }) {
         }
         groupId = groupData.id;
 
-        // Montant dû par défaut = prix du voyage (selon le type de chambre
-        // demandé, sinon le plus bas) × nombre de voyageurs, pour ne pas
-        // partir de 0 — reste modifiable ensuite (page du groupe).
+        // Montant dû par défaut = prix du tarif choisi (ou du voyage selon
+        // le type de chambre demandé, sinon le plus bas) × nombre de
+        // voyageurs, pour ne pas partir de 0 — reste modifiable ensuite
+        // (page du groupe).
         if (selectedTrip) {
           await fetch(`/api/admin/groups/${groupId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              totalDue: pickTripPrice(selectedTrip, preferredRoomType) * travelers.length,
+              totalDue: unitPrice * travelers.length,
             }),
           });
         }
@@ -158,6 +194,7 @@ export default function NewRegistrationForm({ trips }) {
             ...traveler,
             hotelPreferences,
             preferredRoomType: preferredRoomType || null,
+            selectedTierId: selectedTierId || null,
             groupId,
           }),
         });
@@ -203,7 +240,7 @@ export default function NewRegistrationForm({ trips }) {
         {selectedTrip && (
           <p className="mt-1 text-sm text-zinc-600">
             Prix : <span className="font-semibold text-zinc-900">
-              {pickTripPrice(selectedTrip, preferredRoomType).toLocaleString("fr-FR", {
+              {unitPrice.toLocaleString("fr-FR", {
                 minimumFractionDigits: 2,
               })}{" "}
               {selectedTrip.currency}
@@ -214,9 +251,9 @@ export default function NewRegistrationForm({ trips }) {
                 {" "}
                 ·{" "}
                 <span className="font-semibold text-zinc-900">
-                  {(
-                    pickTripPrice(selectedTrip, preferredRoomType) * travelers.length
-                  ).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}{" "}
+                  {(unitPrice * travelers.length).toLocaleString("fr-FR", {
+                    minimumFractionDigits: 2,
+                  })}{" "}
                   {selectedTrip.currency}
                 </span>{" "}
                 pour {travelers.length} voyageurs
@@ -225,6 +262,34 @@ export default function NewRegistrationForm({ trips }) {
           </p>
         )}
       </div>
+
+      {selectedTrip?.family === "omra_hajj" && (
+        <div>
+          {tiersLoading && (
+            <p className="text-sm text-zinc-500">Chargement des tarifs d&apos;hébergement...</p>
+          )}
+          {tiersError && <p className="text-sm text-red-600">{tiersError}</p>}
+          {!tiersLoading && !tiersError && tiers.length > 0 && (
+            <>
+              <label className="block text-sm font-medium text-zinc-700">
+                Tarif d&apos;hébergement (optionnel)
+              </label>
+              <select
+                value={selectedTierId}
+                onChange={(e) => setSelectedTierId(e.target.value)}
+                className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              >
+                <option value="">Aucun (prix plat du voyage)</option>
+                {tiers.map((tier) => (
+                  <option key={tier.id} value={tier.id}>
+                    {tier.label} — {tier.makkah_hotel_name} + {tier.madinah_hotel_name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">

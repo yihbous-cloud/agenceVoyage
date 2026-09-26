@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProgramById, listTripsForProgram } from "@/lib/programsAdmin";
 import { listAllFaqsForProgram } from "@/lib/programFaqs";
 import { listAllMealOffersForTrip } from "@/lib/tripMealOffers";
+import { listTiersForTrip } from "@/lib/tripHotelTiers";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 import { listTripHotels, listRoomsForTrip } from "@/lib/roomAssignment";
 import { listHotels } from "@/lib/hotels";
@@ -36,10 +37,11 @@ export default async function ProgramDetailPage({ params }) {
       (a, b) => new Date(a.departure_date) - new Date(b.departure_date) || a.id - b.id
     )[0] || null;
 
-  const [tripHotels, rooms, mealOffers] = await Promise.all([
+  const [tripHotels, rooms, mealOffers, tiers] = await Promise.all([
     primaryTrip ? listTripHotels(primaryTrip.id) : [],
     primaryTrip ? listRoomsForTrip(primaryTrip.id) : [],
     primaryTrip ? listAllMealOffersForTrip(primaryTrip.id) : [],
+    primaryTrip && program.family === "omra_hajj" ? listTiersForTrip(primaryTrip.id) : [],
   ]);
 
   const [canManagePrograms, canManageTrips] = await Promise.all([
@@ -64,6 +66,7 @@ export default async function ProgramDetailPage({ params }) {
         tripHotelsCount={tripHotels.length}
         roomsCount={rooms.length}
         mealOffers={mealOffers}
+        tiers={tiers}
         otherTrips={otherTrips}
         faqs={faqs}
         canManagePrograms={canManagePrograms}

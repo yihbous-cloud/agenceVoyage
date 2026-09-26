@@ -63,7 +63,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/inscriptions/[id]` | Fiche complète d'un inscrit : infos, statut, visa (assignation + documents), services facturés, paiements, billet d'avion (lecture) | Tous (lecture) / édition selon section et rôle |
 | `/admin/programmes` | Liste des programmes (avec nombre de voyages, statut publié) | Tous (lecture) / direction (gestion) |
 | `/admin/programmes/new` | Création minimale (titre, type, famille, dates, ville de départ, pays/ville de destination) — crée le programme + son premier voyage en un flux (CLAUDE.md §3novotrigies) | direction |
-| `/admin/programmes/[id]` | Page de gestion en 6 cartes indépendantes (Informations, Aéroport, Hôtels, Affichage, Restauration, Tarification), chacune avec son propre "Enregistrer" — + liste des voyages supplémentaires et gestion des FAQ (SEO/GEO) | direction |
+| `/admin/programmes/[id]` | Page de gestion en tuiles cliquables (Informations, Aéroport, Hôtels, Affichage, Restauration, Tarification, + Tarifs d'hébergement si Omra/Hajj, Voyages supplémentaires, FAQ) — clic sur une tuile ouvre son contenu en modale avec son propre "Enregistrer" (CLAUDE.md §3quadragies/§3unquadragies) | direction |
 | `/admin/programmes/[id]/voyages/new` | Création d'un voyage rattaché à un programme | direction |
 | `/admin/voyages/[tripId]` | Édition d'un voyage (référence, dates, compagnie, aéroports IATA, places, prix, statut) | direction |
 | `/admin/voyages/[tripId]/hebergement` | Hôtels du voyage, chambres, affectation manuelle et automatique des voyageurs | Tous (lecture) / direction, suivi (gestion) |
@@ -109,6 +109,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 - Champs édités par rôle : `status` et `visa_status` (direction/ventes), `total_due` (comptabilité, sauf inscription groupée — voir ci-dessous), `notes` (tous)
 - Le tableau de bord agrège les compteurs par statut et les prochains départs
 - **Création** (`/admin/inscriptions/new`) : trois types — Individuel (un voyageur), Binôme (exactement deux, un sous l'autre) ou Groupe (1 à N, bouton "+ Ajouter un voyageur") — voir CLAUDE.md §3quindecies. Chaque voyageur du bloc porte sa propre vérification de passeport (§3nonies)
+- **Tarif d'hébergement** (Omra/Hajj uniquement) : le personnel peut choisir un tarif configuré sur le voyage (Économique/Standard/VIP...), qui remplace le prix plat du voyage par le prix du type de chambre pour ce tarif précis, et fait échouer l'inscription si la limite de places de ce tarif+type de chambre est atteinte (transaction atomique) — voir CLAUDE.md §3unquadragies
 
 ### 4.4 Hôtels & répartition des chambres (`lib/hotels.js`, `lib/roomAssignment.js`, `lib/programHotels.js`)
 - Catalogue d'hôtels (ville, étoiles, distance au Haram)
