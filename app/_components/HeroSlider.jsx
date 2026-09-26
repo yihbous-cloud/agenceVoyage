@@ -48,16 +48,32 @@ export default function HeroSlider({ slides }) {
             index === activeIndex ? "z-10 opacity-100" : "z-0 opacity-0"
           }`}
         >
-          {slide.image_url ? (
+          {/* Deux images distinctes (desktop/mobile, §CLAUDE.md) affichées/
+              masquées en CSS selon le breakpoint — chacune retombe sur
+              l'autre si l'une des deux n'est pas renseignée, pour ne
+              jamais laisser un appareil sans image tant qu'au moins une
+              des deux existe. */}
+          {(slide.image_url || slide.mobile_image_url) && (
             <Image
-              src={slide.image_url}
+              src={slide.image_url || slide.mobile_image_url}
               alt=""
               fill
               priority={index === 0}
               sizes="100vw"
-              className="object-cover"
+              className="hidden object-cover sm:block"
             />
-          ) : (
+          )}
+          {(slide.mobile_image_url || slide.image_url) && (
+            <Image
+              src={slide.mobile_image_url || slide.image_url}
+              alt=""
+              fill
+              priority={index === 0}
+              sizes="100vw"
+              className="block object-cover sm:hidden"
+            />
+          )}
+          {!slide.image_url && !slide.mobile_image_url && (
             <div className="absolute inset-0 bg-gradient-to-br from-ink via-ink-soft to-amber-900/40" />
           )}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(200,162,74,0.16),transparent_60%)]" />

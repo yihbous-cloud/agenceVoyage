@@ -74,7 +74,7 @@ Toutes les routes `/admin/*` (sauf `/admin/login`) sont protégées par `middlew
 | `/admin/services` | Catalogue générique de services facturables | Tous (lecture) / direction, comptabilité (gestion) |
 | `/admin/airlines` | Catalogue de compagnies aériennes (nom, code IATA, gabarit d'export) | Tous (lecture) / direction (gestion) |
 | `/admin/actualites` | CRUD des actualités publiées sur le site public | Tous (lecture) / direction (gestion) |
-| `/admin/slider` | Diapositives du slider animé de l'accueil (titre, sous-titre, image, lien vers un programme ou URL libre, ordre, actif/inactif) | Permission `slider.manage` (direction par défaut) |
+| `/admin/slider` | Diapositives du slider animé de l'accueil (titre, sous-titre, image desktop + image mobile dédiée optionnelle — CLAUDE.md §3cinquanteetunquadragies —, lien vers un programme ou URL libre, ordre, actif/inactif) | Permission `slider.manage` (direction par défaut) |
 | `/admin/messages` | Messages reçus via le formulaire de contact public | direction, ventes |
 | `/admin/finances` | Rapports financiers : par voyage, par programme, paiements par période | direction, comptabilité (page entière restreinte) |
 | `/admin/parametres` | Informations de l'agence (coordonnées, RC/IF/ICE, logo) — en-tête des reçus de paiement | Tous (lecture) / direction (édition) |

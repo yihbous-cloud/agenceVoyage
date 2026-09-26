@@ -11,6 +11,7 @@ function emptyForm() {
     title: "",
     subtitle: "",
     imageUrl: "",
+    mobileImageUrl: "",
     buttonText: "Découvrir",
     programId: "",
     buttonLink: "",
@@ -23,6 +24,7 @@ function toFormState(slide) {
     title: slide.title,
     subtitle: slide.subtitle || "",
     imageUrl: slide.image_url || "",
+    mobileImageUrl: slide.mobile_image_url || "",
     buttonText: slide.button_text || "Découvrir",
     programId: slide.program_id ? String(slide.program_id) : "",
     buttonLink: slide.program_id ? "" : slide.button_link || "",
@@ -35,8 +37,10 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
   const [form, setForm] = useState(initial);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
+  // Deux champs d'upload indépendants (desktop/mobile) — chacun son propre
+  // état de chargement/erreur, un seul suffirait à bloquer l'autre sinon.
+  const [uploading, setUploading] = useState({ desktop: false, mobile: false });
+  const [uploadError, setUploadError] = useState({ desktop: null, mobile: null });
 
   const linkMode = form.programId ? form.programId : CUSTOM_LINK_VALUE;
 
@@ -50,12 +54,14 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
     setForm((f) => ({ ...f, programId: value === CUSTOM_LINK_VALUE ? "" : value }));
   };
 
-  const handleFileChange = async (e) => {
+  // formKey : "imageUrl" (desktop) ou "mobileImageUrl" (mobile) — variant :
+  // clé dans uploading/uploadError ("desktop"/"mobile").
+  const handleFileChange = (formKey, variant) => async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    setUploadError(null);
+    setUploading((u) => ({ ...u, [variant]: true }));
+    setUploadError((u) => ({ ...u, [variant]: null }));
 
     try {
       const body = new FormData();
@@ -64,11 +70,11 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
       const res = await fetch("/api/admin/upload", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Erreur lors de l'envoi de l'image");
-      setForm((f) => ({ ...f, imageUrl: data.url }));
+      setForm((f) => ({ ...f, [formKey]: data.url }));
     } catch (err) {
-      setUploadError(err.message);
+      setUploadError((u) => ({ ...u, [variant]: err.message }));
     } finally {
-      setUploading(false);
+      setUploading((u) => ({ ...u, [variant]: false }));
       e.target.value = "";
     }
   };
@@ -93,8 +99,10 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
       onSubmit={handleSubmit}
       className="grid grid-cols-2 gap-4 rounded-xl border border-zinc-200 bg-white p-6"
     >
-      <div className="col-span-2">
-        <label className="block text-sm font-medium text-zinc-700">Image de fond</label>
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Image de fond — desktop
+        </label>
         {form.imageUrl && (
           <div className="mt-2 flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -115,17 +123,58 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={handleFileChange}
-          disabled={uploading}
+          onChange={handleFileChange("imageUrl", "desktop")}
+          disabled={uploading.desktop}
           className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
         />
-        {uploading && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
-        {uploadError && <p className="mt-1 text-sm text-red-600">{uploadError}</p>}
+        {uploading.desktop && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
+        {uploadError.desktop && <p className="mt-1 text-sm text-red-600">{uploadError.desktop}</p>}
         <p className="mt-1 text-xs text-zinc-500">
-          JPG, PNG, WEBP ou GIF — 5 Mo maximum. Sans image, un fond dégradé
-          doré/sombre est utilisé par défaut.
+          JPG, PNG, WEBP ou GIF — 5 Mo maximum. Format large, ex : 2560×1150 px.
         </p>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Image de fond — mobile
+        </label>
+        {form.mobileImageUrl && (
+          <div className="mt-2 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={form.mobileImageUrl}
+              alt=""
+              className="h-20 w-12 rounded-lg border border-zinc-200 object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, mobileImageUrl: "" }))}
+              className="text-sm text-red-600 hover:underline"
+            >
+              Supprimer l&apos;image
+            </button>
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          onChange={handleFileChange("mobileImageUrl", "mobile")}
+          disabled={uploading.mobile}
+          className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
+        />
+        {uploading.mobile && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
+        {uploadError.mobile && <p className="mt-1 text-sm text-red-600">{uploadError.mobile}</p>}
+        <p className="mt-1 text-xs text-zinc-500">
+          Optionnel — sans image mobile, l&apos;image desktop est réutilisée. Format
+          vertical, ex : 1080×1500 px.
+        </p>
+      </div>
+
+      {!form.imageUrl && !form.mobileImageUrl && (
+        <p className="col-span-2 -mt-2 text-xs text-zinc-500">
+          Sans aucune image, un fond dégradé doré/sombre est utilisé par défaut.
+        </p>
+      )}
 
       <div className="col-span-2">
         <label className="block text-sm font-medium text-zinc-700">Titre</label>
@@ -212,7 +261,7 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
       <div className="col-span-2 flex gap-3">
         <button
           type="submit"
-          disabled={submitting || uploading}
+          disabled={submitting || uploading.desktop || uploading.mobile}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {submitting ? "Enregistrement..." : submitLabel}
@@ -296,6 +345,7 @@ export default function SlidesManager({ initialSlides, programs }) {
         title: slide.title,
         subtitle: slide.subtitle,
         imageUrl: slide.image_url,
+        mobileImageUrl: slide.mobile_image_url,
         buttonText: slide.button_text,
         programId: slide.program_id,
         buttonLink: slide.button_link,

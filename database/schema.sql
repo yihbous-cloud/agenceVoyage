@@ -635,6 +635,7 @@ CREATE TABLE slides (
     title VARCHAR(150) NOT NULL,
     subtitle VARCHAR(300) NULL,
     image_url VARCHAR(500) NULL,
+    mobile_image_url VARCHAR(500) NULL COMMENT 'Image de fond pour l''affichage mobile — NULL = repli sur image_url (migration 024)',
     button_text VARCHAR(50) NOT NULL DEFAULT 'Découvrir',
     program_id BIGINT UNSIGNED NULL COMMENT 'lien dynamique vers un programme — prioritaire sur button_link',
     button_link VARCHAR(300) NULL COMMENT 'URL libre, utilisée seulement si program_id est NULL',

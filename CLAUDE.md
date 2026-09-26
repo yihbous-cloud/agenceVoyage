@@ -684,7 +684,25 @@ Le composant utilise déjà `next/image` avec `fill` + `object-cover` + `sizes="
 
 - **Ratio** : le hero à 80vh sur un écran 16:9 (le plus courant) donne un cadrage large d'environ **2.2:1** (proche du "cinémascope") quelle que soit la résolution exacte — une image carrée ou portrait serait très largement rognée sur les côtés
 - **Taille d'export recommandée : 2560 × 1150 px** (ratio ≈ 2.2:1) — confortable pour les grands écrans (jusqu'à un moniteur 1440p) sans excès de poids fichier ; en dessous de **1920 × 864 px**, l'image commencera à être agrandie (perte de netteté) sur les écrans Full HD et plus grands
-- **Composition** : garder le sujet principal / le point d'intérêt **centré horizontalement et verticalement** — sur mobile (portrait), seule une bande verticale étroite au centre de l'image reste visible après recadrage, le reste (gauche/droite) est coupé
+- ⚠️ **Composition mobile — devenu obsolète, voir §3cinquanteetunquadragies** : cette section recommandait initialement de garder le sujet centré parce qu'une seule image servait aux deux formats (mobile n'en voyait qu'une bande verticale étroite au centre) — un champ d'image mobile dédié existe désormais, cette contrainte ne s'applique plus qu'à un tarif qui n'aurait pas encore d'image mobile spécifique
+
+## 3cinquanteetunquadragies. Image dédiée pour le format mobile du slider (migration `024_add_slide_mobile_image.sql`)
+
+Suite directe de §3cinquantequadragies : une seule image ne peut pas bien cadrer à la fois le hero large desktop (~2.2:1) et un hero mobile étroit/vertical — recadrer la même image en `object-cover` sur les deux formats donnait soit un cadrage desktop correct mais une bande centrale peu représentative sur mobile, soit l'inverse. Demande explicite : un **second champ d'upload dédié au mobile**, le champ existant devenant explicitement "desktop".
+
+- **`slides.mobile_image_url`** (nullable) — `NULL` = pas d'image mobile dédiée, repli automatique sur `image_url` (déjà le comportement d'origine, préservé pour toute diapositive existante non retouchée)
+- **`HeroSlider.jsx`** : au lieu d'un seul `<Image>` par diapositive, **deux** `<Image fill>` superposées dans le même conteneur, chacune affichée/masquée en CSS pur (`hidden sm:block` pour la desktop, `block sm:hidden` pour la mobile — breakpoint Tailwind `sm` = 640px, cohérent avec le reste du site) — pas de JavaScript ni de détection d'appareil, le navigateur ne charge que celle qui correspond au media query actif. Repli symétrique : la desktop utilise `mobile_image_url` si `image_url` est absent, et vice-versa ; le dégradé doré/sombre par défaut ne s'affiche que si **aucune** des deux n'est renseignée
+- **`SlidesManager.jsx`** : deuxième bloc d'upload "Image de fond — mobile" (même mécanisme que l'existant, dossier `slider` partagé), libellé existant renommé "— desktop" pour clarifier. États `uploading`/`uploadError` passés de booléen/chaîne unique à `{ desktop, mobile }` (un upload ne doit pas bloquer/masquer l'erreur de l'autre) — piège **corrigé avant de committer** : `handleToggleActive` (bascule active/inactive depuis le tableau, dans le composant parent) reconstruit tout le payload à la main pour chaque `PUT` (pas de mise à jour partielle sur `slides`, voir `updateSlide`) — oublier `mobileImageUrl` dans cette reconstruction aurait effacé silencieusement l'image mobile à chaque bascule active/inactive
+- **Vérification en conditions réelles** (pas de simulation) : diapositive de test insérée directement en base avec deux URLs distinctes (desktop/mobile) ; mesure DOM réelle (`getComputedStyle().display` + `offsetParent`) confirmant qu'à largeur desktop seule l'image desktop est visible (l'autre `display: none`), et l'inverse à largeur mobile (375px) ; puis `mobile_image_url` mis à `NULL` sur la même diapositive et re-vérifié que le mobile retombe bien sur l'image desktop plutôt que de rester vide. Diapositive de test supprimée après vérification. `next build` réussi ; une erreur de rendu (`uploadError` rendu comme objet) est apparue une fois dans les logs du serveur de dev mais s'est révélée être un artefact Turbopack d'une sauvegarde intermédiaire (comportement déjà documenté en §3tretrigies) — disparue après redémarrage du serveur, le code final relu ligne par ligne ne contient aucune occurrence fautive
+
+### Dimensions d'image par format
+
+| Format | Ratio | Taille d'export recommandée | Minimum avant perte de netteté |
+|---|---|---|---|
+| Desktop (`image_url`) | ≈ 2.2:1 (large) | **2560 × 1150 px** | 1920 × 864 px |
+| Mobile (`mobile_image_url`) | ≈ 9:16 (portrait) — mesuré sur iPhone (375×812, hero à 80vh ≈ 650px) | **1080 × 1500 px** | 750 × 1040 px |
+
+Le champ mobile reste **optionnel** — sans lui, l'image desktop est réutilisée (recadrée en bande centrale, moins optimal mais jamais vide).
 
 ## 4. Modules fonctionnels
 
