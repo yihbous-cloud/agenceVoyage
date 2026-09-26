@@ -1,16 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Modal from "./Modal";
 import ModuleTile from "./ModuleTile";
 import InfoCard from "./InfoCard";
 import AirportCard from "./AirportCard";
 import HotelsCard from "./HotelsCard";
-import RestaurationCard from "./RestaurationCard";
-import PricingCard from "./PricingCard";
 import TiersCard from "./TiersCard";
-import TripsList from "./TripsList";
 import ProgramFaqManager from "./ProgramFaqManager";
 
 const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
@@ -24,9 +20,7 @@ export default function ProgramManagerGrid({
   defaultHotelIds,
   tripHotelsCount,
   roomsCount,
-  mealOffers,
   tiers,
-  otherTrips,
   faqs,
   canManagePrograms,
   canManageTrips,
@@ -34,15 +28,6 @@ export default function ProgramManagerGrid({
 }) {
   const [openModule, setOpenModule] = useState(null);
   const close = () => setOpenModule(null);
-
-  const lowestPrice = primaryTrip
-    ? Math.min(
-        Number(primaryTrip.price_double),
-        Number(primaryTrip.price_triple),
-        Number(primaryTrip.price_quadruple),
-        Number(primaryTrip.price_quintuple)
-      )
-    : null;
 
   const tiles = [
     {
@@ -67,19 +52,6 @@ export default function ProgramManagerGrid({
       title: "Hôtels",
       subtitle: `${plural(defaultHotelIds.length, "hôtel habituel")} · ${plural(tripHotelsCount, "attaché")}`,
     },
-    {
-      key: "restauration",
-      title: "Restauration",
-      subtitle: plural(mealOffers.length, "offre"),
-    },
-    {
-      key: "pricing",
-      title: "Tarification",
-      subtitle:
-        lowestPrice != null
-          ? `à partir de ${lowestPrice} ${primaryTrip.currency}`
-          : "À compléter",
-    },
     ...(program.family === "omra_hajj"
       ? [
           {
@@ -89,11 +61,6 @@ export default function ProgramManagerGrid({
           },
         ]
       : []),
-    {
-      key: "trips",
-      title: "Voyages supplémentaires",
-      subtitle: plural(otherTrips.length, "voyage"),
-    },
     {
       key: "faq",
       title: "FAQ",
@@ -151,22 +118,6 @@ export default function ProgramManagerGrid({
         </Modal>
       )}
 
-      {openModule === "restauration" && (
-        <Modal title="Restauration" onClose={close}>
-          <RestaurationCard
-            tripId={primaryTrip?.id}
-            initialOffers={mealOffers}
-            canManage={canManageTrips}
-          />
-        </Modal>
-      )}
-
-      {openModule === "pricing" && (
-        <Modal title="Tarification" onClose={close}>
-          <PricingCard trip={primaryTrip} canManage={canManageTrips} onSuccess={close} />
-        </Modal>
-      )}
-
       {openModule === "tiers" && (
         <Modal title="Tarifs d'hébergement" onClose={close}>
           <TiersCard
@@ -175,22 +126,6 @@ export default function ProgramManagerGrid({
             initialTiers={tiers}
             canManage={canManageTrips}
           />
-        </Modal>
-      )}
-
-      {openModule === "trips" && (
-        <Modal title="Voyages supplémentaires" onClose={close}>
-          <div className="space-y-3">
-            {canManageTrips && (
-              <Link
-                href={`/admin/programmes/${programId}/voyages/new`}
-                className="inline-block rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-              >
-                + Nouveau voyage
-              </Link>
-            )}
-            <TripsList trips={otherTrips} airlines={airlines} canManage={canManageTrips} />
-          </div>
         </Modal>
       )}
 

@@ -599,6 +599,17 @@ Jusqu'ici, `getProgramsByFamily`/`getProgramsByDepartureCity` (`lib/programs.js`
 - ⚠️ Conséquence attendue, pas un bug : un programme dont un voyage a un palier de prix encore à 0 (saisie incomplète, ex. `price_quadruple`/`price_quintuple` jamais renseignés) verra ce 0 remonter comme "prix le plus bas" — c'était déjà vrai avant (si ce voyage était le plus proche) mais devient plus fréquent maintenant qu'il suffit qu'**un seul** voyage du programme soit incomplet. Pas de garde-fou ajouté (afficherait un prix incorrect plutôt qu'un 0 visiblement suspect) — à corriger en complétant la saisie du voyage concerné, pas côté code
 - **Vérification** : `next build` réussi ; hub `/omra-hajj`, page pSEO `/villes-depart/casablanca` et fiche `/admin/programmes/[id]` (redirection login propre, aucune erreur serveur) testés en direct — un programme avec un 0.00 MAD repéré et confirmé comme donnée de test incomplète préexistante (voyage à un seul palier de prix non rempli), pas une régression introduite par ce changement
 
+## 3tresquadragies. Retrait des cartes Tarification, Restauration et Voyages supplémentaires
+
+Demande explicite de simplification de `/admin/programmes/[id]` : les tuiles **Tarification** (`PricingCard.jsx`), **Restauration** (`RestaurationCard.jsx`) et **Voyages supplémentaires** (liste `TripsList.jsx` + lien "+ Nouveau voyage") sont retirées de `ProgramManagerGrid.jsx`. Les trois composants n'étaient utilisés que par cette grille (confirmé par recherche dans tout le dépôt) — **fichiers supprimés**, pas seulement masqués.
+
+- **`app/admin/programmes/[id]/page.js`** : ne charge plus `listAllMealOffersForTrip` (fetch devenu inutile) ni ne calcule plus `otherTrips` (filtrage des voyages autres que le principal, devenu inutile) — seuls `tripHotels`/`rooms`/`tiers` restent chargés en plus du programme/voyage principal
+- **Portée volontairement limitée à l'interface admin de cette page** : ni les tables (`trip_meal_offers`, les 4 colonnes `price_double`/etc. sur `trips`), ni les routes API (`app/api/admin/trips/[tripId]/meal-offers`, `app/api/admin/trip-meal-offers/[id]`), ni l'affichage public (`ProgramDetail.jsx` continue d'afficher la section "Restauration" et le prix par voyage si des données existent déjà) ne sont touchés — seuls les points d'entrée d'édition disparaissent de cette page précise
+- **Conséquences pratiques à connaître** :
+  - Le prix d'un voyage (4 paliers par type de chambre + devise) et les offres de restauration ne sont plus modifiables **depuis cette page**. Le prix reste modifiable via la page standalone `/admin/voyages/[tripId]` (`TripForm.jsx`, inchangée, toujours accessible par URL directe, voir §3tretrigies) — les offres de restauration, elles, n'ont plus aucun point d'entrée d'édition dans l'admin (la route API existe toujours, mais plus aucun composant ne l'appelle)
+  - Le lien "+ Nouveau voyage" (`/admin/programmes/[id]/voyages/new`) et la liste des voyages autres que le principal ont disparu de cette page — la route de création reste fonctionnelle par URL directe mais n'est plus reliée nulle part dans l'UI
+- **Vérification** : `next build` réussi (aucun import orphelin) ; redémarrage du serveur de dev (nécessaire — une erreur de cache Turbopack obsolète mentionnant les anciens imports supprimés persistait dans les logs jusqu'au redémarrage, comportement déjà documenté en §3tretrigies) ; `/admin/programmes/[id]` (redirection login propre) et la fiche publique testés en direct, aucune erreur serveur
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
