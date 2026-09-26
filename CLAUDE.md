@@ -670,6 +670,22 @@ Capture d'écran à l'appui : les confirmations de suppression ("Supprimer cet h
 - ⚠️ **`window.alert()` volontairement non touché** (utilisé pour signaler certaines erreurs après une suppression échouée, ex. `AirlinesManager.jsx`, `RolesManager.jsx`, `UtilisateursManager.jsx`, `SlidesManager.jsx`) — hors périmètre de cette demande, qui ciblait spécifiquement les confirmations de suppression visibles sur la capture d'écran fournie, pas tous les dialogues natifs du navigateur
 - **Vérification** : parse Babel/JSX sur les 19 fichiers touchés (17 + les 2 nouveaux) ; `next build` réussi ; redémarrage du serveur de dev ; plusieurs routes parmi les 17 testées en direct (`/admin/slider`, `/admin/hotels`, `/admin/parametres/roles`), redirection login propre, aucune erreur serveur. Aucune connexion admin possible dans cet environnement — le clic réel sur "Supprimer" et l'ouverture de la modale de confirmation n'ont pas pu être vérifiés dans le navigateur pour aucun des 17 fichiers
 
+## 3cinquantequadragies. Hauteur du slider d'accueil réduite, en aperçu de la section suivante
+
+`HeroSlider.jsx` (§3duodecies) avait une hauteur **fixe en pixels** (`h-[620px]`, `sm:h-[680px]`) — sur beaucoup d'écrans courants, cette hauteur dépassait déjà la quasi-totalité du viewport (une fois le header `sticky` déduit), si bien qu'aucune partie de la section suivante n'était visible avant de scroller. Demande explicite : réduire la hauteur, garder la pleine largeur, et laisser dépasser un peu la section suivante.
+
+- **`h-[620px] sm:h-[680px]`** → **`h-[80vh] min-h-[460px]`** — hauteur exprimée en **vh** (pourcentage du viewport) plutôt qu'en pixels fixes, pour que le "petit bout visible de la section suivante" reste présent quelle que soit la hauteur réelle de l'écran (un pixel fixe déborde différemment selon les écrans ; un `vh` laisse toujours ~20% du viewport pour amorcer la section suivante). `min-h-[460px]` évite un slider trop écrasé sur un très petit viewport (mobile en paysage) où le titre/sous-titre/bouton n'auraient plus la place de respirer. Une seule valeur pour tous les breakpoints (plus de variante `sm:`) — le `vh` s'adapte déjà nativement, une valeur différente par breakpoint n'apportait rien
+- Le hero **statique** de repli (`app/(site)/page.js`, affiché seulement si aucune diapositive active n'existe) n'a **pas** été touché : il est dimensionné par son contenu (`py-28`, pas de hauteur fixe/viewport) et n'avait donc jamais ce problème
+- **Vérification en direct** (mesure DOM réelle, pas une estimation) : à 1024×768, hauteur du hero = 614px (80 % de 768), reste visible = 89px avant scroll ; à 1920×1080, hauteur = 864px, reste visible = 151px ; à 375×812 (mobile), le pied de la section suivante ("Catalogue") apparaît bien en bas d'écran malgré un header qui passe sur 3 lignes sur mobile (nav sans menu hamburger, écran étroit) — capture d'écran prise aux trois tailles, `next build` réussi
+
+### Dimensions d'image recommandées pour ce nouveau format
+
+Le composant utilise déjà `next/image` avec `fill` + `object-cover` + `sizes="100vw"` : **une seule image uploadée suffit**, Next.js génère automatiquement les variantes redimensionnées par appareil — pas besoin de préparer plusieurs tailles à la main.
+
+- **Ratio** : le hero à 80vh sur un écran 16:9 (le plus courant) donne un cadrage large d'environ **2.2:1** (proche du "cinémascope") quelle que soit la résolution exacte — une image carrée ou portrait serait très largement rognée sur les côtés
+- **Taille d'export recommandée : 2560 × 1150 px** (ratio ≈ 2.2:1) — confortable pour les grands écrans (jusqu'à un moniteur 1440p) sans excès de poids fichier ; en dessous de **1920 × 864 px**, l'image commencera à être agrandie (perte de netteté) sur les écrans Full HD et plus grands
+- **Composition** : garder le sujet principal / le point d'intérêt **centré horizontalement et verticalement** — sur mobile (portrait), seule une bande verticale étroite au centre de l'image reste visible après recadrage, le reste (gauche/droite) est coupé
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
