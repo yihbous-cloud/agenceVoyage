@@ -26,9 +26,6 @@ const TRAVELER_COUNT_LABELS = {
 export default function NewRegistrationForm({ trips }) {
   const router = useRouter();
   const [tripId, setTripId] = useState("");
-  const [tripHotels, setTripHotels] = useState([]);
-  const [hotelsLoading, setHotelsLoading] = useState(false);
-  const [hotelsError, setHotelsError] = useState(null);
 
   // Type d'inscription : individuel (1 voyageur), binôme (exactement 2,
   // ex. un couple) ou groupe (1 à N, extensible via "+ Ajouter un
@@ -38,10 +35,6 @@ export default function NewRegistrationForm({ trips }) {
   const [groupLabel, setGroupLabel] = useState("");
   const [allowMixedGenderRoom, setAllowMixedGenderRoom] = useState(false);
 
-  // Un voyageur Omra passe par plusieurs villes (Mecque + Médine) : une
-  // préférence d'hôtel par ville plutôt qu'une seule pour tout le voyage
-  // (§3quattuorvicies) — { [ville]: hotelId }.
-  const [hotelPreferencesByCity, setHotelPreferencesByCity] = useState({});
   const [preferredRoomType, setPreferredRoomType] = useState("");
 
   // Tarifs d'hébergement (Omra/Hajj uniquement, voir CLAUDE.md) — un tarif
@@ -57,39 +50,13 @@ export default function NewRegistrationForm({ trips }) {
 
   const selectedTrip = trips.find((t) => String(t.id) === String(tripId));
 
-  const tripHotelsByCity = [];
-  const seenCities = new Map();
-  for (const th of tripHotels) {
-    if (!seenCities.has(th.city)) {
-      seenCities.set(th.city, { city: th.city, items: [] });
-      tripHotelsByCity.push(seenCities.get(th.city));
-    }
-    seenCities.get(th.city).items.push(th);
-  }
-
   const handleTripChange = async (e) => {
     const value = e.target.value;
     setTripId(value);
-    setHotelPreferencesByCity({});
-    setTripHotels([]);
-    setHotelsError(null);
     setTiers([]);
     setTiersError(null);
     setSelectedTierId("");
     if (!value) return;
-    setHotelsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/trips/${value}/hotels`);
-      if (res.ok) {
-        setTripHotels(await res.json());
-      } else {
-        setHotelsError("Impossible de charger les hôtels de ce voyage (erreur serveur).");
-      }
-    } catch {
-      setHotelsError("Impossible de charger les hôtels de ce voyage (connexion).");
-    } finally {
-      setHotelsLoading(false);
-    }
 
     const trip = trips.find((t) => String(t.id) === String(value));
     if (trip?.family === "omra_hajj") {
@@ -181,10 +148,6 @@ export default function NewRegistrationForm({ trips }) {
         }
       }
 
-      const hotelPreferences = Object.entries(hotelPreferencesByCity)
-        .filter(([, hotelId]) => hotelId)
-        .map(([city, hotelId]) => ({ city, hotelId }));
-
       for (const traveler of travelers) {
         const res = await fetch("/api/admin/registrations", {
           method: "POST",
@@ -192,7 +155,6 @@ export default function NewRegistrationForm({ trips }) {
           body: JSON.stringify({
             tripId,
             ...traveler,
-            hotelPreferences,
             preferredRoomType: preferredRoomType || null,
             selectedTierId: selectedTierId || null,
             groupId,
@@ -345,49 +307,6 @@ export default function NewRegistrationForm({ trips }) {
           </p>
         </div>
       )}
-
-      <div>
-        {hotelsLoading && (
-          <p className="text-sm text-zinc-500">Chargement des hôtels du voyage...</p>
-        )}
-        {hotelsError && <p className="text-sm text-red-600">{hotelsError}</p>}
-        {!hotelsLoading && !hotelsError && tripId && tripHotelsByCity.length === 0 && (
-          <p className="text-sm text-zinc-500">
-            Aucun hôtel disponible pour ce voyage — la préférence sera laissée de côté.
-          </p>
-        )}
-        {tripHotelsByCity.length > 0 && (
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: `repeat(${tripHotelsByCity.length}, minmax(0, 1fr))` }}
-          >
-            {tripHotelsByCity.map((group) => (
-              <div key={group.city}>
-                <label className="block text-sm font-medium text-zinc-700">
-                  Hôtel souhaité — {group.city} (optionnel)
-                </label>
-                <select
-                  value={hotelPreferencesByCity[group.city] || ""}
-                  onChange={(e) =>
-                    setHotelPreferencesByCity((prev) => ({
-                      ...prev,
-                      [group.city]: e.target.value,
-                    }))
-                  }
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                >
-                  <option value="">Aucune préférence</option>
-                  {group.items.map((th) => (
-                    <option key={th.hotel_id} value={th.hotel_id}>
-                      {th.hotel_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
