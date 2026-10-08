@@ -7,7 +7,6 @@ import EditTravelerForm from "./EditTravelerForm";
 import EditRegistrationForm from "./EditRegistrationForm";
 import VisaStatusForm from "./VisaStatusForm";
 import StatusNotesForm from "./StatusNotesForm";
-import GroupDueForm from "@/app/admin/groupes/[id]/GroupDueForm";
 import PaymentsSection from "./PaymentsSection";
 import { REGISTRATION_STATUS, VISA_STATUS, formatMoney } from "@/app/admin/_components/statusStyles";
 
@@ -28,6 +27,8 @@ export default function InscriptionManagerGrid({
   canManagePayments,
   canEditFinance,
   canEditVisa,
+  canAdminDiscount = false,
+  discountCap = null,
 }) {
   const [openModule, setOpenModule] = useState(null);
   const close = () => setOpenModule(null);
@@ -128,15 +129,12 @@ export default function InscriptionManagerGrid({
               tiers={tiers}
               initialMode={initialMode}
               showStatusAndNotes={false}
+              canAdminDiscount={canAdminDiscount}
+              discountCap={discountCap}
             />
 
             <div className="space-y-4 border-t border-zinc-200 pt-4">
-              <GroupDueForm
-                apiBasePath={apiBasePath}
-                totalDue={registration.total_due}
-                canManage={canEditFinance}
-                label="Montant dû (MAD)"
-              />
+              {/* Montant dû = formule − réduction (carte ci-dessus), plus saisi à la main. */}
               <PaymentsSection
                 apiBasePath={apiBasePath}
                 payments={payments}

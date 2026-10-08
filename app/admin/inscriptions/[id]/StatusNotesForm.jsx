@@ -8,7 +8,7 @@ const STATUS_OPTIONS = ["inscrit", "confirme", "paye_partiel", "paye_complet", "
 // Statut : "toujours modifiable" — jamais soumis au cycle Afficher/Modifier
 // du reste de la carte "Hébergement et Paiement" (§3soixantetroisquadragies)
 // — ET actualisé automatiquement depuis les paiements
-// (lib/payments.js::recalculateRegistrationStatus : partiel/complet/annulé
+// (lib/paymentStatus.js::computePaymentStatus : partiel/complet/annulé
 // si remboursement total). Le useEffect resynchronise la valeur affichée à
 // chaque nouvelle valeur reçue du serveur (après un ajout/suppression de
 // paiement dans la même modale), sans empêcher une correction manuelle

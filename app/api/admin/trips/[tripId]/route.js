@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getTripFullById, updateTrip, deleteTrip } from "@/lib/programsAdmin";
 import { withNotFound } from "@/lib/apiGuard";
+import { getTripDiscountCap } from "@/lib/registrationPricing";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -14,6 +15,7 @@ async function GET_handler(request, { params }) {
   if (!trip) {
     return NextResponse.json({ message: "Voyage introuvable" }, { status: 404 });
   }
+  if (await hasPermission(session, "remises.admin")) trip.discount_cap = await getTripDiscountCap(tripId);
   return NextResponse.json(trip);
 }
 
@@ -38,6 +40,11 @@ async function PUT_handler(request, { params }) {
       { message: "referenceCode, departureDate et returnDate ne peuvent pas être vides" },
       { status: 400 }
     );
+  }
+
+  // Plafond de réduction : fixé et vu par l'administrateur seulement.
+  if (body.discountCap !== undefined && !(await hasPermission(session, "remises.admin"))) {
+    return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 
   try {

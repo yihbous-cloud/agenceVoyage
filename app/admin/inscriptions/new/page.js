@@ -1,5 +1,8 @@
 import { listOpenTripsForSelect } from "@/lib/registrations";
 import NewRegistrationForm from "./NewRegistrationForm";
+import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/permissions";
+import { getTripDiscountCap } from "@/lib/registrationPricing";
 
 // ?tripId=X (bouton « Inscrire » d'un départ) ou ?programId=Y (bouton
 // « Inscrire » d'un programme : son prochain voyage ouvert) pré-sélectionnent
@@ -23,11 +26,22 @@ export default async function NewRegistrationPage({ searchParams }) {
   const params = await searchParams;
   const trips = await listOpenTripsForSelect();
   const initialTripId = pickInitialTrip(trips, { tripId: params?.tripId, programId: params?.programId });
+  // Plafonds de réduction : transmis pour l'administrateur seulement.
+  const canAdminDiscount = await hasPermission(await getSession(), "remises.admin");
+  const discountCaps = {};
+  if (canAdminDiscount) {
+    for (const t of trips) discountCaps[t.id] = await getTripDiscountCap(t.id);
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold text-zinc-900">Nouvelle inscription</h1>
-      <NewRegistrationForm trips={trips} initialTripId={initialTripId} />
+      <NewRegistrationForm
+        trips={trips}
+        initialTripId={initialTripId}
+        canAdminDiscount={canAdminDiscount}
+        discountCaps={discountCaps}
+      />
     </div>
   );
 }

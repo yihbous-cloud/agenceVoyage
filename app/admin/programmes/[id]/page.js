@@ -10,6 +10,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listExpensesForTrip } from "@/lib/tripExpenses";
 import ProgramManagerGrid from "./ProgramManagerGrid";
+import { getTripDiscountCap } from "@/lib/registrationPricing";
 
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
@@ -52,6 +53,9 @@ export default async function ProgramDetailPage({ params }) {
   const showCharges = Boolean(primaryTrip) && (canViewCharges || canManageCharges);
   const expenses = showCharges ? await listExpensesForTrip(primaryTrip.id) : [];
   const canManageInfo = canManagePrograms && canManageTrips;
+  // Plafond de réduction : chargé et transmis pour l'administrateur seulement.
+  const canAdminDiscount = await hasPermission(session, "remises.admin");
+  const discountCap = canAdminDiscount && primaryTrip ? await getTripDiscountCap(primaryTrip.id) : null;
 
   return (
     <div className="space-y-6">
@@ -75,6 +79,8 @@ export default async function ProgramDetailPage({ params }) {
         showCharges={showCharges}
         canManageCharges={canManageCharges}
         expenses={expenses}
+        canAdminDiscount={canAdminDiscount}
+        discountCap={discountCap}
       />
     </div>
   );

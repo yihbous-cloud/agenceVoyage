@@ -178,6 +178,8 @@ CREATE TABLE trips (
     price_triple DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Prix par personne en chambre triple (migration 019)',
     price_quadruple DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Prix par personne en chambre quadruple (migration 019)',
     price_quintuple DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Prix par personne en chambre quintuple — le plus bas, prix affiché au public (migration 019)',
+    price_flight_only DECIMAL(10,2) NULL COMMENT 'Prix par personne du billet seul ; hébergement seul = prix complet - ce prix (migration 042)',
+    discount_cap DECIMAL(10,2) NULL COMMENT 'Plafond de réduction (MAD) par voyageur, visible par l''administrateur seulement (migration 042)',
     flight_ticket_price DECIMAL(10,2) NULL COMMENT 'DEPRECIEE (migration 018) — prix désormais inclus dans price_per_person, conservée pour l''historique mais plus alimentée',
     currency CHAR(3) NOT NULL DEFAULT 'MAD',
     status ENUM('planifie', 'ouvert', 'complet', 'en_cours', 'termine', 'annule') NOT NULL DEFAULT 'planifie',
@@ -387,6 +389,15 @@ CREATE TABLE registrations (
     preferred_hotel_id BIGINT UNSIGNED NULL COMMENT 'DEPRECIEE (migration 010) — remplacée par registration_hotel_preferences (une préférence par ville, migration 015), conservée pour l’historique mais plus alimentée',
     preferred_room_type ENUM('simple', 'double', 'triple', 'quadruple', 'quintuple') NULL COMMENT 'type de chambre souhaité par le voyageur',
     selected_tier_id BIGINT UNSIGNED NULL COMMENT 'Tarif d''hébergement choisi (trip_hotel_tiers), NULL = prix plat du voyage (migration 021)',
+    package_type ENUM('complet', 'vol_seul', 'hebergement_seul') NOT NULL DEFAULT 'complet' COMMENT 'Formule achetée (migration 042)',
+    base_price DECIMAL(10,2) NULL COMMENT 'Prix de la formule avant réduction (migration 042)',
+    discount_type ENUM('aucune', 'montant', 'pourcentage', 'gratuite') NOT NULL DEFAULT 'aucune',
+    discount_value DECIMAL(10,2) NULL,
+    discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Réduction effective en MAD',
+    discount_reason VARCHAR(40) NULL,
+    discount_note VARCHAR(255) NULL,
+    discount_by_staff_id BIGINT UNSIGNED NULL,
+    discount_at DATETIME NULL,
     group_id BIGINT UNSIGNED NULL COMMENT 'groupe d’inscription (binôme/famille/groupe), voir registration_groups',
     visa_status ENUM('non_demande', 'en_cours', 'accorde', 'refuse') NOT NULL DEFAULT 'non_demande',
     total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'montant total dû pour cette inscription',
@@ -398,6 +409,7 @@ CREATE TABLE registrations (
     FOREIGN KEY (room_id) REFERENCES rooms(id),
     FOREIGN KEY (preferred_hotel_id) REFERENCES hotels(id),
     FOREIGN KEY (selected_tier_id) REFERENCES trip_hotel_tiers(id),
+    CONSTRAINT fk_registrations_discount_by FOREIGN KEY (discount_by_staff_id) REFERENCES staff_users(id) ON DELETE SET NULL,
     FOREIGN KEY (group_id) REFERENCES registration_groups(id),
     UNIQUE KEY uq_traveler_per_trip (trip_id, traveler_id),
     INDEX idx_reg_status (status),
@@ -804,7 +816,8 @@ FROM registrations reg
 JOIN trips t     ON t.id = reg.trip_id
 JOIN travelers tr ON tr.id = reg.traveler_id
 LEFT JOIN airlines a ON a.id = t.airline_id
-WHERE reg.status IN ('confirme', 'paye_partiel', 'paye_complet');
+WHERE reg.status IN ('confirme', 'paye_partiel', 'paye_complet')
+  AND reg.package_type != 'hebergement_seul'; -- sans billet : pas sur la liste compagnie (migration 042)
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -1957,3 +1970,7 @@ ALTER TABLE staff_users
   ADD COLUMN reviewed_at DATETIME NULL AFTER reviewed_by_staff_id,
   ADD KEY idx_staff_users_approval (agency_id, approval_status),
   ADD CONSTRAINT fk_staff_users_reviewer FOREIGN KEY (reviewed_by_staff_id) REFERENCES staff_users(id) ON DELETE SET NULL;
+
+-- Migration 042 : réductions / gratuités
+INSERT INTO permissions (code, label, category, sort_order) VALUES
+    ('remises.admin', 'Fixer le plafond de réduction, accorder des réductions au-delà et les gratuités', 'Paiements & finances', 50);

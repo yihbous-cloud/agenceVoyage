@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BOOKABLE_ROOM_TYPES, pickTripPrice, pickTierPrice } from "@/lib/roomTypes";
+import PricingFields, { EMPTY_PRICING, pricingPayload } from "../PricingFields";
 import TravelerFields from "./TravelerFields";
 import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
@@ -27,7 +28,7 @@ const TRAVELER_COUNT_LABELS = {
   binome: ["Premier voyageur", "Deuxième voyageur"],
 };
 
-export default function NewRegistrationForm({ trips, initialTripId = null }) {
+export default function NewRegistrationForm({ trips, initialTripId = null, canAdminDiscount = false, discountCaps = {} }) {
   const router = useRouter();
   const { tr } = useAdminLocale();
   // Voyage pré-sélectionné depuis un bouton « Inscrire » (tableau de bord,
@@ -53,6 +54,9 @@ export default function NewRegistrationForm({ trips, initialTripId = null }) {
   );
   const [tiersError, setTiersError] = useState(null);
   const [selectedTierId, setSelectedTierId] = useState("");
+  // Formule (complet / vol seul / hébergement seul) et réduction, appliquées
+  // à chaque voyageur créé (lib/registrationPricing.js contrôle le plafond).
+  const [pricing, setPricing] = useState(EMPTY_PRICING);
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -167,19 +171,8 @@ export default function NewRegistrationForm({ trips, initialTripId = null }) {
         }
         groupId = groupData.id;
 
-        // Montant dû par défaut = prix du tarif choisi (ou du voyage selon
-        // le type de chambre demandé, sinon le plus bas) × nombre de
-        // voyageurs, pour ne pas partir de 0 — reste modifiable ensuite
-        // (page du groupe).
-        if (selectedTrip) {
-          await fetch(`/api/admin/groups/${groupId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              totalDue: unitPrice * travelers.length,
-            }),
-          });
-        }
+        // Montant dû du groupe : recalculé côté serveur à chaque membre
+        // créé (somme des nets formule − réduction, recalculateGroupTotalDue).
       }
 
       for (const traveler of travelers) {
@@ -191,6 +184,7 @@ export default function NewRegistrationForm({ trips, initialTripId = null }) {
             ...traveler,
             preferredRoomType: preferredRoomType || null,
             selectedTierId: selectedTierId || null,
+            ...pricingPayload(pricing),
             groupId,
           }),
         });
@@ -397,6 +391,18 @@ export default function NewRegistrationForm({ trips, initialTripId = null }) {
           </p>
         )}
       </div>
+
+      {selectedTrip && (
+        <PricingFields
+          value={pricing}
+          onChange={setPricing}
+          fullPrice={unitPrice}
+          flightOnlyPrice={selectedTrip.price_flight_only}
+          canAdminDiscount={canAdminDiscount}
+          discountCap={canAdminDiscount ? discountCaps[selectedTrip.id] ?? null : null}
+          travelersCount={travelers.length}
+        />
+      )}
 
       <div className="space-y-4">
         {travelers.map((traveler, index) => (

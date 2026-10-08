@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { listTiersForTrip } from "@/lib/tripHotelTiers";
 import { listPhoneNumbersForTraveler } from "@/lib/travelerPhoneNumbers";
 import GroupManagerGrid from "./GroupManagerGrid";
+import { getTripDiscountCap } from "@/lib/registrationPricing";
 
 // §3cinquantehuitquadragies : le traitement d'un membre de groupe (statut,
 // visa, préférence d'hébergement/tarif, notes, montant dû) se fait
@@ -43,6 +44,9 @@ export default async function GroupDetailPage({ params, searchParams }) {
   // §3undecies. Le statut visa reste individuel par voyageur même au sein
   // d'un groupe (§3trevicies), donc un VisaStatusForm par membre ici.
   const canEditVisa = ["direction", "suivi"].includes(session?.role);
+  // Plafond de réduction : chargé et transmis pour l'administrateur seulement.
+  const canAdminDiscount = await hasPermission(session, "remises.admin");
+  const discountCap = canAdminDiscount ? await getTripDiscountCap(group.trip_id) : null;
 
   // Carte "Informations Voyageurs" par membre (§3soixantehuitquadragies) :
   // departure_date (validation passeport) vient du groupe — tous les
@@ -86,6 +90,8 @@ export default async function GroupDetailPage({ params, searchParams }) {
         canManagePayments={canManagePayments}
         payments={payments}
         apiBasePath={`/api/admin/groups/${group.id}`}
+        canAdminDiscount={canAdminDiscount}
+        discountCap={discountCap}
       />
     </div>
   );

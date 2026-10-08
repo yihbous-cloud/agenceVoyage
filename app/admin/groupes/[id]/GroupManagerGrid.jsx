@@ -7,7 +7,7 @@ import EditTravelerForm from "../../inscriptions/[id]/EditTravelerForm";
 import EditRegistrationForm from "../../inscriptions/[id]/EditRegistrationForm";
 import VisaStatusForm from "../../inscriptions/[id]/VisaStatusForm";
 import PaymentsSection from "../../inscriptions/[id]/PaymentsSection";
-import GroupDueForm from "./GroupDueForm";
+import { formatMoney } from "@/app/admin/_components/statusStyles";
 import AddGroupMemberForm from "./AddGroupMemberForm";
 import GroupResponsibleForm from "./GroupResponsibleForm";
 
@@ -31,6 +31,8 @@ export default function GroupManagerGrid({
   canManagePayments,
   payments,
   apiBasePath,
+  canAdminDiscount = false,
+  discountCap = null,
 }) {
   const [openModule, setOpenModule] = useState(null);
   const close = () => setOpenModule(null);
@@ -144,6 +146,8 @@ export default function GroupManagerGrid({
                   tiers={tiers}
                   initialMode={initialMode}
                   stayOnPage
+                  canAdminDiscount={canAdminDiscount}
+                  discountCap={discountCap}
                 />
               </div>
             ))}
@@ -153,12 +157,13 @@ export default function GroupManagerGrid({
                 Montant dû et versements partagés par tout le groupe — pas un montant par
                 personne.
               </p>
-              <GroupDueForm
-                apiBasePath={apiBasePath}
-                totalDue={group.total_due}
-                canManage={canManagePayments}
-                label="Montant dû du groupe (MAD)"
-              />
+              {/* Montant dû du groupe = somme des nets (formule − réduction) de
+                  chaque membre actif, recalculé automatiquement. */}
+              <p className="text-sm">
+                <span className="text-zinc-500">Montant dû du groupe : </span>
+                <span className="font-semibold">{formatMoney(group.total_due)} MAD</span>
+                <span className="text-xs text-zinc-500"> — somme des montants nets de chaque membre</span>
+              </p>
               <PaymentsSection
                 apiBasePath={apiBasePath}
                 payments={payments}

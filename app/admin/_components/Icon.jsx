@@ -98,6 +98,7 @@ export const ADMIN_ICON_NAMES = [
   "schedule",
   "science",
   "search",
+  "sell",
   "send",
   "settings",
   "shield",

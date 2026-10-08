@@ -101,8 +101,9 @@ export default async function FinancesPage({ searchParams }) {
       due: acc.due + Number(t.total_due),
       paid: acc.paid + Number(t.total_paid),
       balance: acc.balance + Number(t.balance_due),
+      discount: acc.discount + Number(t.total_discount || 0),
     }),
-    { due: 0, paid: 0, balance: 0 }
+    { due: 0, paid: 0, balance: 0, discount: 0 }
   );
 
   // Ventes de billets hors programme (migration 037) — ticket_sales.manage ;
@@ -180,6 +181,7 @@ export default async function FinancesPage({ searchParams }) {
                 <th className="px-4 py-3">Référence</th>
                 <th className="px-4 py-3">Départ</th>
                 <th className="px-4 py-3">Inscrits</th>
+                <th className="px-4 py-3">Réductions</th>
                 <th className="px-4 py-3">Dû</th>
                 <th className="px-4 py-3">Payé</th>
                 <th className="px-4 py-3">Solde</th>
@@ -206,6 +208,14 @@ export default async function FinancesPage({ searchParams }) {
                     {new Date(t.departure_date).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3">{t.registrations_count}</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    {Number(t.total_discount) > 0 ? `− ${money(t.total_discount)} MAD` : "—"}
+                    {Number(t.free_count) > 0 && (
+                      <div className="text-xs text-zinc-500">
+                        {t.free_count} gratuit(s)
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{money(t.total_due)} MAD</td>
                   <td className="px-4 py-3 text-emerald-700">{money(t.total_paid)} MAD</td>
                   <td className={`px-4 py-3 ${t.balance_due > 0 ? "text-red-600" : ""}`}>
@@ -215,7 +225,7 @@ export default async function FinancesPage({ searchParams }) {
               ))}
               {byTrip.length === 0 && (
                 <tr>
-                  <td className="px-4 py-3 text-zinc-500" colSpan={7}>
+                  <td className="px-4 py-3 text-zinc-500" colSpan={8}>
                     Aucun voyage.
                   </td>
                 </tr>
@@ -226,6 +236,9 @@ export default async function FinancesPage({ searchParams }) {
                 <tr className="border-t border-zinc-200 font-semibold">
                   <td className="px-4 py-3" colSpan={4}>
                     Total
+                  </td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    {byTripTotals.discount > 0 ? `− ${money(byTripTotals.discount)} MAD` : "—"}
                   </td>
                   <td className="px-4 py-3">{money(byTripTotals.due)} MAD</td>
                   <td className="px-4 py-3 text-emerald-700">

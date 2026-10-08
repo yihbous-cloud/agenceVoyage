@@ -58,11 +58,19 @@ async function POST_handler(request) {
     const result = await createRegistration({
       ...body,
       registeredByStaffId: session.id,
+      // Jamais pris du corps de la requête : décidé par la permission.
+      canAdminDiscount: await hasPermission(session, "remises.admin"),
     });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {
       return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
+    if (err?.code === "DISCOUNT_INVALID") {
+      return NextResponse.json({ message: err.message }, { status: 400 });
+    }
+    if (err?.code === "DISCOUNT_FORBIDDEN") {
+      return NextResponse.json({ message: err.message }, { status: 403 });
     }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(

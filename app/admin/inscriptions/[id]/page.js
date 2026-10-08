@@ -12,6 +12,7 @@ import { getFlightBookingForRegistration } from "@/lib/flightBookings";
 import { listTiersForTrip } from "@/lib/tripHotelTiers";
 import { listPhoneNumbersForTraveler } from "@/lib/travelerPhoneNumbers";
 import InscriptionManagerGrid from "./InscriptionManagerGrid";
+import { getTripDiscountCap } from "@/lib/registrationPricing";
 import Icon from "../../_components/Icon";
 import { REGISTRATION_STATUS, VISA_STATUS, initialsOf } from "../../_components/statusStyles";
 
@@ -56,6 +57,9 @@ export default async function RegistrationDetailPage({ params, searchParams }) {
     hasPermission(session, "paiements.manage"),
     hasPermission(session, "inscriptions.delete"),
   ]);
+  // Plafond de réduction : chargé et transmis pour l'administrateur seulement.
+  const canAdminDiscount = await hasPermission(session, "remises.admin");
+  const discountCap = canAdminDiscount ? await getTripDiscountCap(registration.trip_id) : null;
 
   // canEditVisa/canEditFinance : restrictions fines par champ sur le rôle
   // brut, pas le système de permissions dynamique (même exception assumée
@@ -226,6 +230,8 @@ export default async function RegistrationDetailPage({ params, searchParams }) {
         canManagePayments={canManagePayments}
         canEditFinance={canEditFinance}
         canEditVisa={canEditVisa}
+        canAdminDiscount={canAdminDiscount}
+        discountCap={discountCap}
       />
     </div>
   );

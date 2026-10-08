@@ -15,11 +15,11 @@ async function PUT_handler(request, { params }) {
 
   // comptabilité et suivi ne peuvent modifier que certains champs
   if (session.role === "comptabilite") {
-    const allowed = ["totalDue"];
+    const allowed = ["totalDue", "packageType", "discountType", "discountValue", "discountReason", "discountNote"];
     const attempted = Object.keys(body);
     if (attempted.some((key) => !allowed.includes(key))) {
       return NextResponse.json(
-        { message: "Le rôle comptabilité ne peut modifier que le montant dû" },
+        { message: "Le rôle comptabilité ne peut modifier que le montant dû, la formule et la réduction" },
         { status: 403 }
       );
     }
@@ -43,11 +43,25 @@ async function PUT_handler(request, { params }) {
   }
 
   try {
-    const updated = await updateRegistration(id, body);
+    // Jamais pris du corps de la requête : décidés par la session.
+    const payload = { ...body };
+    delete payload.canAdminDiscount;
+    delete payload.staffId;
+    const updated = await updateRegistration(id, {
+      ...payload,
+      staffId: session.id,
+      canAdminDiscount: await hasPermission(session, "remises.admin"),
+    });
     return NextResponse.json(updated);
   } catch (err) {
     if (err?.code === "NOT_FOUND") {
       return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
+    if (err?.code === "DISCOUNT_INVALID") {
+      return NextResponse.json({ message: err.message }, { status: 400 });
+    }
+    if (err?.code === "DISCOUNT_FORBIDDEN") {
+      return NextResponse.json({ message: err.message }, { status: 403 });
     }
     if (err.code === "ER_WARN_DATA_OUT_OF_RANGE" || err.code === "ER_TRUNCATED_WRONG_VALUE") {
       return NextResponse.json(

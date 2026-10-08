@@ -9,6 +9,7 @@ import HotelsCard from "./HotelsCard";
 import TiersCard from "./TiersCard";
 import ProgramFaqManager from "./ProgramFaqManager";
 import ExpensesCard from "./ExpensesCard";
+import PackagesCard from "./PackagesCard";
 import { summarizeExpenses } from "@/lib/expenseState";
 import { formatMoney } from "@/app/admin/_components/statusStyles";
 import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
@@ -31,6 +32,8 @@ export default function ProgramManagerGrid({
   showCharges = false,
   canManageCharges = false,
   expenses = [],
+  canAdminDiscount = false,
+  discountCap = null,
 }) {
   const { tr } = useAdminLocale();
   const plural = (n, one, other) => tr.plural(`{count} ${one}`, `{count} ${other}`, n);
@@ -102,6 +105,24 @@ export default function ProgramManagerGrid({
           })(),
         ]
       : []),
+    ...(primaryTrip
+      ? [
+          {
+            key: "packages",
+            icon: "redeem",
+            title: "Formules et réductions",
+            subtitle:
+              Number(primaryTrip.price_flight_only) > 0
+                ? tr("Billet seul : {amount}", { amount: `${formatMoney(primaryTrip.price_flight_only)} ${tr("MAD")}` })
+                : "Prix billet seul à renseigner",
+            meta: canAdminDiscount
+              ? discountCap === null
+                ? "Plafond de réduction non défini"
+                : tr("Plafond : {amount}", { amount: `${formatMoney(discountCap)} ${tr("MAD")}` })
+              : null,
+          },
+        ]
+      : []),
     {
       key: "faq",
       icon: "help",
@@ -124,6 +145,19 @@ export default function ProgramManagerGrid({
           />
         ))}
       </div>
+
+      {openModule === "packages" && (
+        <Modal title="Formules et réductions" onClose={close}>
+          <PackagesCard
+            tripId={primaryTrip?.id}
+            priceFlightOnly={primaryTrip?.price_flight_only}
+            canManage={canManageTrips}
+            canAdminDiscount={canAdminDiscount}
+            discountCap={discountCap}
+            onSuccess={close}
+          />
+        </Modal>
+      )}
 
       {openModule === "charges" && (
         <Modal title="Charges financières" onClose={close} size="lg">

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
+import { BOOKABLE_ROOM_TYPES, pickTripPrice, pickTierPrice } from "@/lib/roomTypes";
+import PricingFields, { pricingFromRegistration, pricingPayload } from "@/app/admin/inscriptions/PricingFields";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
 import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
@@ -29,6 +30,8 @@ export default function EditRegistrationForm({
   initialMode = "view",
   stayOnPage = false,
   showStatusAndNotes = true,
+  canAdminDiscount = false,
+  discountCap = null,
   onSuccess,
 }) {
   const router = useRouter();
@@ -61,6 +64,13 @@ export default function EditRegistrationForm({
   const [confirm, confirmDialog] = useConfirm();
 
   const canEditStatus = ["direction", "ventes"].includes(role);
+  // Formule / réduction : aussi la comptabilité (lib/registrationPricing.js
+  // contrôle le plafond et la gratuité côté serveur).
+  const canEditPricing = ["direction", "ventes", "comptabilite"].includes(role);
+  const [pricing, setPricing] = useState(() => pricingFromRegistration(registration));
+  const selectedTier = tiers.find((t) => String(t.id) === String(selectedTierId));
+  const tierPrice = selectedTier ? pickTierPrice(selectedTier.prices, preferredRoomType) : null;
+  const fullPrice = tierPrice ?? (registration.price_double !== undefined ? pickTripPrice(registration, preferredRoomType) : 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,6 +104,7 @@ export default function EditRegistrationForm({
           payload.groupId = null;
         }
       }
+      if (canEditPricing) Object.assign(payload, pricingPayload(pricing));
       if (showStatusAndNotes) payload.notes = notes;
 
       const res = await fetch(`/api/admin/registrations/${registration.id}`, {
@@ -206,6 +217,19 @@ export default function EditRegistrationForm({
             </select>
           </div>
         </div>
+      )}
+
+      {canEditPricing && (
+        <PricingFields
+          value={pricing}
+          onChange={setPricing}
+          disabled={formLocked}
+          fullPrice={fullPrice}
+          flightOnlyPrice={registration.price_flight_only}
+          canAdminDiscount={canAdminDiscount}
+          discountCap={discountCap}
+          currentDue={registration.group_id ? null : registration.total_due}
+        />
       )}
 
       {canEditStatus && (

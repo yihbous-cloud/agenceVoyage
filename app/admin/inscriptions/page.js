@@ -8,6 +8,7 @@ import PageHeader from "../_components/PageHeader";
 import { AccordionGroup, AccordionItem } from "./ProgramAccordion";
 import { listOutstandingCredits } from "@/lib/credits";
 import { isTripArchived } from "@/lib/tripArchive";
+import { DISCOUNT_REASON_LABELS } from "@/lib/roomTypes";
 
 const STATUS_LABELS = {
   inscrit: "Inscrit",
@@ -113,18 +114,11 @@ export default async function InscriptionsPage({ searchParams }) {
     section.rows.push(reg);
   }
 
-  // Section ouverte par défaut : le voyage filtré s'il y en a un, sinon le
-  // prochain départ à venir, sinon la première section.
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const upcoming = tripSections
-    .filter((sec) => String(sec.departureDate).slice(0, 10) >= today)
-    .sort((a, b) => String(a.departureDate).localeCompare(String(b.departureDate)))[0];
+  // Toutes les sections sont fermées à l'ouverture de la page ; seule exception :
+  // un lien qui cible un voyage précis (?tripId=, ex. depuis le tableau de bord)
+  // ouvre directement ce voyage.
   const defaultOpenTripId =
-    (tripId && tripSections.find((sec) => String(sec.tripId) === String(tripId))?.tripId) ||
-    upcoming?.tripId ||
-    tripSections[0]?.tripId ||
-    null;
+    (tripId && tripSections.find((sec) => String(sec.tripId) === String(tripId))?.tripId) || null;
   const countIn = (section, key) => section.rows.filter((r) => r.status === key).length;
   const pillOf = (key) => ({ bg: STATUS_PILLS[key][0], fg: STATUS_PILLS[key][1] });
 
@@ -317,6 +311,19 @@ export default async function InscriptionsPage({ searchParams }) {
           stats={[
             { label: "Payé complet", value: countIn(section, "paye_complet"), ...pillOf("paye_complet") },
             { label: "Payé partiel", value: countIn(section, "paye_partiel"), ...pillOf("paye_partiel") },
+            // Avantages tarifaires repérables dès l'en-tête du programme.
+            {
+              label: "Gratuits",
+              value: section.rows.filter((r) => r.discount_type === "gratuite").length,
+              bg: "#efe9fb",
+              fg: "#6b3fc4",
+            },
+            {
+              label: "Réductions",
+              value: section.rows.filter((r) => r.discount_type === "montant" || r.discount_type === "pourcentage").length,
+              bg: "#fdf0e6",
+              fg: "#b4541a",
+            },
           ]}
         >
           <div className="overflow-x-auto">
@@ -358,6 +365,40 @@ export default async function InscriptionsPage({ searchParams }) {
                             >
                               <span translate="no">{reg.group_label}</span>
                             </Link>
+                          )}
+                          {reg.discount_type === "gratuite" && (
+                            <span
+                              className="gf-pill"
+                              style={{ background: "#efe9fb", color: "#6b3fc4", gap: 4 }}
+                              title={DISCOUNT_REASON_LABELS[reg.discount_reason] || undefined}
+                            >
+                              <Icon name="redeem" size={14} />
+                              Gratuit
+                            </span>
+                          )}
+                          {(reg.discount_type === "montant" || reg.discount_type === "pourcentage") && (
+                            <span
+                              className="gf-pill"
+                              style={{ background: "#fdf0e6", color: "#b4541a", gap: 4 }}
+                              title={DISCOUNT_REASON_LABELS[reg.discount_reason] || undefined}
+                            >
+                              <Icon name="sell" size={14} />
+                              <span translate="no" dir="ltr">
+                                {reg.discount_type === "pourcentage"
+                                  ? `−${Number(reg.discount_value)} %`
+                                  : `−${formatAmount(reg.discount_amount)} MAD`}
+                              </span>
+                            </span>
+                          )}
+                          {reg.package_type === "vol_seul" && (
+                            <span className="gf-pill" style={{ background: "#e8f0fd", color: "#2b5cc4" }}>
+                              Vol seul
+                            </span>
+                          )}
+                          {reg.package_type === "hebergement_seul" && (
+                            <span className="gf-pill" style={{ background: "#fff4e0", color: "#a35a00" }}>
+                              Hébergement seul
+                            </span>
                           )}
                         </div>
                       </td>
