@@ -859,60 +859,95 @@ INSERT IGNORE INTO agencies (id, name, subdomain) VALUES (1, 'Golden Fantastic',
 
 -- --- agency_id sur les tables métier -------------------------------------
 
-ALTER TABLE programs ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE programs ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_programs_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE trips ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE trips ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_trips_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE program_faqs ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE program_faqs ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_program_faqs_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_hotels_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE program_hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE program_hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_program_hotels_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE trip_hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE trip_hotels ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_trip_hotels_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE rooms ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE rooms ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_rooms_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE travelers ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE travelers ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_travelers_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE registration_groups ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE registration_groups ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_registration_groups_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE registrations ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE registrations ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_registrations_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE registration_hotel_preferences ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE registration_hotel_preferences ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_registration_hotel_preferences_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE payments ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE payments ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_payments_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE visa_types ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE visa_types ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_visa_types_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE visa_type_documents ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE visa_type_documents ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_visa_type_documents_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE visa_service_requests ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE visa_service_requests ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_visa_service_requests_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE visa_service_documents ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE visa_service_documents ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_visa_service_documents_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE airlines ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE airlines ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_airlines_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE staff_users ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE staff_users ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_staff_users_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE roles ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE roles ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_roles_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE slides ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE slides ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_slides_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE news_posts ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE news_posts ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_news_posts_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE contact_messages ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE contact_messages ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_contact_messages_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE whatsapp_qa_templates ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE whatsapp_qa_templates ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_whatsapp_qa_templates_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE whatsapp_reminders ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE whatsapp_reminders ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_whatsapp_reminders_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE whatsapp_messages_log ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE whatsapp_messages_log ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_whatsapp_messages_log_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE flight_bookings ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE flight_bookings ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_flight_bookings_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
-ALTER TABLE flight_booking_passengers ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL,
+ALTER TABLE flight_booking_passengers ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
   ADD CONSTRAINT fk_flight_booking_passengers_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
+-- Migration 031 : le catalogue de services devient propre à chaque agence.
+ALTER TABLE services ADD COLUMN agency_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+  ADD CONSTRAINT fk_services_agency FOREIGN KEY (agency_id) REFERENCES agencies(id);
+
+-- Le DEFAULT 1 ci-dessus ne sert qu'aux lignes déjà semées plus haut
+-- (rôles, compagnies...) : il est retiré aussitôt, comme en migration 033 —
+-- un INSERT qui oublie l'agence doit échouer, pas tomber sur l'agence 1.
+ALTER TABLE programs ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE trips ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE program_faqs ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE hotels ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE program_hotels ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE trip_hotels ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE rooms ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE travelers ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE registration_groups ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE registrations ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE registration_hotel_preferences ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE payments ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE visa_types ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE visa_type_documents ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE visa_service_requests ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE visa_service_documents ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE airlines ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE staff_users ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE roles ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE slides ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE news_posts ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE contact_messages ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE whatsapp_qa_templates ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE whatsapp_reminders ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE whatsapp_messages_log ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE flight_bookings ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE flight_booking_passengers ALTER COLUMN agency_id DROP DEFAULT;
+ALTER TABLE services ALTER COLUMN agency_id DROP DEFAULT;
 
 -- --- Rôles : id élargi (4 rôles de base × N agences dépasserait tinyint) ---
 
