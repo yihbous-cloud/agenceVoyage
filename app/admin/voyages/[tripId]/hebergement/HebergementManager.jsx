@@ -4,14 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROOM_TYPE_CAPACITY, BOOKABLE_ROOM_TYPES } from "@/lib/roomTypes";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import TransferModal from "./TransferModal";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
 // Bulle d'erreur ancrée sous un champ de date, dans le style de la
 // validation native du navigateur (fond blanc, icône orange, petit triangle
 // pointant vers le champ) — le parent doit être en `position: relative`.
 function ErrorBubble({ message }) {
   return (
-    <div className="absolute left-0 top-full z-10 mt-2 w-72 max-w-[80vw]">
-      <div className="absolute -top-1.5 left-4 h-3 w-3 rotate-45 border-l border-t border-zinc-300 bg-white" />
+    <div className="absolute start-0 top-full z-10 mt-2 w-72 max-w-[80vw]">
+      <div className="absolute -top-1.5 start-4 h-3 w-3 rotate-45 border-s border-t border-zinc-300 bg-white" />
       <div className="relative flex items-start gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 shadow-lg">
         <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-sm bg-orange-500 text-xs font-bold text-white">
           !
@@ -31,10 +33,13 @@ export default function HebergementManager({
   rooms,
   unassigned,
   assigned,
+  otherTrips,
   canManage,
 }) {
   const router = useRouter();
+  const { tr } = useAdminLocale();
   const [error, setError] = useState(null);
+  const [transferTarget, setTransferTarget] = useState(null);
   const [autoAssignResult, setAutoAssignResult] = useState(null);
   const [confirm, confirmDialog] = useConfirm();
 
@@ -88,15 +93,21 @@ export default function HebergementManager({
       return;
     }
 
-    // Un voyageur ne peut pas être dans deux hôtels en même temps, même dans
-    // des villes différentes (ex. escale-séjour avant l'Arabie Saoudite) —
-    // revalidé aussi côté serveur (source de vérité), voir CLAUDE.md. Le
-    // champ à corriger dépend de l'ordre chronologique : si l'hôtel en
-    // conflit commence avant le nouveau check-in, c'est le check-in qui doit
-    // être repoussé après son check-out ; sinon c'est le check-out qui
-    // empiète trop loin sur un hôtel suivant, à ramener avant son check-in.
+    // Un voyageur ne peut pas être dans deux VILLES en même temps (ex.
+    // escale-séjour avant l'Arabie Saoudite) — revalidé aussi côté serveur
+    // (source de vérité), voir CLAUDE.md. Plusieurs hôtels de la MÊME ville
+    // peuvent en revanche se chevaucher librement (options concurrentes pour
+    // un même séjour) : exclus du contrôle. Le champ à corriger dépend de
+    // l'ordre chronologique : si l'hôtel en conflit commence avant le
+    // nouveau check-in, c'est le check-in qui doit être repoussé après son
+    // check-out ; sinon c'est le check-out qui empiète trop loin sur un
+    // hôtel suivant, à ramener avant son check-in.
+    const selectedHotel = hotels.find((h) => String(h.id) === String(hotelId));
     const overlap = tripHotels.find(
-      (th) => th.check_in_date < checkOut && checkIn < th.check_out_date
+      (th) =>
+        th.city !== selectedHotel?.city &&
+        th.check_in_date < checkOut &&
+        checkIn < th.check_out_date
     );
     if (overlap) {
       const conflictField = overlap.check_in_date < checkIn ? "checkIn" : "checkOut";
@@ -105,7 +116,7 @@ export default function HebergementManager({
           overlap.check_in_date
         ).toLocaleDateString("fr-FR")} → ${new Date(overlap.check_out_date).toLocaleDateString(
           "fr-FR"
-        )}) : un voyageur ne peut pas être dans deux hôtels en même temps.`,
+        )}) : un voyageur ne peut pas être dans deux villes en même temps.`,
         conflictField
       );
       return;
@@ -169,12 +180,34 @@ export default function HebergementManager({
   };
 
   // --- Affectation manuelle ---
+  // Additif par ville (voir lib/roomAssignment.js) : n'écrase jamais
+  // l'affectation d'une autre ville pour la même inscription — un
+  // &lt;select&gt; vide (placeholder "Assigner à...") ne signifie plus
+  // "désaffecter", voir handleUnassign ci-dessous.
   const handleAssign = async (registrationId, roomIdValue) => {
+    if (!roomIdValue) return;
     setError(null);
     const res = await fetch(`/api/admin/registrations/${registrationId}/room`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId: roomIdValue || null }),
+      body: JSON.stringify({ roomId: roomIdValue }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.message);
+      return;
+    }
+    router.refresh();
+  };
+
+  // Retire l'inscription de TOUTES les villes du voyage d'un coup (pas
+  // seulement la chambre affichée dans la ligne où le bouton a été
+  // cliqué) — décision explicite de l'utilisateur, dans les deux sens
+  // (retirer de Makka retire aussi de Médine, et vice versa).
+  const handleUnassign = async (registrationId) => {
+    setError(null);
+    const res = await fetch(`/api/admin/registrations/${registrationId}/room`, {
+      method: "DELETE",
     });
     if (!res.ok) {
       const data = await res.json();
@@ -364,7 +397,7 @@ export default function HebergementManager({
                   <optgroup key={group.city} label={group.city}>
                     {group.items.map((h) => (
                       <option key={h.id} value={h.id}>
-                        {h.name}
+                        {h.display_name || h.name}
                       </option>
                     ))}
                   </optgroup>
@@ -420,14 +453,14 @@ export default function HebergementManager({
               <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 {group.city}
               </h3>
-              <table className="mt-1 w-full text-left text-sm">
+              <table className="mt-1 w-full text-start text-sm">
                 <thead className="border-b border-zinc-200 text-zinc-500">
                   <tr>
                     <th className="px-2 py-2">Hôtel</th>
                     <th className="px-2 py-2">N°</th>
                     <th className="px-2 py-2">Type</th>
                     <th className="px-2 py-2">Occupation</th>
-                    <th className="px-2 py-2">Genre</th>
+                    <th className="px-2 py-2">Responsable</th>
                     <th className="px-2 py-2">Voyageurs</th>
                     {canManage && <th className="px-2 py-2" />}
                   </tr>
@@ -443,7 +476,7 @@ export default function HebergementManager({
                       <td className="px-2 py-2">
                         {r.occupants_count} / {r.capacity}
                       </td>
-                      <td className="px-2 py-2 capitalize">{r.occupants_gender || "—"}</td>
+                      <td className="px-2 py-2">{r.occupants_responsible || "—"}</td>
                       <td className="px-2 py-2">
                         {occupants.length === 0 ? (
                           "—"
@@ -457,9 +490,10 @@ export default function HebergementManager({
                               return (
                                 <li key={o.id} className="flex items-center gap-1">
                                   <span>
-                                    {o.full_name}
+                                    {o.full_name}{" "}
+                                    <span className="capitalize text-zinc-500">({o.gender})</span>
                                     {(hotelMismatch || typeMismatch) && (
-                                      <span className="ml-1 text-xs font-medium text-amber-600">
+                                      <span className="ms-1 text-xs font-medium text-amber-600">
                                         ⚠ avait demandé{" "}
                                         {[
                                           hotelMismatch ? o.preferred_hotel_name : null,
@@ -472,7 +506,17 @@ export default function HebergementManager({
                                   </span>
                                   {canManage && (
                                     <button
-                                      onClick={() => handleAssign(o.id, "")}
+                                      onClick={() => setTransferTarget({ traveler: o, currentRoom: r })}
+                                      title="Changer de chambre ou transférer vers un autre voyage"
+                                      className="text-xs text-amber-700 hover:underline"
+                                    >
+                                      Transférer
+                                    </button>
+                                  )}
+                                  {canManage && (
+                                    <button
+                                      onClick={() => handleUnassign(o.id)}
+                                      title="Retire ce voyageur de toutes les villes du voyage"
                                       className="text-xs text-red-600 hover:underline"
                                     >
                                       Retirer
@@ -485,7 +529,7 @@ export default function HebergementManager({
                         )}
                       </td>
                       {canManage && (
-                        <td className="px-2 py-2 text-right">
+                        <td className="px-2 py-2 text-end">
                           <button
                             onClick={() => handleDeleteRoom(r.id)}
                             className="text-xs text-red-600 hover:underline"
@@ -586,16 +630,24 @@ export default function HebergementManager({
 
         {autoAssignResult && (
           <p className="mt-2 text-sm text-emerald-700">
-            {autoAssignResult.assignedCount} voyageur(s) affecté(s)
+            {autoAssignResult.travelersAssignedCount} voyageur(s) affecté(s)
+            {autoAssignResult.assignedCount !== autoAssignResult.travelersAssignedCount &&
+              ` (${tr.plural("{count} chambre", "{count} chambres", autoAssignResult.assignedCount)}, ${tr("un voyage multi-villes compte pour plusieurs")})`}
             {autoAssignResult.skippedCount > 0 &&
-              `, ${autoAssignResult.skippedCount} en attente (pas de chambre compatible disponible)`}
+              `, ${tr("{count} en attente (pas de chambre compatible disponible)", { count: autoAssignResult.skippedCount })}`}
             .
           </p>
         )}
 
         <ul className="mt-3 space-y-2">
           {groupedUnassigned.map((g) => {
+            // N'offre que les villes encore manquantes pour ce groupe (au
+            // premier membre — même simplification déjà appliquée à la
+            // préférence ci-dessous) : une ville déjà affectée n'a pas
+            // besoin de réapparaître dans ce menu.
+            const groupAssignedCities = g.members[0]?.assignedCities || [];
             const compatibleRooms = rooms.filter((r) => {
+              if (groupAssignedCities.includes(r.hotel_city)) return false;
               const remaining = r.capacity - r.occupants_count;
               if (remaining < g.members.length) return false;
               return g.members.every((m) => isRoomCompatible(r, m));
@@ -610,7 +662,7 @@ export default function HebergementManager({
                     <p className="text-sm font-medium text-zinc-900">
                       {g.label}
                       {g.allowMixed && (
-                        <span className="ml-2 text-xs font-normal text-emerald-700">
+                        <span className="ms-2 text-xs font-normal text-emerald-700">
                           (couple/famille — chambre mixte autorisée)
                         </span>
                       )}
@@ -625,6 +677,16 @@ export default function HebergementManager({
                     </ul>
                   </div>
                   {canManage && (
+                    <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTransferTarget({ traveler: g.members[0], currentRoom: null })
+                      }
+                      className="text-xs text-amber-700 hover:underline"
+                    >
+                      Transférer le groupe
+                    </button>
                     <select
                       defaultValue=""
                       onChange={(e) => handleAssignGroup(g.members, e.target.value)}
@@ -649,6 +711,7 @@ export default function HebergementManager({
                         </optgroup>
                       ))}
                     </select>
+                    </div>
                   )}
                 </div>
               </li>
@@ -663,7 +726,7 @@ export default function HebergementManager({
               <span>
                 {u.full_name} <span className="capitalize text-zinc-500">({u.gender})</span>
                 {(u.hotelPreferences?.length > 0 || u.preferred_room_type) && (
-                  <span className="ml-2 text-xs text-emerald-700">
+                  <span className="ms-2 text-xs text-emerald-700">
                     souhaite :{" "}
                     {u.hotelPreferences?.length > 0
                       ? u.hotelPreferences
@@ -675,6 +738,14 @@ export default function HebergementManager({
                 )}
               </span>
               {canManage && (
+                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTransferTarget({ traveler: u, currentRoom: null })}
+                  className="text-xs text-amber-700 hover:underline"
+                >
+                  Transférer
+                </button>
                 <select
                   defaultValue=""
                   onChange={(e) => handleAssign(u.id, e.target.value)}
@@ -683,7 +754,9 @@ export default function HebergementManager({
                   <option value="">Assigner à...</option>
                   {groupByCity(
                     filterByPreference(
-                      rooms.filter((r) => isRoomCompatible(r, u)),
+                      rooms.filter(
+                        (r) => !u.assignedCities?.includes(r.hotel_city) && isRoomCompatible(r, u)
+                      ),
                       u.hotelPreferences,
                       u.preferred_room_type
                     ),
@@ -699,6 +772,7 @@ export default function HebergementManager({
                     </optgroup>
                   ))}
                 </select>
+                </div>
               )}
             </li>
           ))}
@@ -710,6 +784,16 @@ export default function HebergementManager({
           )}
         </ul>
       </section>
+      {transferTarget && (
+        <TransferModal
+          traveler={transferTarget.traveler}
+          currentRoom={transferTarget.currentRoom}
+          rooms={rooms}
+          occupantsByRoom={occupantsByRoom}
+          otherTrips={otherTrips}
+          onClose={() => setTransferTarget(null)}
+        />
+      )}
       {confirmDialog}
     </div>
   );

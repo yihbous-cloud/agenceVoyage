@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getGroupById, getGroupMembers, updateGroupTotalDue } from "@/lib/registrationGroups";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -20,7 +21,7 @@ export async function GET(request, { params }) {
 // §3quindecies) — même permission que la gestion des paiements, pas de
 // distinction par champ nécessaire ici (endpoint dédié uniquement au volet
 // financier, contrairement à PUT .../registrations/[id]).
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "paiements.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -36,3 +37,6 @@ export async function PUT(request, { params }) {
   const updated = await updateGroupTotalDue(id, Number(totalDue));
   return NextResponse.json(updated);
 }
+
+export const GET = withNotFound(GET_handler);
+export const PUT = withNotFound(PUT_handler);

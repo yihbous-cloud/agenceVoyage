@@ -49,7 +49,7 @@ export default function ServicesManager({ initialServices, canManage }) {
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Nom</th>
@@ -65,7 +65,7 @@ export default function ServicesManager({ initialServices, canManage }) {
                   {s.default_price != null ? `${s.default_price} MAD` : "—"}
                 </td>
                 {canManage && (
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <button
                       onClick={() => handleDelete(s.id)}
                       className="text-red-600 hover:underline"

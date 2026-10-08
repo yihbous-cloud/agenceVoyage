@@ -1,22 +1,33 @@
-import { listAirlines } from "@/lib/airlines";
+import { listAirlines, listTripsWithPnrByAirline } from "@/lib/airlines";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import AirlinesManager from "./AirlinesManager";
+import PageHeader from "../_components/PageHeader";
 
 export default async function AirlinesPage() {
-  const [airlines, session] = await Promise.all([listAirlines(), getSession()]);
+  const [airlines, trips, session] = await Promise.all([
+    listAirlines(),
+    listTripsWithPnrByAirline(),
+    getSession(),
+  ]);
   const canManage = await hasPermission(session, "compagnies.manage");
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900">Compagnies aériennes</h1>
-      <p className="text-sm text-zinc-500">
-        Catalogue extensible — ajouter une compagnie ne nécessite aucun
-        développement. Le gabarit d&apos;export détermine le format de la
-        liste de réservation de billets pour cette compagnie.
-      </p>
+      <PageHeader
+        icon="flight"
+        title="Compagnies aériennes"
+        description={
+          <>
+            Catalogue extensible — ajouter une compagnie ne nécessite aucun
+            développement. Le gabarit d&apos;export détermine le format de la
+            liste de réservation de billets pour cette compagnie.
+          </>
+        }
+      />
       <AirlinesManager
         initialAirlines={airlines}
+        trips={trips}
         canManage={canManage}
       />
     </div>

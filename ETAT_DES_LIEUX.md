@@ -181,7 +181,8 @@ programs ──< program_hotels >── hotels (hôtels par défaut, auto-attach
 programs ──< visa_types (nullable → global si NULL)
 visa_types ──< visa_type_documents
 trips ──< trip_hotels >── hotels
-trip_hotels ──< rooms ──< registrations (room_id, nullable)
+trip_hotels ──< rooms ──< registrations (room_id, DEPRECIEE — migration 025)
+registrations ──< registration_room_assignments >── rooms (une chambre RÉELLE par ville — migration 025, CLAUDE.md §3cinquantecinququadragies)
 registrations ──< registration_hotel_preferences >── hotels (une préférence par ville — migration 015)
 registrations ──< registration_services >── services
 registrations ──< payments
@@ -202,7 +203,7 @@ programs ──< slides (program_id nullable — NULL si la diapositive utilise 
 | Compagnies aériennes | `airlines` |
 | Programmes & voyages | `programs` (dont `family`/`season`/`theme` — migration 001), `trips`, `program_faqs` (FAQ par programme — migration 002) |
 | Hôtels & chambres | `hotels`, `program_hotels` (hôtels par défaut d'un programme — migration 014), `trip_hotels`, `rooms` |
-| Voyageurs & inscriptions | `travelers`, `registrations`, `registration_hotel_preferences` (préférence hôtel par ville — migration 015) |
+| Voyageurs & inscriptions | `travelers`, `registrations`, `registration_hotel_preferences` (préférence hôtel par ville — migration 015), `registration_room_assignments` (chambre réelle par ville, une inscription peut en avoir plusieurs — migration 025) |
 | Facturation | `services`, `registration_services`, `payments` |
 | Visa | `visa_types`, `visa_type_documents`, `visa_requests`, `visa_request_documents` |
 | WhatsApp (schéma prêt, non câblé) | `whatsapp_qa_templates`, `whatsapp_reminders`, `whatsapp_messages_log` |

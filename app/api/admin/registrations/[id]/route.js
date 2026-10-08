@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateRegistration, deleteRegistration } from "@/lib/registrations";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "inscriptions.edit"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -34,15 +35,32 @@ export async function PUT(request, { params }) {
     }
   }
 
+  if (body.selectedTierId && !body.preferredRoomType) {
+    return NextResponse.json(
+      { message: "Le type de chambre est requis pour choisir un tarif d'hébergement" },
+      { status: 400 }
+    );
+  }
+
   try {
     const updated = await updateRegistration(id, body);
     return NextResponse.json(updated);
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_WARN_DATA_OUT_OF_RANGE" || err.code === "ER_TRUNCATED_WRONG_VALUE") {
       return NextResponse.json(
         { message: "Valeur invalide (montant ou champ hors limites)" },
         { status: 400 }
       );
+    }
+    if (
+      err.message === "Places épuisées pour ce tarif et ce type de chambre" ||
+      err.message === "Ce tarif n'a pas de prix défini pour ce type de chambre" ||
+      err.message === "Le type de chambre est requis pour choisir un tarif d'hébergement"
+    ) {
+      return NextResponse.json({ message: err.message }, { status: 409 });
     }
     return NextResponse.json(
       { message: "Erreur serveur", detail: err.message },
@@ -51,7 +69,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "inscriptions.delete"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -61,3 +79,6 @@ export async function DELETE(request, { params }) {
   await deleteRegistration(id);
   return NextResponse.json({ ok: true });
 }
+
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

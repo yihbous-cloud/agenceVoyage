@@ -27,11 +27,20 @@ function groupHotelsByCity(hotels) {
 }
 
 function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
-  const hotelsByCity = groupHotelsByCity(hotels);
-
   const [label, setLabel] = useState(initial?.label || "");
   const [makkahHotelId, setMakkahHotelId] = useState(initial?.makkah_hotel_id || "");
   const [madinahHotelId, setMadinahHotelId] = useState(initial?.madinah_hotel_id || "");
+
+  // Un même hôtel ne doit pas pouvoir être choisi à la fois pour Mecque et
+  // Médine (demande explicite) : chaque liste exclut la sélection actuelle
+  // de l'AUTRE champ — jamais la sienne propre, sinon la valeur déjà
+  // sélectionnée de ce champ disparaîtrait de sa propre liste.
+  const makkahHotelsByCity = groupHotelsByCity(
+    hotels.filter((h) => String(h.id) !== String(madinahHotelId))
+  );
+  const madinahHotelsByCity = groupHotelsByCity(
+    hotels.filter((h) => String(h.id) !== String(makkahHotelId))
+  );
 
   // Dérivées du catalogue hôtel, jamais éditées indépendamment — voir
   // boardBasisForHotel ci-dessus.
@@ -96,11 +105,11 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           >
             <option value="">Sélectionner...</option>
-            {hotelsByCity.map((group) => (
+            {makkahHotelsByCity.map((group) => (
               <optgroup key={group.city} label={group.city}>
                 {group.items.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {h.display_name || h.name}
                   </option>
                 ))}
               </optgroup>
@@ -127,11 +136,11 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           >
             <option value="">Sélectionner...</option>
-            {hotelsByCity.map((group) => (
+            {madinahHotelsByCity.map((group) => (
               <optgroup key={group.city} label={group.city}>
                 {group.items.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {h.display_name || h.name}
                   </option>
                 ))}
               </optgroup>

@@ -39,6 +39,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
     airportInputValue(trip?.return_layover_iata)
   );
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
+  const [pnr, setPnr] = useState(trip?.pnr || "");
   const [totalSeats, setTotalSeats] = useState(trip?.total_seats ?? 0);
   const [priceDouble, setPriceDouble] = useState(trip?.price_double ?? 0);
   const [priceTriple, setPriceTriple] = useState(trip?.price_triple ?? 0);
@@ -70,6 +71,7 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
         : null,
       returnLayoverIata: hasReturnLayover ? extractIataFromInput(returnLayoverIata) || null : null,
       airlineId: airlineId || null,
+      pnr: pnr || null,
       totalSeats: Number(totalSeats),
       priceDouble: Number(priceDouble),
       priceTriple: Number(priceTriple),
@@ -235,6 +237,19 @@ export default function TripForm({ programId, trip, airlines, canDelete }) {
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          PNR (référence de réservation)
+        </label>
+        <input
+          value={pnr}
+          onChange={(e) => setPnr(e.target.value.toUpperCase())}
+          maxLength={10}
+          placeholder="ex : ABC123 — fourni par la compagnie"
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase"
+        />
       </div>
 
       <datalist id="airport-options">

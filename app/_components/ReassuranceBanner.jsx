@@ -1,3 +1,7 @@
+"use client";
+
+import { useLocale } from "./LocaleProvider";
+
 const REASSURANCE = [
   {
     title: "Accompagnement complet",
@@ -22,6 +26,7 @@ const REASSURANCE = [
 // sombre (bg-ink/bg-ink-soft), `compact` retire le fond et le padding pour
 // s'intégrer directement sous un titre de page.
 export default function ReassuranceBanner({ compact = false, dark = false }) {
+  const { tr } = useLocale();
   const wrapperClass = compact
     ? "py-8"
     : `py-14 ${dark ? "bg-ink-soft" : "bg-cream-card"}`;
@@ -36,9 +41,9 @@ export default function ReassuranceBanner({ compact = false, dark = false }) {
             <div key={item.title} className="text-center">
               <div className="mx-auto h-px w-10 bg-gold" />
               <h3 className={`mt-4 font-display text-lg font-normal ${titleClass}`}>
-                {item.title}
+                {tr(item.title)}
               </h3>
-              <p className={`mt-2 text-sm ${descClass}`}>{item.description}</p>
+              <p className={`mt-2 text-sm ${descClass}`}>{tr(item.description)}</p>
             </div>
           ))}
         </div>

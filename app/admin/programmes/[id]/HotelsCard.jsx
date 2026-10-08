@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
 export default function HotelsCard({
   program,
@@ -15,6 +16,7 @@ export default function HotelsCard({
   onSuccess,
 }) {
   const router = useRouter();
+  const { tr } = useAdminLocale();
   const [selectedHotelIds, setSelectedHotelIds] = useState(
     defaultHotelIds.map((id) => String(id))
   );
@@ -90,7 +92,7 @@ export default function HotelsCard({
               <optgroup key={group.city} label={group.city}>
                 {group.items.map((h) => (
                   <option key={h.id} value={h.id}>
-                    {h.name}
+                    {h.display_name || h.name}
                   </option>
                 ))}
               </optgroup>
@@ -113,9 +115,9 @@ export default function HotelsCard({
 
       {primaryTripId && (
         <p className="border-t border-zinc-100 pt-3 text-sm text-zinc-600">
-          {tripHotelsCount} hôtel{tripHotelsCount > 1 ? "s" : ""} attaché
-          {tripHotelsCount > 1 ? "s" : ""} au voyage principal, {roomsCount} chambre
-          {roomsCount > 1 ? "s" : ""} créée{roomsCount > 1 ? "s" : ""} —{" "}
+          {tr.plural("{count} hôtel attaché", "{count} hôtels attachés", tripHotelsCount)}{" "}
+          {tr("au voyage principal,")}{" "}
+          {tr.plural("{count} chambre créée", "{count} chambres créées", roomsCount)} —{" "}
           <Link
             href={`/admin/voyages/${primaryTripId}/hebergement`}
             className="text-emerald-700 hover:underline"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AIRLINES, getAirlineByName } from "@/lib/airlinesReference";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
@@ -12,7 +13,7 @@ const TEMPLATE_KEYS = [
   "generic_template",
 ];
 
-export default function AirlinesManager({ initialAirlines, canManage }) {
+export default function AirlinesManager({ initialAirlines, trips = [], canManage }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [iataCode, setIataCode] = useState("");
@@ -78,12 +79,13 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Nom</th>
               <th className="px-4 py-3">Code IATA</th>
               <th className="px-4 py-3">Gabarit d&apos;export</th>
+              <th className="px-4 py-3">PNR par voyage</th>
               {canManage && <th className="px-4 py-3" />}
             </tr>
           </thead>
@@ -93,8 +95,36 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
                 <td className="px-4 py-3 font-medium text-zinc-900">{a.name}</td>
                 <td className="px-4 py-3 text-zinc-600">{a.iata_code || "—"}</td>
                 <td className="px-4 py-3 text-zinc-600">{a.export_template_key}</td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {trips.filter((t) => t.airline_id === a.id).length === 0 ? (
+                    "—"
+                  ) : (
+                    <ul className="space-y-0.5">
+                      {trips
+                        .filter((t) => t.airline_id === a.id)
+                        .map((t) => (
+                          <li key={t.id}>
+                            <Link
+                              href={`/admin/programmes/${t.program_id}`}
+                              className="text-zinc-900 hover:underline"
+                            >
+                              {t.title}
+                            </Link>{" "}
+                            <span className="text-xs text-zinc-400">
+                              ({new Date(t.departure_date).toLocaleDateString("fr-FR")})
+                            </span>{" "}
+                            {t.pnr ? (
+                              <span className="font-mono font-semibold text-emerald-700">{t.pnr}</span>
+                            ) : (
+                              <span className="text-xs text-amber-600">PNR à renseigner</span>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </td>
                 {canManage && (
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <button
                       onClick={() => handleDelete(a.id)}
                       className="text-red-600 hover:underline"
@@ -107,7 +137,7 @@ export default function AirlinesManager({ initialAirlines, canManage }) {
             ))}
             {initialAirlines.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-zinc-500" colSpan={4}>
+                <td className="px-4 py-3 text-zinc-500" colSpan={5}>
                   Aucune compagnie.
                 </td>
               </tr>

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission, listRoles } from "@/lib/permissions";
 import { listStaffUsers } from "@/lib/staffUsers";
 import UtilisateursManager from "./UtilisateursManager";
+import PageHeader from "../../_components/PageHeader";
 
 export default async function UtilisateursPage() {
   const session = await getSession();
@@ -14,12 +15,11 @@ export default async function UtilisateursPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Utilisateurs</h1>
-        <p className="text-sm text-zinc-500">
-          Comptes internes de l&apos;équipe et rôle assigné à chacun.
-        </p>
-      </div>
+      <PageHeader
+        icon="manage_accounts"
+        title="Utilisateurs"
+        description={<>Comptes internes de l&apos;équipe et rôle assigné à chacun.</>}
+      />
 
       <UtilisateursManager initialUsers={users} roles={roles} currentUserId={session.id} />
     </div>

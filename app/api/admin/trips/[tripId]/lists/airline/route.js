@@ -5,8 +5,9 @@ import { getAirlineTemplate } from "@/lib/airlineTemplates";
 import { getTripSummary } from "@/lib/roomAssignment";
 import { buildExcelBuffer } from "@/lib/exporters/excel";
 import { buildPdfBuffer } from "@/lib/exporters/pdf";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -51,3 +52,5 @@ export async function GET(request, { params }) {
     },
   });
 }
+
+export const GET = withNotFound(GET_handler);

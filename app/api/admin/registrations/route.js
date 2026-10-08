@@ -3,9 +3,14 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { createRegistration } from "@/lib/registrations";
 import { getTripById } from "@/lib/programs";
-import { isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
+import {
+  isPassportExpiryValid,
+  getMinPassportValidUntil,
+  getPassportIssueDateError,
+} from "@/lib/passportValidation";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "inscriptions.create"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -44,6 +49,11 @@ export async function POST(request) {
     }
   }
 
+  const issueError = getPassportIssueDateError(body.passportIssueDate, body.passportExpiryDate);
+  if (issueError) {
+    return NextResponse.json({ message: issueError }, { status: 400 });
+  }
+
   try {
     const result = await createRegistration({
       ...body,
@@ -51,6 +61,9 @@ export async function POST(request) {
     });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { message: "Ce voyageur est déjà inscrit à ce voyage" },
@@ -70,3 +83,5 @@ export async function POST(request) {
     );
   }
 }
+
+export const POST = withNotFound(POST_handler);

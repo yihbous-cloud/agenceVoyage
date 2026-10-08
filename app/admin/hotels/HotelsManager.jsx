@@ -17,6 +17,7 @@ const RESERVED_ROOMS_FIELD = {
 function emptyForm() {
   return {
     name: "",
+    nameArabic: "",
     city: "",
     country: "Arabie Saoudite",
     starRating: "",
@@ -34,6 +35,7 @@ function emptyForm() {
 function hotelToFormValues(h) {
   return {
     name: h.name || "",
+    nameArabic: h.name_arabic || "",
     city: h.city || "",
     country: h.country || "Arabie Saoudite",
     starRating: h.star_rating || "",
@@ -91,6 +93,22 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
           onChange={set("name")}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">
+          Nom en arabe <span className="font-normal text-zinc-400">(optionnel)</span>
+        </label>
+        <input
+          dir="rtl"
+          lang="ar"
+          value={form.nameArabic}
+          onChange={set("nameArabic")}
+          placeholder="اسم الفندق"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Affiché à la place du nom quand l&apos;espace interne ou le site est en arabe.
+        </p>
       </div>
       <div>
         <label className="block text-sm font-medium text-zinc-700">Pays</label>
@@ -298,7 +316,7 @@ export default function HotelsManager({ initialHotels, canManage }) {
       )}
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Nom</th>
@@ -326,7 +344,14 @@ export default function HotelsManager({ initialHotels, canManage }) {
                 </tr>
               ) : (
                 <tr key={h.id} className="border-b border-zinc-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{h.name}</td>
+                  <td className="px-4 py-3 font-medium text-zinc-900">
+                    {h.display_name || h.name}
+                    {h.name_arabic && h.display_name !== h.name_arabic && (
+                      <span className="block text-xs font-normal text-zinc-500" dir="rtl" translate="no">
+                        {h.name_arabic}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-zinc-600">
                     {h.city}, {h.country}
                   </td>
@@ -348,10 +373,10 @@ export default function HotelsManager({ initialHotels, canManage }) {
                       .join(", ") || "—"}
                   </td>
                   {canManage && (
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-end">
                       <button
                         onClick={() => setEditingId(h.id)}
-                        className="mr-3 text-emerald-700 hover:underline"
+                        className="me-3 text-emerald-700 hover:underline"
                       >
                         Modifier
                       </button>

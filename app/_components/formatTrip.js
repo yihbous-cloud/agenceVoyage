@@ -1,3 +1,5 @@
+// Libellés des saisons du calendrier hégirien : traduits à l'affichage par
+// tr() (voir lib/i18n) — les clés ci-dessous sont les textes sources.
 export const SEASON_LABELS = {
   mawlid: "Mawlid",
   rajab: "Rajab",
@@ -6,8 +8,14 @@ export const SEASON_LABELS = {
   chawal: "Chawal",
 };
 
-export function formatDate(date) {
-  return new Date(date).toLocaleDateString("fr-FR");
+// jj/mm/aaaa quelle que soit la langue (usage marocain), chiffres latins ;
+// intlTag ("ar-MA", "fr-FR", "en-GB") ne change que les séparateurs.
+export function formatDate(date, intlTag = "fr-FR") {
+  return new Date(date).toLocaleDateString(intlTag, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function computeDuration(departure, returnDate) {

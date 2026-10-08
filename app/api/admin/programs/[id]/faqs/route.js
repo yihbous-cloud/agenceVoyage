@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllFaqsForProgram, createFaq } from "@/lib/programFaqs";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -14,7 +15,7 @@ export async function GET(request, { params }) {
   return NextResponse.json(faqs);
 }
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "programmes.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -33,3 +34,6 @@ export async function POST(request, { params }) {
   const faqId = await createFaq(id, body);
   return NextResponse.json({ id: faqId }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

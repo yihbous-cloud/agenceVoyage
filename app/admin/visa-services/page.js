@@ -2,6 +2,8 @@ import Link from "next/link";
 import { listVisaServiceRequests } from "@/lib/visaServices";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import PageHeader from "../_components/PageHeader";
+import Icon from "../_components/Icon";
 
 const STATUS_LABELS = {
   non_demande: "Non demandé",
@@ -14,33 +16,49 @@ function money(n) {
   return Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 });
 }
 
-export default async function VisaServicesPage() {
+export default async function VisaServicesPage({ searchParams }) {
+  const params = await searchParams;
+  const status = params?.status || undefined;
+
   const session = await getSession();
   const [requests, canManage] = await Promise.all([
-    listVisaServiceRequests(),
+    listVisaServiceRequests({ status }),
     hasPermission(session, "visa_services.manage"),
   ]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900">Service visa (hors voyage)</h1>
-        {canManage && (
-          <Link
-            href="/admin/visa-services/new"
-            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-          >
-            + Nouvelle demande
-          </Link>
-        )}
-      </div>
-      <p className="text-sm text-zinc-500">
+      <PageHeader
+        icon="assignment"
+        title="Service visa (hors voyage)"
+        description={<>
         Clients qui demandent uniquement une aide visa, indépendamment de tout
         voyage réservé chez l&apos;agence — suivi financier propre à chaque demande.
-      </p>
+      </>}
+      >
+        {canManage && (
+          <Link href="/admin/visa-services/new" className="gf-btn-primary">
+            <Icon name="add" size={19} />
+            Nouvelle demande
+          </Link>
+        )}
+      </PageHeader>
+
+      {status && (
+        <p className="text-sm text-zinc-500">
+          Filtré par statut :{" "}
+          <span className="font-medium text-zinc-700">
+            {STATUS_LABELS[status] || status}
+          </span>
+          {" — "}
+          <Link href="/admin/visa-services" className="text-emerald-700 hover:underline">
+            réinitialiser
+          </Link>
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Client</th>
@@ -64,7 +82,7 @@ export default async function VisaServicesPage() {
                 <td className="px-4 py-3">{STATUS_LABELS[r.status] || r.status}</td>
                 <td className="px-4 py-3">{money(r.total_due)} MAD</td>
                 <td className="px-4 py-3 text-emerald-700">{money(r.total_paid)} MAD</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">
                   <Link
                     href={`/admin/visa-services/${r.id}`}
                     className="text-emerald-700 hover:underline"

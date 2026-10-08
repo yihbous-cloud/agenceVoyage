@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTripSummary } from "@/lib/roomAssignment";
 import { getTripAirlineTemplateKey } from "@/lib/listGenerators";
 import { getAirlineTemplate } from "@/lib/airlineTemplates";
+import PnrListOptions from "./PnrListOptions";
 
 function DownloadLinks({ baseHref }) {
   return (
@@ -43,6 +44,38 @@ export default async function ListesPage({ params }) {
           {trip.reference_code} · {new Date(trip.departure_date).toLocaleDateString("fr-FR")}
         </p>
       </div>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-zinc-900">
+          Liste d&apos;hébergement par programme
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Excel : une feuille, une ligne par chambre (hôtel, pack, chambre,
+          groupe, voyageur(s)). PDF : une page par ville (Makka puis Madina),
+          un tableau par hôtel (case à cocher, N° chambre, voyageur, tél,
+          observations), en-tête programme/dates/aéroports, pied de page avec
+          pagination et lien vers la fiche programme publique.
+        </p>
+        <div className="mt-4">
+          <DownloadLinks baseHref={`/api/admin/trips/${tripId}/lists/hebergement`} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-zinc-900">
+          Liste passagers pour la compagnie aérienne (PNR)
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          N° PNR, nom complet, date de naissance, passeport (numéro, délivrance,
+          expiration) de tous les inscrits non annulés. Cochez les colonnes à
+          inclure et choisissez le format d'affichage de chaque information
+          (dates, genre, noms...) pour répondre au besoin de la compagnie. Le
+          N° PNR se saisit dans la carte Aéroport du programme.
+        </p>
+        <div className="mt-4">
+          <PnrListOptions baseHref={`/api/admin/trips/${tripId}/lists/pnr`} />
+        </div>
+      </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">

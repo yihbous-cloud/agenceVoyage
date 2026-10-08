@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listTiersForTrip, createTier } from "@/lib/tripHotelTiers";
 import { getTripSummary } from "@/lib/roomAssignment";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -15,7 +16,7 @@ export async function GET(request, { params }) {
   return NextResponse.json(tiers);
 }
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -44,3 +45,6 @@ export async function POST(request, { params }) {
   const tierId = await createTier(tripId, body);
   return NextResponse.json({ id: tierId }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

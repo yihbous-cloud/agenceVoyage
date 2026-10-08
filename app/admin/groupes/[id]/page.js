@@ -1,29 +1,23 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { getGroupById, getGroupMembers } from "@/lib/registrationGroups";
+import { getGroupById, getGroupMembers, listGroupsForTrip } from "@/lib/registrationGroups";
 import { listPaymentsForGroup } from "@/lib/payments";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import GroupDueForm from "./GroupDueForm";
-import PaymentsSection from "../../inscriptions/[id]/PaymentsSection";
+import { listTiersForTrip } from "@/lib/tripHotelTiers";
+import { listPhoneNumbersForTraveler } from "@/lib/travelerPhoneNumbers";
+import GroupManagerGrid from "./GroupManagerGrid";
 
-const STATUS_LABELS = {
-  inscrit: "Inscrit",
-  confirme: "Confirmé",
-  paye_partiel: "Payé partiel",
-  paye_complet: "Payé complet",
-  annule: "Annulé",
-};
-
-const VISA_LABELS = {
-  non_demande: "Non demandé",
-  en_cours: "En cours",
-  accorde: "Accordé",
-  refuse: "Refusé",
-};
-
-export default async function GroupDetailPage({ params }) {
+// §3cinquantehuitquadragies : le traitement d'un membre de groupe (statut,
+// visa, préférence d'hébergement/tarif, notes, montant dû) se fait
+// désormais ICI — une fois par membre, en réutilisant EditRegistrationForm
+// tel quel (§3cinquantehuitquadragies) — plutôt que sur la fiche
+// individuelle de chaque membre (qui ne garde que l'identité/passeport,
+// voir app/admin/inscriptions/[id]/page.js).
+export default async function GroupDetailPage({ params, searchParams }) {
   const { id } = await params;
+  const search = await searchParams;
+  const mode = search?.mode === "edit" ? "edit" : "view";
+
   const [group, members, session] = await Promise.all([
     getGroupById(id),
     getGroupMembers(id),
@@ -34,10 +28,33 @@ export default async function GroupDetailPage({ params }) {
     notFound();
   }
 
-  const [payments, canManagePayments] = await Promise.all([
-    listPaymentsForGroup(id),
-    hasPermission(session, "paiements.manage"),
-  ]);
+  const [payments, canManagePayments, canDeleteRegistration, tripGroups, tiers, canEditVoyageur] =
+    await Promise.all([
+      listPaymentsForGroup(id),
+      hasPermission(session, "paiements.manage"),
+      hasPermission(session, "inscriptions.delete"),
+      listGroupsForTrip(group.trip_id),
+      group.program_family === "omra_hajj" ? listTiersForTrip(group.trip_id) : [],
+      hasPermission(session, "inscriptions.edit_voyageur"),
+    ]);
+
+  // canEditVisa : même restriction fine par rôle que sur la fiche
+  // individuelle (app/admin/inscriptions/[id]/page.js) — voir CLAUDE.md
+  // §3undecies. Le statut visa reste individuel par voyageur même au sein
+  // d'un groupe (§3trevicies), donc un VisaStatusForm par membre ici.
+  const canEditVisa = ["direction", "suivi"].includes(session?.role);
+
+  // Carte "Informations Voyageurs" par membre (§3soixantehuitquadragies) :
+  // departure_date (validation passeport) vient du groupe — tous les
+  // membres partagent le même voyage — et les numéros supplémentaires sont
+  // chargés par membre, comme sur la fiche individuelle.
+  const membersWithTravelerData = await Promise.all(
+    members.map(async (member) => ({
+      ...member,
+      departure_date: group.departure_date,
+      phoneNumbers: await listPhoneNumbersForTraveler(member.traveler_id),
+    }))
+  );
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -45,7 +62,7 @@ export default async function GroupDetailPage({ params }) {
         <h1 className="text-2xl font-bold text-zinc-900">
           {group.label}
           {Boolean(group.allow_mixed_gender_room) && (
-            <span className="ml-2 text-sm font-normal text-emerald-700">
+            <span className="ms-2 text-sm font-normal text-emerald-700">
               (couple/famille)
             </span>
           )}
@@ -56,58 +73,19 @@ export default async function GroupDetailPage({ params }) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">
-          Membres du groupe ({members.length})
-        </h2>
-        <ul className="mt-3 divide-y divide-zinc-100">
-          {members.map((m) => (
-            <li key={m.registration_id} className="flex items-center justify-between py-2 text-sm">
-              <span>
-                <Link
-                  href={`/admin/inscriptions/${m.registration_id}`}
-                  className="font-medium text-emerald-700 hover:underline"
-                >
-                  {m.full_name}
-                </Link>{" "}
-                <span className="capitalize text-zinc-500">({m.gender})</span>
-              </span>
-              <span className="text-zinc-500">
-                {STATUS_LABELS[m.status] || m.status} · {VISA_LABELS[m.visa_status] || m.visa_status}
-              </span>
-            </li>
-          ))}
-          {members.length === 0 && (
-            <li className="py-2 text-sm text-zinc-500">Aucun membre.</li>
-          )}
-        </ul>
-        <p className="mt-3 text-xs text-zinc-400">
-          Le détail individuel (passeport, visa, statut, hébergement) se gère depuis
-          la fiche de chaque voyageur, en cliquant sur son nom.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Montant dû</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Partagé par tout le groupe — pas un montant par personne.
-        </p>
-        <div className="mt-3">
-          <GroupDueForm
-            apiBasePath={`/api/admin/groups/${group.id}`}
-            totalDue={group.total_due}
-            canManage={canManagePayments}
-            label="Montant dû du groupe (MAD)"
-          />
-        </div>
-      </div>
-
-      <PaymentsSection
-        apiBasePath={`/api/admin/groups/${group.id}`}
+      <GroupManagerGrid
+        group={group}
+        members={membersWithTravelerData}
+        role={session?.role}
+        canDelete={canDeleteRegistration}
+        tripGroups={tripGroups}
+        tiers={tiers}
+        initialMode={mode}
+        canEditVoyageur={canEditVoyageur}
+        canEditVisa={canEditVisa}
+        canManagePayments={canManagePayments}
         payments={payments}
-        totalDue={group.total_due}
-        canManage={canManagePayments}
-        title="Paiements du groupe"
+        apiBasePath={`/api/admin/groups/${group.id}`}
       />
     </div>
   );

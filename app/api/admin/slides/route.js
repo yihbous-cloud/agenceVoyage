@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllSlides, createSlide } from "@/lib/slides";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET() {
+async function GET_handler() {
   const session = await getSession();
   if (!(await hasPermission(session, "slider.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -12,23 +13,19 @@ export async function GET() {
   return NextResponse.json(slides);
 }
 
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "slider.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
   }
 
   const body = await request.json();
-  if (!body.title?.trim()) {
-    return NextResponse.json({ message: "Le titre est requis" }, { status: 400 });
-  }
-  if (!body.programId && !body.buttonLink?.trim()) {
-    return NextResponse.json(
-      { message: "Choisir un programme ou renseigner un lien personnalisé" },
-      { status: 400 }
-    );
-  }
+  // Tous les champs (titre, sous-titre, lien) sont optionnels — une
+  // diapositive peut n'avoir qu'une image (CLAUDE.md).
 
   const id = await createSlide(body);
   return NextResponse.json({ id }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

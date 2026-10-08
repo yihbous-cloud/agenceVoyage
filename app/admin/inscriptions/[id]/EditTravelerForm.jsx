@@ -5,21 +5,44 @@ import { useRouter } from "next/navigation";
 import { PASSPORT_FORMAT, isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
 import PassportScanInput from "../PassportScanInput";
 
-export default function EditTravelerForm({ registration, canEdit }) {
+export default function EditTravelerForm({
+  registration,
+  canEdit,
+  initialMode = "view",
+  initialPhoneNumbers = [],
+  onSuccess,
+}) {
   const router = useRouter();
   const [fullName, setFullName] = useState(registration.full_name);
+  const [fullNameArabic, setFullNameArabic] = useState(registration.full_name_arabic || "");
+  const [dateOfBirth, setDateOfBirth] = useState(registration.date_of_birth || "");
+  const [nationalId, setNationalId] = useState(registration.national_id || "");
+  const [phone, setPhone] = useState(registration.phone || "");
   const [phoneWhatsapp, setPhoneWhatsapp] = useState(registration.phone_whatsapp);
+  const [additionalPhoneNumbers, setAdditionalPhoneNumbers] = useState(
+    initialPhoneNumbers.map((p) => p.phone_number)
+  );
   const [gender, setGender] = useState(registration.gender);
   const [passportNumber, setPassportNumber] = useState(registration.passport_number || "");
+  const [passportIssueDate, setPassportIssueDate] = useState(
+    registration.passport_issue_date || ""
+  );
   const [passportExpiryDate, setPassportExpiryDate] = useState(
     registration.passport_expiry_date || ""
   );
   const [email, setEmail] = useState(registration.traveler_email || "");
+  const [address, setAddress] = useState(registration.address || "");
   const [passportWarning, setPassportWarning] = useState(null);
   const [confirmedPassportNumber, setConfirmedPassportNumber] = useState(null);
   const [pendingConfirmValue, setPendingConfirmValue] = useState(null);
-  const [passportLocked, setPassportLocked] = useState(Boolean(registration.info_confirmed));
-  const [formLocked, setFormLocked] = useState(Boolean(registration.info_confirmed));
+  // "Afficher" (mode par défaut) ouvre la fiche verrouillée — tous les
+  // champs déjà remplis en lecture seule, comme EditRegistrationForm.jsx ;
+  // "Modifier" (?mode=edit, voir page.js), ou le lien "Modifier" local,
+  // déverrouille. Ne dépend plus de registration.info_confirmed : un
+  // voyageur rempli à la création mais jamais explicitement "confirmé" doit
+  // quand même s'afficher verrouillé via "Afficher".
+  const [passportLocked, setPassportLocked] = useState(initialMode !== "edit");
+  const [formLocked, setFormLocked] = useState(initialMode !== "edit");
   const [expiryError, setExpiryError] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +106,13 @@ export default function EditTravelerForm({ registration, canEdit }) {
     }
   };
 
+  const updateAdditionalPhoneAt = (index, value) => {
+    setAdditionalPhoneNumbers((prev) => prev.map((p, i) => (i === index ? value : p)));
+  };
+  const addAdditionalPhone = () => setAdditionalPhoneNumbers((prev) => [...prev, ""]);
+  const removeAdditionalPhoneAt = (index) =>
+    setAdditionalPhoneNumbers((prev) => prev.filter((_, i) => i !== index));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -94,11 +124,18 @@ export default function EditTravelerForm({ registration, canEdit }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName,
+          fullNameArabic: fullNameArabic || null,
+          dateOfBirth: dateOfBirth || null,
+          nationalId: nationalId || null,
+          phone: phone || null,
           phoneWhatsapp,
+          additionalPhoneNumbers,
           gender,
           passportNumber: passportNumber || null,
+          passportIssueDate: passportIssueDate || null,
           passportExpiryDate: passportExpiryDate || null,
           email: email || null,
+          address: address || null,
         }),
       });
       if (!res.ok) {
@@ -107,6 +144,7 @@ export default function EditTravelerForm({ registration, canEdit }) {
       }
       setFormLocked(true);
       router.refresh();
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -121,23 +159,11 @@ export default function EditTravelerForm({ registration, canEdit }) {
 
   return (
     <>
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6"
-    >
-      <h2 className="flex items-center justify-between text-sm font-semibold text-zinc-900">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center justify-between text-sm text-zinc-500">
         <span>
-          Informations du voyageur
-          {!canEdit && (
-            <span className="ml-2 text-xs font-normal text-zinc-400">
-              (lecture seule pour votre rôle)
-            </span>
-          )}
-          {canEdit && formLocked && (
-            <span className="ml-2 text-xs font-normal text-zinc-400">
-              (verrouillé après enregistrement)
-            </span>
-          )}
+          {!canEdit && "Lecture seule pour votre rôle"}
+          {canEdit && formLocked && "Verrouillé après enregistrement"}
         </span>
         {canEdit && formLocked && (
           <button
@@ -148,7 +174,7 @@ export default function EditTravelerForm({ registration, canEdit }) {
             Modifier
           </button>
         )}
-      </h2>
+      </div>
 
       {!fieldsDisabled && (
         <PassportScanInput
@@ -158,6 +184,7 @@ export default function EditTravelerForm({ registration, canEdit }) {
             if (parsed.fullName) setFullName(parsed.fullName);
             if (parsed.passportNumber) setPassportNumber(parsed.passportNumber);
             if (parsed.gender) setGender(parsed.gender);
+            if (parsed.dateOfBirth) setDateOfBirth(parsed.dateOfBirth);
             if (parsed.passportExpiryDate) setPassportExpiryDate(parsed.passportExpiryDate);
             setPassportWarning(null);
             setConfirmedPassportNumber(null);
@@ -180,13 +207,12 @@ export default function EditTravelerForm({ registration, canEdit }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Numéro WhatsApp
+            Nom en arabe
           </label>
           <input
-            required
             disabled={fieldsDisabled}
-            value={phoneWhatsapp}
-            onChange={(e) => setPhoneWhatsapp(e.target.value)}
+            value={fullNameArabic}
+            onChange={(e) => setFullNameArabic(e.target.value)}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
           />
         </div>
@@ -204,7 +230,28 @@ export default function EditTravelerForm({ registration, canEdit }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Passeport
+            Date de naissance
+          </label>
+          <input
+            type="date"
+            disabled={fieldsDisabled}
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">CIN</label>
+          <input
+            disabled={fieldsDisabled}
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            N° Passeport
           </label>
           <input
             ref={passportInputRef}
@@ -225,7 +272,7 @@ export default function EditTravelerForm({ registration, canEdit }) {
                 <button
                   type="button"
                   onClick={handleUnlockPassport}
-                  className="ml-2 font-medium text-zinc-500 hover:underline"
+                  className="ms-2 font-medium text-zinc-500 hover:underline"
                 >
                   Modifier
                 </button>
@@ -235,7 +282,20 @@ export default function EditTravelerForm({ registration, canEdit }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Date d&apos;expiration du passeport
+            Date de délivrance
+          </label>
+          <input
+            type="date"
+            disabled={fieldsDisabled}
+            max={new Date().toISOString().slice(0, 10)}
+            value={passportIssueDate}
+            onChange={(e) => setPassportIssueDate(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Date d&apos;expiration
           </label>
           <input
             type="date"
@@ -250,13 +310,79 @@ export default function EditTravelerForm({ registration, canEdit }) {
           />
           {expiryError && <p className="mt-1 text-xs text-red-600">{expiryError}</p>}
         </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">N° Tél</label>
+          <input
+            disabled={fieldsDisabled}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            N° WhatsApp
+          </label>
+          <input
+            required
+            disabled={fieldsDisabled}
+            value={phoneWhatsapp}
+            onChange={(e) => setPhoneWhatsapp(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-zinc-700">Email</label>
+          <label className="block text-sm font-medium text-zinc-700">
+            Autres numéros
+          </label>
+          <div className="mt-1 space-y-2">
+            {additionalPhoneNumbers.map((number, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  disabled={fieldsDisabled}
+                  value={number}
+                  onChange={(e) => updateAdditionalPhoneAt(index, e.target.value)}
+                  placeholder="ex. contact d'urgence"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+                />
+                {!fieldsDisabled && (
+                  <button
+                    type="button"
+                    onClick={() => removeAdditionalPhoneAt(index)}
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
+            ))}
+            {!fieldsDisabled && (
+              <button
+                type="button"
+                onClick={addAdditionalPhone}
+                className="text-xs font-medium text-emerald-700 hover:underline"
+              >
+                + Ajouter un numéro
+              </button>
+            )}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">Email (optionnel)</label>
           <input
             type="email"
             disabled={fieldsDisabled}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">Adresse</label>
+          <input
+            disabled={fieldsDisabled}
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
           />
         </div>

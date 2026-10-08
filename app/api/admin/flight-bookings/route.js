@@ -7,8 +7,9 @@ import {
   recordSuccessfulBooking,
   recordFailedBooking,
 } from "@/lib/flightBookings";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "billets.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -30,6 +31,9 @@ export async function POST(request) {
   try {
     offer = await getOffer(offerId);
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     return NextResponse.json(
       { message: `Offre introuvable ou expirée : ${err.message}` },
       { status: 409 }
@@ -70,6 +74,9 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     await recordFailedBooking({
       tripId,
       scope,
@@ -84,3 +91,5 @@ export async function POST(request) {
     );
   }
 }
+
+export const POST = withNotFound(POST_handler);

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateMealOffer, deleteMealOffer } from "@/lib/tripMealOffers";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -20,7 +21,7 @@ export async function PUT(request, { params }) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -30,3 +31,6 @@ export async function DELETE(request, { params }) {
   await deleteMealOffer(id);
   return NextResponse.json({ ok: true });
 }
+
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

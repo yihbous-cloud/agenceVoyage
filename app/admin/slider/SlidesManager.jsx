@@ -125,7 +125,7 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={handleFileChange("imageUrl", "desktop")}
           disabled={uploading.desktop}
-          className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
+          className="mt-2 block w-full text-sm text-zinc-600 file:me-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
         />
         {uploading.desktop && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
         {uploadError.desktop && <p className="mt-1 text-sm text-red-600">{uploadError.desktop}</p>}
@@ -160,7 +160,7 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={handleFileChange("mobileImageUrl", "mobile")}
           disabled={uploading.mobile}
-          className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
+          className="mt-2 block w-full text-sm text-zinc-600 file:me-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
         />
         {uploading.mobile && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}
         {uploadError.mobile && <p className="mt-1 text-sm text-red-600">{uploadError.mobile}</p>}
@@ -177,16 +177,15 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
       )}
 
       <div className="col-span-2">
-        <label className="block text-sm font-medium text-zinc-700">Titre</label>
+        <label className="block text-sm font-medium text-zinc-700">Titre (optionnel)</label>
         <input
-          required
           value={form.title}
           onChange={set("title")}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
       </div>
       <div className="col-span-2">
-        <label className="block text-sm font-medium text-zinc-700">Sous-titre</label>
+        <label className="block text-sm font-medium text-zinc-700">Sous-titre (optionnel)</label>
         <input
           value={form.subtitle}
           onChange={set("subtitle")}
@@ -195,7 +194,7 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Lien vers</label>
+        <label className="block text-sm font-medium text-zinc-700">Lien vers (optionnel)</label>
         <select
           value={linkMode}
           onChange={handleLinkModeChange}
@@ -209,16 +208,16 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
           ))}
         </select>
         <p className="mt-1 text-xs text-zinc-400">
-          Programme choisi : le lien reste correct même si son slug change.
+          Programme choisi : le lien reste correct même si son slug change. Laisser le
+          lien personnalisé vide si la diapositive n&apos;a pas de bouton.
         </p>
       </div>
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          {linkMode === CUSTOM_LINK_VALUE ? "URL personnalisée" : "Texte du bouton"}
+          {linkMode === CUSTOM_LINK_VALUE ? "URL personnalisée (optionnel)" : "Texte du bouton"}
         </label>
         {linkMode === CUSTOM_LINK_VALUE ? (
           <input
-            required={linkMode === CUSTOM_LINK_VALUE}
             value={form.buttonLink}
             onChange={set("buttonLink")}
             placeholder="/omra-hajj, https://..."
@@ -232,17 +231,6 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
           />
         )}
       </div>
-
-      {linkMode !== CUSTOM_LINK_VALUE && (
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Texte du bouton</label>
-          <input
-            value={form.buttonText}
-            onChange={set("buttonText")}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-        </div>
-      )}
 
       <div className="flex items-end">
         <label className="flex items-center gap-2 text-sm text-zinc-700">
@@ -363,7 +351,7 @@ export default function SlidesManager({ initialSlides, programs }) {
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Ordre</th>
@@ -429,7 +417,7 @@ export default function SlidesManager({ initialSlides, programs }) {
                       {s.is_active ? "Active" : "Inactive"}
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <button
                       onClick={() => setEditingId(editingId === s.id ? null : s.id)}
                       className="text-emerald-700 hover:underline"
@@ -438,7 +426,7 @@ export default function SlidesManager({ initialSlides, programs }) {
                     </button>
                     <button
                       onClick={() => handleDelete(s.id)}
-                      className="ml-3 text-red-600 hover:underline"
+                      className="ms-3 text-red-600 hover:underline"
                     >
                       Supprimer
                     </button>

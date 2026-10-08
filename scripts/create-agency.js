@@ -57,8 +57,22 @@ async function main() {
       );
     }
 
+    // WhatsApp (migration 038) : délais de prise en charge et horaires par
+    // défaut, copiés de l'agence 1 (modifiables dans /admin/whatsapp/equipe).
+    await connection.execute(
+      `INSERT INTO sla_rules (agency_id, reason, label, team, minutes, priority, around_the_clock)
+       SELECT ?, reason, label, team, minutes, priority, around_the_clock FROM sla_rules WHERE agency_id = 1`,
+      [agencyId]
+    );
+    await connection.execute(
+      `INSERT INTO business_hours (agency_id, weekday, open_time, close_time)
+       SELECT ?, weekday, open_time, close_time FROM business_hours WHERE agency_id = 1`,
+      [agencyId]
+    );
+
     await connection.commit();
     console.log(`Agence créée : id ${agencyId}, sous-domaine "${subdomain}".`);
+    console.log(`En développement : http://${subdomain}.localhost:3000 — en production : https://${subdomain}.<ROOT_DOMAIN>`);
     console.log(
       `Étape suivante : node scripts/create-staff-user.js "Nom" email mdp direction ${agencyId}`
     );

@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getRegistrationById, updateTraveler } from "@/lib/registrations";
-import { isPassportExpiryValid, getMinPassportValidUntil } from "@/lib/passportValidation";
+import {
+  isPassportExpiryValid,
+  getMinPassportValidUntil,
+  getPassportIssueDateError,
+} from "@/lib/passportValidation";
+import { withNotFound } from "@/lib/apiGuard";
 
 // Corrige les informations du voyageur (nom, WhatsApp, genre, passeport,
 // email) — utile quand l'inscrit les a saisies lui-même via le formulaire
 // public et qu'une correction est nécessaire (faute de frappe, etc.).
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "inscriptions.edit_voyageur"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -40,6 +45,13 @@ export async function PUT(request, { params }) {
     );
   }
 
+  const issueError = getPassportIssueDateError(body.passportIssueDate, body.passportExpiryDate);
+  if (issueError) {
+    return NextResponse.json({ message: issueError }, { status: 400 });
+  }
+
   await updateTraveler(registration.traveler_id, body);
   return NextResponse.json({ ok: true });
 }
+
+export const PUT = withNotFound(PUT_handler);

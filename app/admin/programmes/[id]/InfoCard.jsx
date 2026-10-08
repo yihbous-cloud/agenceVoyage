@@ -369,7 +369,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
               accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={handleFileChange}
               disabled={uploading}
-              className="mt-2 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
+              className="mt-2 block w-full text-sm text-zinc-600 file:me-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-emerald-800"
             />
           )}
           {uploading && <p className="mt-1 text-sm text-zinc-500">Envoi en cours...</p>}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
 function defaultPassenger(reg) {
   const [givenName, ...rest] = reg.full_name.trim().split(/\s+/);
@@ -30,6 +31,7 @@ const STATUS_STYLES = {
 
 export default function FlightBookingManager({ tripId, bookable, bookings, canBook }) {
   const router = useRouter();
+  const { tr } = useAdminLocale();
   const [selectedIds, setSelectedIds] = useState(() => new Set(bookable.map((r) => r.id)));
   const [offers, setOffers] = useState(null);
   const [selectedOfferId, setSelectedOfferId] = useState(null);
@@ -193,15 +195,14 @@ export default function FlightBookingManager({ tripId, bookable, bookings, canBo
                   <input
                     type="radio"
                     name="offer"
-                    className="mr-3"
+                    className="me-3"
                     checked={selectedOfferId === offer.id}
                     onChange={() => selectOffer(offer.id)}
                   />
                   <span className="font-medium text-zinc-900">{offer.owner}</span>
                   {offer.slices.map((s, i) => (
-                    <span key={i} className="ml-3 text-zinc-500">
-                      {s.origin}→{s.destination} ({s.segmentsCount} segment
-                      {s.segmentsCount > 1 ? "s" : ""})
+                    <span key={i} className="ms-3 text-zinc-500">
+                      {s.origin}→{s.destination} ({tr.plural("{count} segment", "{count} segments", s.segmentsCount)})
                     </span>
                   ))}
                 </div>
@@ -312,7 +313,7 @@ export default function FlightBookingManager({ tripId, bookable, bookings, canBo
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-zinc-900">Billets réservés</h2>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-start text-sm">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
                 <th className="px-2 py-2">Référence</th>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Icon from "../_components/Icon";
 
 // Filtre dès la première lettre tapée (pas besoin de valider) — la saisie
 // est débattue de 300ms pour éviter une navigation à chaque frappe, sans
@@ -35,12 +36,14 @@ export default function SearchBar({ initialQuery }) {
   }, [value]);
 
   return (
-    <input
-      type="search"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      placeholder="Rechercher par nom ou groupe..."
-      className="w-72 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-    />
+    <label className="gf-search">
+      <Icon name="search" size={18} />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Rechercher par nom ou groupe..."
+      />
+    </label>
   );
 }

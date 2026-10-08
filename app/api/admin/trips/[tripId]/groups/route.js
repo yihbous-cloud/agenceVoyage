@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listGroupsForTrip, createGroup } from "@/lib/registrationGroups";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -13,7 +14,7 @@ export async function GET(request, { params }) {
   return NextResponse.json(groups);
 }
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   const canCreate =
     (await hasPermission(session, "inscriptions.create")) ||
@@ -32,3 +33,6 @@ export async function POST(request, { params }) {
   const id = await createGroup(tripId, label.trim(), allowMixedGenderRoom);
   return NextResponse.json({ id }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

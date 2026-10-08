@@ -1,8 +1,11 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "./LocalizedLink";
+import { siteBaseUrl } from "@/lib/i18n/seo";
+import { makeTranslator } from "@/lib/i18n/translate";
+import { INTL_TAGS, localizePath } from "@/lib/i18n/locales";
 import ReservationForm from "./ReservationForm";
 import BreadcrumbJsonLd from "./BreadcrumbJsonLd";
-import { SEASON_LABELS } from "./formatTrip";
+import { SEASON_LABELS, formatDate } from "./formatTrip";
 import { getCityByIata, citySlug } from "@/lib/airports";
 
 // Gabarit de détail partagé par /omra-hajj/[slug] et /voyages-organises/[slug].
@@ -14,11 +17,15 @@ export default function ProgramDetail({
   trips,
   family,
   faqs = [],
+  locale,
+  agency, // { id, name, subdomain } — multi-agences (CLAUDE.md §3sexvicies)
 }) {
+  const tr = makeTranslator(locale, "public", { brandName: agency?.name });
+  const intlTag = INTL_TAGS[locale];
   const isOmraHajj = family === "omra_hajj";
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = siteBaseUrl(agency?.subdomain);
   const hubHref = isOmraHajj ? "/omra-hajj" : "/voyages-organises";
-  const hubLabel = isOmraHajj ? "Omra & Hajj" : "Voyages organisés";
+  const hubLabel = tr(isOmraHajj ? "Omra & Hajj" : "Voyages organisés");
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -30,7 +37,7 @@ export default function ProgramDetail({
     dateModified: program.updated_at,
     provider: {
       "@type": "TravelAgency",
-      name: "Golden Fantastic",
+      name: agency?.name || "Golden Fantastic",
     },
     offers: trips.map((trip) => ({
       "@type": "Offer",
@@ -45,8 +52,8 @@ export default function ProgramDetail({
   };
 
   const breadcrumbItems = [
-    { name: "Accueil", item: baseUrl },
-    { name: hubLabel, item: `${baseUrl}${hubHref}` },
+    { name: tr("Accueil"), item: `${baseUrl}${localizePath("/", locale)}` },
+    { name: hubLabel, item: `${baseUrl}${localizePath(hubHref, locale)}` },
     { name: program.title },
   ];
 
@@ -93,16 +100,16 @@ export default function ProgramDetail({
         <div className="flex flex-wrap items-center gap-2">
           {isOmraHajj && program.season && (
             <span className="bg-gold px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink">
-              {SEASON_LABELS[program.season] || program.season}
+              {tr(SEASON_LABELS[program.season] || program.season)}
             </span>
           )}
           {!isOmraHajj && program.theme && (
             <span className="bg-gold px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink">
-              {program.theme}
+              {tr(program.theme)}
             </span>
           )}
           <span className="text-xs font-semibold uppercase tracking-wide text-[#A8863C]">
-            {program.program_type}
+            {tr(program.program_type)}
           </span>
         </div>
 
@@ -114,12 +121,12 @@ export default function ProgramDetail({
         </p>
 
         <h2 className="mt-10 font-display text-xl font-normal text-ink">
-          Prochains départs
+          {tr("Prochains départs")}
         </h2>
 
         {trips.length === 0 && (
           <p className="mt-4 text-muted">
-            Aucun départ ouvert à la réservation pour le moment.
+            {tr("Aucun départ ouvert à la réservation pour le moment.")}
           </p>
         )}
 
@@ -131,21 +138,21 @@ export default function ProgramDetail({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold text-ink">
-                      {new Date(trip.departure_date).toLocaleDateString("fr-FR")} →{" "}
-                      {new Date(trip.return_date).toLocaleDateString("fr-FR")}
+                      {formatDate(trip.departure_date, intlTag)} –{" "}
+                      {formatDate(trip.return_date, intlTag)}
                     </p>
                     <p className="text-sm text-muted">
-                      Réf. {trip.reference_code}
+                      {tr("Réf.")} {trip.reference_code}
                       {trip.airline_name ? ` · ${trip.airline_name}` : ""}
                       {trip.origin_iata && (
                         <>
-                          {" · Départ "}
+                          {` · ${tr("Départ")} `}
                           {city ? (
                             <Link
                               href={`/villes-depart/${citySlug(city.city)}`}
                               className="text-[#A8863C] hover:underline"
                             >
-                              {city.city} ({trip.origin_iata})
+                              {tr(city.city)} ({trip.origin_iata})
                             </Link>
                           ) : (
                             trip.origin_iata
@@ -155,16 +162,21 @@ export default function ProgramDetail({
                     </p>
                     {isOmraHajj && trip.hotel_names && (
                       <p className="text-sm text-muted">
-                        Hébergement : {trip.hotel_names}
+                        {tr("Hébergement")} : {trip.hotel_names}
                         {trip.min_landmark_distance_m != null &&
-                          ` (à ${trip.min_landmark_distance_m} m${
-                            trip.nearest_landmark_name ? ` du ${trip.nearest_landmark_name}` : ""
+                          ` (${
+                            trip.nearest_landmark_name
+                              ? tr("à {distance} m du {landmark}", {
+                                  distance: trip.min_landmark_distance_m,
+                                  landmark: tr(trip.nearest_landmark_name),
+                                })
+                              : tr("à {distance} m", { distance: trip.min_landmark_distance_m })
                           })`}
                       </p>
                     )}
                     {trip.meal_offers?.length > 0 && (
                       <div className="mt-2 text-sm text-muted">
-                        <p className="font-medium text-ink">Restauration</p>
+                        <p className="font-medium text-ink">{tr("Restauration")}</p>
                         <ul className="mt-1 space-y-1">
                           {trip.meal_offers.map((offer) => (
                             <li key={offer.id}>
@@ -177,14 +189,14 @@ export default function ProgramDetail({
                     )}
                   </div>
                   <p className="mt-2 font-display text-lg text-[#A8863C] sm:mt-0">
-                    <span className="block text-xs font-sans text-muted">à partir de</span>
-                    {trip.starting_price} {trip.currency}
+                    <span className="block text-xs font-sans text-muted">{tr("à partir de")}</span>
+                    {trip.starting_price} {tr(trip.currency)}
                   </p>
                 </div>
                 <p className="mt-2 text-sm text-muted">
                   {trip.seats_remaining > 0
-                    ? `${trip.seats_remaining} places restantes`
-                    : "Complet"}
+                    ? tr.plural("{count} place restante", "{count} places restantes", trip.seats_remaining)
+                    : tr("Complet")}
                 </p>
                 {trip.seats_remaining > 0 && <ReservationForm tripId={trip.id} />}
               </div>
@@ -195,7 +207,7 @@ export default function ProgramDetail({
         {faqs.length > 0 && (
           <section className="mt-10">
             <h2 className="font-display text-xl font-normal text-ink">
-              Questions fréquentes
+              {tr("Questions fréquentes")}
             </h2>
             <div className="mt-4 space-y-4">
               {faqs.map((faq) => (

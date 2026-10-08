@@ -8,6 +8,7 @@ import { listHotels } from "@/lib/hotels";
 import { listAirlines } from "@/lib/airlines";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import { listExpensesForTrip } from "@/lib/tripExpenses";
 import ProgramManagerGrid from "./ProgramManagerGrid";
 
 export default async function ProgramDetailPage({ params }) {
@@ -40,10 +41,16 @@ export default async function ProgramDetailPage({ params }) {
     primaryTrip && program.family === "omra_hajj" ? listTiersForTrip(primaryTrip.id) : [],
   ]);
 
-  const [canManagePrograms, canManageTrips] = await Promise.all([
+  const [canManagePrograms, canManageTrips, canViewCharges, canManageCharges] = await Promise.all([
     hasPermission(session, "programmes.manage"),
     hasPermission(session, "voyages.manage"),
+    hasPermission(session, "charges.view"),
+    hasPermission(session, "charges.manage"),
   ]);
+  // Charges financières (migration 035) : chargées seulement si la carte est
+  // visible pour ce rôle (charges.view ou charges.manage).
+  const showCharges = Boolean(primaryTrip) && (canViewCharges || canManageCharges);
+  const expenses = showCharges ? await listExpensesForTrip(primaryTrip.id) : [];
   const canManageInfo = canManagePrograms && canManageTrips;
 
   return (
@@ -58,12 +65,16 @@ export default async function ProgramDetailPage({ params }) {
         hotels={hotels}
         defaultHotelIds={defaultHotels.map((h) => h.id)}
         tripHotelsCount={tripHotels.length}
+        tripHotelIds={tripHotels.map((h) => h.hotel_id)}
         roomsCount={rooms.length}
         tiers={tiers}
         faqs={faqs}
         canManagePrograms={canManagePrograms}
         canManageTrips={canManageTrips}
         canManageInfo={canManageInfo}
+        showCharges={showCharges}
+        canManageCharges={canManageCharges}
+        expenses={expenses}
       />
     </div>
   );

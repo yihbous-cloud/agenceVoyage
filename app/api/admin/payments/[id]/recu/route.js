@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { getPaymentById } from "@/lib/payments";
 import { getAgencySettings } from "@/lib/agencySettings";
 import { buildReceiptPdfBuffer } from "@/lib/exporters/receiptPdf";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -27,3 +28,5 @@ export async function GET(request, { params }) {
     },
   });
 }
+
+export const GET = withNotFound(GET_handler);

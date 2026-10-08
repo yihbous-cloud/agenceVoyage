@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateProgram, deleteProgram, slugify, getProgramById } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "programmes.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -43,6 +44,9 @@ export async function PUT(request, { params }) {
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { message: "Ce slug existe déjà, choisissez-en un autre" },
@@ -56,7 +60,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "programmes.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -68,9 +72,21 @@ export async function DELETE(request, { params }) {
     await deleteProgram(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
+    if (err.code === "PROGRAM_HAS_REGISTRATIONS") {
+      return NextResponse.json(
+        { message: "Impossible de supprimer : des voyageurs sont inscrits à ce programme" },
+        { status: 409 }
+      );
+    }
+    // Filet de sécurité : si une dépendance non prévue bloque malgré tout
+    // (contrainte de clé étrangère non nettoyée par deleteProgram), la
+    // transaction a déjà été annulée (rollback) — rien n'est perdu.
     if (err.code === "ER_ROW_IS_REFERENCED_2" || err.code === "ER_ROW_IS_REFERENCED") {
       return NextResponse.json(
-        { message: "Impossible de supprimer : ce programme a des voyages associés" },
+        { message: "Impossible de supprimer : ce programme a des données associées" },
         { status: 409 }
       );
     }
@@ -80,3 +96,6 @@ export async function DELETE(request, { params }) {
     );
   }
 }
+
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

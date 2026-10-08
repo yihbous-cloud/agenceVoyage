@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listVisaTypes, createVisaType } from "@/lib/visaTypes";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET() {
+async function GET_handler() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -12,7 +13,7 @@ export async function GET() {
   return NextResponse.json(visaTypes);
 }
 
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "visa_types.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -26,3 +27,6 @@ export async function POST(request) {
   const id = await createVisaType(body);
   return NextResponse.json({ id }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

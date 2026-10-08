@@ -17,3 +17,30 @@
   --color-cream-card: #fbf8f2;
   --color-muted: #6e655a;
 }
+
+/* Arabe (langue principale) : Geist/Marcellus/Jost n'ont pas de glyphes arabes,
+   Cairo (chargée par les layouts) prend le relais. Le nom de marque (lang="en"
+   sur le logo) garde sa police script dorée. L'espacement de lettres de
+   Tailwind (tracking-*) couperait la liaison des lettres arabes : neutralisé. */
+html[lang="ar"],
+html[lang="ar"] body,
+html[lang="ar"] .font-sans,
+html[lang="ar"] .font-display,
+html[lang="ar"] .font-luxe,
+html[lang="ar"] .font-script:not([lang="en"]) {
+  font-family: var(--font-cairo), system-ui, sans-serif;
+}
+html[lang="ar"] * {
+  letter-spacing: normal !important;
+}
+html[lang="ar"] .font-script:not([lang="en"]) {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Espace interne en arabe/anglais : la page reste masquée jusqu'à ce que le
+   traducteur DOM (app/admin/_components/AdminLocale.jsx) ait remplacé les
+   textes français — évite un flash de français avant la première peinture. */
+html[data-i18n-pending] body {
+  visibility: hidden;
+}

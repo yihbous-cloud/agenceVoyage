@@ -1,23 +1,22 @@
 import Link from "next/link";
 import { listVisaTypes } from "@/lib/visaTypes";
+import PageHeader from "../_components/PageHeader";
+import Icon from "../_components/Icon";
 
 export default async function VisaTypesPage() {
   const visaTypes = await listVisaTypes();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900">Types de visa</h1>
-        <Link
-          href="/admin/visa-types/new"
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-        >
-          + Nouveau type de visa
-        </Link>
-      </div>
+      <PageHeader icon="badge" title="Types de visa" description="Catalogue des visas proposés et leurs tarifs.">
+        <Link href="/admin/visa-types/new" className="gf-btn-primary">
+            <Icon name="add" size={19} />
+            Nouveau type de visa
+          </Link>
+      </PageHeader>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Nom</th>
@@ -40,7 +39,7 @@ export default async function VisaTypesPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{vt.price} MAD</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">
                   <Link
                     href={`/admin/visa-types/${vt.id}`}
                     className="text-emerald-700 hover:underline"

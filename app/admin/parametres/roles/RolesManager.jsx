@@ -118,10 +118,10 @@ export default function RolesManager({ roles, permissions, initialGrantedKeys })
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
-              <th className="sticky left-0 bg-white px-4 py-3">Permission</th>
+              <th className="sticky start-0 bg-white px-4 py-3">Permission</th>
               {roles.map((r) => (
                 <th key={r.id} className="px-4 py-3 text-center capitalize">
                   <div className="flex flex-col items-center gap-1">

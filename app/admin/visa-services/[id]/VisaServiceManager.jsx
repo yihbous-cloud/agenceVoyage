@@ -94,7 +94,7 @@ export default function VisaServiceManager({ visaService, canManage }) {
             <span>
               {doc.document_name}
               {!doc.is_required && (
-                <span className="ml-1 text-xs text-zinc-400">(optionnel)</span>
+                <span className="ms-1 text-xs text-zinc-400">(optionnel)</span>
               )}
             </span>
             <button

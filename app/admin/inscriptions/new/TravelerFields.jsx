@@ -74,6 +74,20 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
     }
   };
 
+  const additionalPhoneNumbers = traveler.additionalPhoneNumbers || [];
+  const updateAdditionalPhoneAt = (index, value) => {
+    const next = [...additionalPhoneNumbers];
+    next[index] = value;
+    onChange({ ...traveler, additionalPhoneNumbers: next });
+  };
+  const addAdditionalPhone = () =>
+    onChange({ ...traveler, additionalPhoneNumbers: [...additionalPhoneNumbers, ""] });
+  const removeAdditionalPhoneAt = (index) =>
+    onChange({
+      ...traveler,
+      additionalPhoneNumbers: additionalPhoneNumbers.filter((_, i) => i !== index),
+    });
+
   return (
     <div className="rounded-lg border border-zinc-200 p-4">
       <div className="flex items-center justify-between">
@@ -155,7 +169,9 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700">N° Passeport</label>
+          <label className="block text-sm font-medium text-zinc-700">
+            N° Passeport
+          </label>
           <input
             ref={passportInputRef}
             disabled={passportLocked}
@@ -174,7 +190,7 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
               <button
                 type="button"
                 onClick={handleUnlockPassport}
-                className="ml-2 font-medium text-zinc-500 hover:underline"
+                className="ms-2 font-medium text-zinc-500 hover:underline"
               >
                 Modifier
               </button>
@@ -183,7 +199,19 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
         </div>
         <div>
           <label className="block text-sm font-medium text-zinc-700">
-            Expiration passeport
+            Date de délivrance
+          </label>
+          <input
+            type="date"
+            max={new Date().toISOString().slice(0, 10)}
+            value={traveler.passportIssueDate}
+            onChange={set("passportIssueDate")}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Date d&apos;expiration
           </label>
           <input
             type="date"
@@ -198,7 +226,16 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
           {expiryError && <p className="mt-1 text-xs text-red-600">{expiryError}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700">WhatsApp</label>
+          <label className="block text-sm font-medium text-zinc-700">N° Tél</label>
+          <input
+            value={traveler.phone}
+            onChange={set("phone")}
+            placeholder="+212 5XX XXX XXX"
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">N° WhatsApp</label>
           <input
             required
             value={traveler.phoneWhatsapp}
@@ -207,8 +244,39 @@ export default function TravelerFields({ label, traveler, onChange, departureDat
             className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-zinc-700">
+            Autres numéros
+          </label>
+          <div className="mt-1 space-y-2">
+            {additionalPhoneNumbers.map((number, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  value={number}
+                  onChange={(e) => updateAdditionalPhoneAt(index, e.target.value)}
+                  placeholder="ex. contact d'urgence"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAdditionalPhoneAt(index)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  Retirer
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addAdditionalPhone}
+              className="text-xs font-medium text-emerald-700 hover:underline"
+            >
+              + Ajouter un numéro
+            </button>
+          </div>
+        </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-700">Email</label>
+          <label className="block text-sm font-medium text-zinc-700">Email (optionnel)</label>
           <input
             type="email"
             value={traveler.email}

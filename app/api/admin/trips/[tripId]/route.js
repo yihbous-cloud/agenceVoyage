@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getTripFullById, updateTrip, deleteTrip } from "@/lib/programsAdmin";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -16,7 +17,7 @@ export async function GET(request, { params }) {
   return NextResponse.json(trip);
 }
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -43,6 +44,9 @@ export async function PUT(request, { params }) {
     await updateTrip(tripId, body);
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { message: "Cette référence de voyage existe déjà" },
@@ -56,7 +60,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "voyages.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -68,6 +72,9 @@ export async function DELETE(request, { params }) {
     await deleteTrip(tripId);
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_ROW_IS_REFERENCED_2" || err.code === "ER_ROW_IS_REFERENCED") {
       return NextResponse.json(
         { message: "Impossible de supprimer : ce voyage a des inscriptions associées" },
@@ -80,3 +87,7 @@ export async function DELETE(request, { params }) {
     );
   }
 }
+
+export const GET = withNotFound(GET_handler);
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

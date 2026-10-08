@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllPrograms, createProgram, slugify } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET() {
+async function GET_handler() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -13,7 +14,7 @@ export async function GET() {
   return NextResponse.json(programs);
 }
 
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "programmes.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -40,6 +41,9 @@ export async function POST(request) {
     }
     return NextResponse.json({ id }, { status: 201 });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { message: "Ce slug existe déjà, choisissez-en un autre" },
@@ -52,3 +56,6 @@ export async function POST(request) {
     );
   }
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

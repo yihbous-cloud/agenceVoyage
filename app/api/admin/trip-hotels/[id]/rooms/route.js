@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { createRoom } from "@/lib/roomAssignment";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "hebergement.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -22,3 +23,5 @@ export async function POST(request, { params }) {
   const roomId = await createRoom(id, body);
   return NextResponse.json({ id: roomId }, { status: 201 });
 }
+
+export const POST = withNotFound(POST_handler);

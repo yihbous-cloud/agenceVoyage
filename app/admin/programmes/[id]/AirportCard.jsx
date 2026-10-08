@@ -15,6 +15,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
 
   const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
+  const [pnr, setPnr] = useState(trip?.pnr || "");
   const [destinationIata, setDestinationIata] = useState(
     airportInputValue(trip?.destination_iata)
   );
@@ -48,6 +49,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
         body: JSON.stringify({
           originIata: originIata || null,
           airlineId: airlineId || null,
+          pnr: pnr || null,
           destinationIata: extractIataFromInput(destinationIata) || null,
           returnOriginIata: extractIataFromInput(returnOriginIata) || null,
           returnDestinationIata: extractIataFromInput(returnDestinationIata) || null,
@@ -118,6 +120,18 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">PNR (référence de réservation)</label>
+        <input
+        disabled={!canManage}
+          value={pnr}
+          onChange={(e) => setPnr(e.target.value.toUpperCase())}
+          maxLength={10}
+          placeholder="ex : ABC123 — fourni par la compagnie"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase disabled:bg-zinc-100"
+        />
       </div>
 
       <div>

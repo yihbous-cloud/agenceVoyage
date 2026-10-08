@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import { withNotFound } from "@/lib/apiGuard";
 
 const ALLOWED_TYPES = {
   "image/jpeg": "jpg",
@@ -20,7 +21,7 @@ const ALLOWED_FOLDERS = ["programs", "agency", "slider"];
 // Upload générique d'image (image de couverture d'un programme, logo de
 // l'agence...) — enregistre le fichier sur le disque du serveur dans
 // public/uploads/<folder>/, aucun service externe (S3, etc.) requis.
-export async function POST(request) {
+async function POST_handler(request) {
   const session = await getSession();
   if (!(await hasPermission(session, "medias.upload"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -52,9 +53,19 @@ export async function POST(request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${crypto.randomUUID()}.${extension}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
+  // Multi-agences (CLAUDE.md §3sexvicies) : chaque agence a son propre
+  // dossier — uploads/agencies/<id>/<folder>/. Les fichiers envoyés avant
+  // cette passe restent à leur ancien emplacement (uploads/<folder>/), leur
+  // URL est déjà enregistrée en base et toujours servie telle quelle.
+  const agencyId = Number(session.agencyId);
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "agencies", String(agencyId), folder);
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/${folder}/${filename}` }, { status: 201 });
+  return NextResponse.json(
+    { url: `/uploads/agencies/${agencyId}/${folder}/${filename}` },
+    { status: 201 }
+  );
 }
+
+export const POST = withNotFound(POST_handler);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "./LocalizedLink";
 import Image from "next/image";
 import { useLocale } from "./LocaleProvider";
 
@@ -16,7 +16,7 @@ const FAMILY_LABELS = {
 // fondu (toutes les diapositives sont empilées, seule l'opacité change) —
 // pas de bibliothèque tierce, cohérent avec le reste du projet.
 export default function HeroSlider({ slides }) {
-  const { dir } = useLocale();
+  const { dir, tr } = useLocale();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef(null);
@@ -85,21 +85,29 @@ export default function HeroSlider({ slides }) {
             <div className="flex max-w-3xl flex-col items-center gap-5 text-center">
               {slide.program_family && (
                 <span className="text-xs font-medium tracking-[0.28em] text-gold uppercase">
-                  {FAMILY_LABELS[slide.program_family]}
+                  {tr(FAMILY_LABELS[slide.program_family])}
                 </span>
               )}
-              <h1 className="font-display text-4xl font-normal text-white sm:text-5xl">
-                {slide.title}
-              </h1>
+              {slide.title && (
+                <h1 className="font-display text-4xl font-normal text-white sm:text-5xl">
+                  {slide.title}
+                </h1>
+              )}
               {slide.subtitle && (
                 <p className="max-w-xl text-lg text-white/70">{slide.subtitle}</p>
               )}
-              <Link
-                href={slide.href}
-                className="mt-2 bg-gold px-9 py-3.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
-              >
-                {slide.button_text}
-              </Link>
+              {/* Champs optionnels (CLAUDE.md) : sans programme ni lien
+                  personnalisé, resolveHref() retombe sur "#" — pas de bouton
+                  inerte affiché dans ce cas plutôt qu'un lien qui ne mène
+                  nulle part. */}
+              {slide.href !== "#" && (
+                <Link
+                  href={slide.href}
+                  className="mt-2 bg-gold px-9 py-3.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
+                >
+                  {slide.button_text}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -110,7 +118,7 @@ export default function HeroSlider({ slides }) {
           <button
             type="button"
             onClick={() => goTo(activeIndex - 1)}
-            aria-label="Diapositive précédente"
+            aria-label={tr("Diapositive précédente")}
             className="absolute start-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
           >
             {dir === "rtl" ? "›" : "‹"}
@@ -118,7 +126,7 @@ export default function HeroSlider({ slides }) {
           <button
             type="button"
             onClick={() => goTo(activeIndex + 1)}
-            aria-label="Diapositive suivante"
+            aria-label={tr("Diapositive suivante")}
             className="absolute end-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/30 text-white transition-colors hover:bg-white/10"
           >
             {dir === "rtl" ? "‹" : "›"}
@@ -130,7 +138,7 @@ export default function HeroSlider({ slides }) {
                 key={slide.id}
                 type="button"
                 onClick={() => goTo(index)}
-                aria-label={`Aller à la diapositive ${index + 1}`}
+                aria-label={tr("Aller à la diapositive {n}", { n: index + 1 })}
                 aria-current={index === activeIndex}
                 className={`h-2 rounded-full transition-all ${
                   index === activeIndex ? "w-7 bg-gold" : "w-2 bg-white/40 hover:bg-white/60"

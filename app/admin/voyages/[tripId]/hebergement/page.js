@@ -10,6 +10,7 @@ import {
 } from "@/lib/roomAssignment";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import { listOpenTripsForSelect } from "@/lib/registrations";
 import HebergementManager from "./HebergementManager";
 
 export default async function HebergementPage({ params }) {
@@ -37,6 +38,10 @@ export default async function HebergementPage({ params }) {
   // le personnel (§3quattertrigies).
   const hotels = programHotels.length > 0 ? programHotels : allHotels;
 
+  // Voyages vers lesquels on peut transférer un voyageur/groupe (autre
+  // programme ou autre départ du même programme).
+  const otherTrips = (await listOpenTripsForSelect()).filter((t) => Number(t.id) !== Number(trip.id));
+
   const canManage = await hasPermission(session, "hebergement.manage");
 
   return (
@@ -61,6 +66,7 @@ export default async function HebergementPage({ params }) {
         rooms={rooms}
         unassigned={unassigned}
         assigned={assigned}
+        otherTrips={otherTrips}
         canManage={canManage}
       />
     </div>

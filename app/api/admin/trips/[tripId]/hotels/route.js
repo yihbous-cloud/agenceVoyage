@@ -8,8 +8,9 @@ import {
   findOverlappingTripHotel,
 } from "@/lib/roomAssignment";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function GET(request, { params }) {
+async function GET_handler(request, { params }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -26,13 +27,16 @@ export async function GET(request, { params }) {
   // /admin/inscriptions/new vide — même forme de réponse que trip_hotels
   // (hotel_id/hotel_name/city) pour que le client n'ait rien à distinguer.
   const trip = await getTripSummary(tripId);
-  const defaultHotels = trip ? await listDefaultHotelsForProgram(trip.program_id) : [];
+  if (!trip) {
+    return NextResponse.json({ message: "Voyage introuvable" }, { status: 404 });
+  }
+  const defaultHotels = await listDefaultHotelsForProgram(trip.program_id);
   return NextResponse.json(
-    defaultHotels.map((h) => ({ hotel_id: h.id, hotel_name: h.name, city: h.city }))
+    defaultHotels.map((h) => ({ hotel_id: h.id, hotel_name: h.display_name || h.name, city: h.city }))
   );
 }
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "hebergement.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -70,13 +74,14 @@ export async function POST(request, { params }) {
     );
   }
 
-  // Un voyageur ne peut pas être dans deux hôtels en même temps, même dans
-  // des villes différentes — voir CLAUDE.md.
-  const overlap = await findOverlappingTripHotel(tripId, checkInDate, checkOutDate);
+  // Un voyageur ne peut pas être dans deux VILLES en même temps — le contrôle
+  // ignore les hôtels de la MÊME ville que celui ajouté (options concurrentes
+  // pour un même séjour, voir CLAUDE.md).
+  const overlap = await findOverlappingTripHotel(tripId, hotelId, checkInDate, checkOutDate);
   if (overlap) {
     return NextResponse.json(
       {
-        message: `Chevauchement avec ${overlap.hotel_name} (${overlap.check_in_date} → ${overlap.check_out_date}) : un voyageur ne peut pas être dans deux hôtels en même temps.`,
+        message: `Chevauchement avec ${overlap.hotel_name} (${overlap.check_in_date} → ${overlap.check_out_date}) : un voyageur ne peut pas être dans deux villes en même temps.`,
       },
       { status: 400 }
     );
@@ -85,3 +90,6 @@ export async function POST(request, { params }) {
   const id = await addTripHotel(tripId, hotelId, checkInDate, checkOutDate);
   return NextResponse.json({ id }, { status: 201 });
 }
+
+export const GET = withNotFound(GET_handler);
+export const POST = withNotFound(POST_handler);

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateAirline, deleteAirline } from "@/lib/airlines";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "compagnies.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -15,7 +16,7 @@ export async function PUT(request, { params }) {
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "compagnies.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -27,6 +28,9 @@ export async function DELETE(request, { params }) {
     await deleteAirline(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_ROW_IS_REFERENCED_2" || err.code === "ER_ROW_IS_REFERENCED") {
       return NextResponse.json(
         { message: "Impossible de supprimer : des voyages utilisent cette compagnie" },
@@ -39,3 +43,6 @@ export async function DELETE(request, { params }) {
     );
   }
 }
+
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

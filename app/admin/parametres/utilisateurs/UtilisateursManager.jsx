@@ -188,7 +188,7 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
   return (
     <div className="space-y-6">
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Nom</th>
@@ -206,7 +206,7 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
                   <td className="px-4 py-3 font-medium text-zinc-900">
                     {u.full_name}
                     {u.id === currentUserId && (
-                      <span className="ml-2 text-xs text-zinc-400">(vous)</span>
+                      <span className="ms-2 text-xs text-zinc-400">(vous)</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-zinc-600">{u.email}</td>
@@ -222,18 +222,42 @@ export default function UtilisateursManager({ initialUsers, roles, currentUserId
                     >
                       {u.is_active ? "Actif" : "Désactivé"}
                     </span>
+                    {Boolean(u.totp_enabled) && (
+                      <span className="ms-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700" title="Double authentification active">
+                        2FA
+                      </span>
+                    )}
+                    {Boolean(u.locked) && (
+                      <span className="ms-1 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700">Verrouillé</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <button
                       onClick={() => setEditingId(editingId === u.id ? null : u.id)}
                       className="text-emerald-700 hover:underline"
                     >
                       {editingId === u.id ? "Fermer" : "Modifier"}
                     </button>
+                    {u.id !== currentUserId && (Boolean(u.totp_enabled) || Boolean(u.locked)) && (
+                      <button
+                        onClick={async () => {
+                          if (!(await confirm(`Réinitialiser la double authentification et déverrouiller le compte de ${u.full_name} ? Il devra la réactiver à sa prochaine connexion.`))) return;
+                          const res = await fetch("/api/admin/security", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "reset", staffId: u.id }),
+                          });
+                          if (res.ok) router.refresh();
+                        }}
+                        className="ms-3 text-zinc-600 hover:underline"
+                      >
+                        Réinitialiser 2FA
+                      </button>
+                    )}
                     {u.id !== currentUserId && (
                       <button
                         onClick={() => handleDelete(u.id)}
-                        className="ml-3 text-red-600 hover:underline"
+                        className="ms-3 text-red-600 hover:underline"
                       >
                         Supprimer
                       </button>

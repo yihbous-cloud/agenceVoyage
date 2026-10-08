@@ -13,3 +13,7 @@ public/uploads/*
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# Médias WhatsApp reçus (documents clients, passeports...) — données
+# personnelles, jamais versionnées ni servies publiquement.
+storage/

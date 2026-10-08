@@ -2,6 +2,8 @@ import Link from "next/link";
 import { listAllNews } from "@/lib/news";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import PageHeader from "../_components/PageHeader";
+import Icon from "../_components/Icon";
 
 export default async function AdminNewsPage() {
   const [posts, session] = await Promise.all([listAllNews(), getSession()]);
@@ -9,20 +11,17 @@ export default async function AdminNewsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900">Actualités</h1>
+      <PageHeader icon="newspaper" title="Actualités" description="Articles publiés sur le site.">
         {canManage && (
-          <Link
-            href="/admin/actualites/new"
-            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
-          >
-            + Nouvelle actualité
+          <Link href="/admin/actualites/new" className="gf-btn-primary">
+            <Icon name="add" size={19} />
+            Nouvelle actualité
           </Link>
         )}
-      </div>
+      </PageHeader>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Titre</th>
@@ -47,7 +46,7 @@ export default async function AdminNewsPage() {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">
                   <Link
                     href={`/admin/actualites/${p.id}`}
                     className="text-emerald-700 hover:underline"

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateStaffUser, deleteStaffUser } from "@/lib/staffUsers";
+import { withNotFound } from "@/lib/apiGuard";
+import { logAudit, requestIp } from "@/lib/audit";
 
-export async function PUT(request, { params }) {
+async function PUT_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "utilisateurs.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -41,8 +43,14 @@ export async function PUT(request, { params }) {
 
   try {
     await updateStaffUser(id, body);
+    // Journal d'audit (§8.16) — jamais le mot de passe.
+    await logAudit({ agencyId: session.agencyId, staffId: session.id, action: "utilisateur.modification", objectType: "staff_users", objectId: id,
+      after: { fullName: body.fullName, email: body.email, roleId: body.roleId, isActive: body.isActive, passwordChanged: Boolean(body.password) }, ip: requestIp(request) });
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json({ message: "Cet email est déjà utilisé" }, { status: 409 });
     }
@@ -50,7 +58,7 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+async function DELETE_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "utilisateurs.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -65,5 +73,9 @@ export async function DELETE(request, { params }) {
   }
 
   await deleteStaffUser(id);
+  await logAudit({ agencyId: session.agencyId, staffId: session.id, action: "utilisateur.suppression", objectType: "staff_users", objectId: id, ip: requestIp(request) });
   return NextResponse.json({ ok: true });
 }
+
+export const PUT = withNotFound(PUT_handler);
+export const DELETE = withNotFound(DELETE_handler);

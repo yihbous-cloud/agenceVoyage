@@ -1,8 +1,13 @@
 import { getProgramsByFamily, getDepartureCities } from "@/lib/programs";
 import { citySlug } from "@/lib/airports";
+import { getCurrentAgency } from "@/lib/currentAgency";
+
+// Multi-agences : le contenu dépend du sous-domaine de la requête (en-tête
+// posé par proxy.js) — jamais pré-généré au build.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const { baseUrl, name: brand } = await getCurrentAgency();
   const [omraHajjPrograms, voyagePrograms, departureCities] = await Promise.all([
     getProgramsByFamily("omra_hajj").catch(() => []),
     getProgramsByFamily("voyage_organise").catch(() => []),
@@ -10,11 +15,11 @@ export async function GET() {
   ]);
 
   const lines = [
-    "# Golden Fantastic",
+    `# ${brand}`,
     "",
     "> Agence de voyages spécialisée dans l'organisation d'Omra, de Hajj et de séjours touristiques.",
     "",
-    "Golden Fantastic organise deux catalogues de voyages distincts : des programmes Omra et Hajj vers l'Arabie Saoudite (hôtels proches des lieux saints, visa et accompagnement inclus), et des voyages organisés vers d'autres destinations (plage, culture, aventure, famille, couple).",
+    `${brand} organise deux catalogues de voyages distincts : des programmes Omra et Hajj vers l'Arabie Saoudite (hôtels proches des lieux saints, visa et accompagnement inclus), et des voyages organisés vers d'autres destinations (plage, culture, aventure, famille, couple).`,
     "",
     "## Omra & Hajj",
     "",
@@ -35,6 +40,12 @@ export async function GET() {
     ...departureCities.map(
       (c) => `- [Départ de ${c.city}](${baseUrl}/villes-depart/${citySlug(c.city)})`
     ),
+    "",
+    "## Langues",
+    "",
+    `- Arabe (langue principale) : ${baseUrl}/`,
+    `- Français : ${baseUrl}/fr`,
+    `- English : ${baseUrl}/en`,
     "",
     "## Pages",
     "",

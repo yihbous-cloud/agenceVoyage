@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "./LocaleProvider";
 
 export default function ReservationForm({ tripId }) {
+  const { tr } = useLocale();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -29,10 +31,10 @@ export default function ReservationForm({ tripId }) {
         throw new Error(data.message || "Erreur lors de la réservation");
       }
 
-      setStatus({ type: "success", message: "Inscription enregistrée ! Nous vous contacterons sur WhatsApp." });
+      setStatus({ type: "success", message: tr("Inscription enregistrée ! Nous vous contacterons sur WhatsApp.") });
       setForm({ fullName: "", phoneWhatsapp: "", email: "" });
     } catch (err) {
-      setStatus({ type: "error", message: err.message });
+      setStatus({ type: "error", message: tr(err.message) });
     } finally {
       setSubmitting(false);
     }
@@ -44,7 +46,7 @@ export default function ReservationForm({ tripId }) {
         onClick={() => setOpen(true)}
         className="mt-4 bg-gold px-5 py-2.5 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light sm:py-2"
       >
-        S&apos;inscrire
+        {tr("S'inscrire")}
       </button>
     );
   }
@@ -52,7 +54,7 @@ export default function ReservationForm({ tripId }) {
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
       <div>
-        <label className="block text-sm font-medium text-zinc-700">Nom complet</label>
+        <label className="block text-sm font-medium text-zinc-700">{tr("Nom complet")}</label>
         <input
           required
           value={form.fullName}
@@ -62,7 +64,7 @@ export default function ReservationForm({ tripId }) {
       </div>
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          Numéro WhatsApp
+          {tr("Numéro WhatsApp")}
         </label>
         <input
           required
@@ -74,7 +76,7 @@ export default function ReservationForm({ tripId }) {
       </div>
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          Email (optionnel)
+          {tr("Email (optionnel)")}
         </label>
         <input
           type="email"
@@ -89,14 +91,14 @@ export default function ReservationForm({ tripId }) {
           disabled={submitting}
           className="bg-gold px-5 py-2.5 text-sm font-medium tracking-wide text-ink uppercase hover:bg-gold-light disabled:opacity-60 sm:py-2"
         >
-          {submitting ? "Envoi..." : "Confirmer l'inscription"}
+          {submitting ? tr("Envoi...") : tr("Confirmer l'inscription")}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
           className="px-2 py-2 text-sm text-muted hover:text-ink"
         >
-          Annuler
+          {tr("Annuler")}
         </button>
       </div>
       {status && (

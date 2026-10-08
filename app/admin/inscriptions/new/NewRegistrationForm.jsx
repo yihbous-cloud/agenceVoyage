@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BOOKABLE_ROOM_TYPES, pickTripPrice, pickTierPrice } from "@/lib/roomTypes";
 import TravelerFields from "./TravelerFields";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 
 const emptyTraveler = () => ({
   fullName: "",
@@ -12,8 +13,11 @@ const emptyTraveler = () => ({
   dateOfBirth: "",
   nationalId: "",
   passportNumber: "",
+  passportIssueDate: "",
   passportExpiryDate: "",
+  phone: "",
   phoneWhatsapp: "",
+  additionalPhoneNumbers: [],
   email: "",
   address: "",
 });
@@ -23,9 +27,12 @@ const TRAVELER_COUNT_LABELS = {
   binome: ["Premier voyageur", "Deuxième voyageur"],
 };
 
-export default function NewRegistrationForm({ trips }) {
+export default function NewRegistrationForm({ trips, initialTripId = null }) {
   const router = useRouter();
-  const [tripId, setTripId] = useState("");
+  const { tr } = useAdminLocale();
+  // Voyage pré-sélectionné depuis un bouton « Inscrire » (tableau de bord,
+  // liste des programmes) : ?tripId= / ?programId= lus par page.js.
+  const [tripId, setTripId] = useState(initialTripId ? String(initialTripId) : "");
 
   // Type d'inscription : individuel (1 voyageur), binôme (exactement 2,
   // ex. un couple) ou groupe (1 à N, extensible via "+ Ajouter un
@@ -41,7 +48,9 @@ export default function NewRegistrationForm({ trips }) {
   // choisi remplace le prix plat du voyage par le prix de son type de
   // chambre, et fait partie du payload de l'inscription.
   const [tiers, setTiers] = useState([]);
-  const [tiersLoading, setTiersLoading] = useState(false);
+  const [tiersLoading, setTiersLoading] = useState(
+    () => Boolean(initialTripId) && trips.find((t) => String(t.id) === String(initialTripId))?.family === "omra_hajj"
+  );
   const [tiersError, setTiersError] = useState(null);
   const [selectedTierId, setSelectedTierId] = useState("");
 
@@ -49,6 +58,42 @@ export default function NewRegistrationForm({ trips }) {
   const [submitting, setSubmitting] = useState(false);
 
   const selectedTrip = trips.find((t) => String(t.id) === String(tripId));
+
+  const loadTiers = async (value) => {
+    try {
+      const res = await fetch(`/api/admin/trips/${value}/tiers`);
+      if (res.ok) {
+        setTiers(await res.json());
+      } else {
+        setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (erreur serveur).");
+      }
+    } catch {
+      setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (connexion).");
+    } finally {
+      setTiersLoading(false);
+    }
+  };
+
+  // Voyage pré-sélectionné : charge ses tarifs d'hébergement dès l'ouverture.
+  const initialLoadDone = useRef(false);
+  useEffect(() => {
+    if (initialLoadDone.current || !initialTripId) return;
+    initialLoadDone.current = true;
+    const trip = trips.find((t) => String(t.id) === String(initialTripId));
+    if (trip?.family !== "omra_hajj") return;
+    fetch(`/api/admin/trips/${initialTripId}/tiers`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("server"))))
+      .then((data) => setTiers(data))
+      .catch((err) =>
+        setTiersError(
+          err.message === "server"
+            ? "Impossible de charger les tarifs d'hébergement de ce voyage (erreur serveur)."
+            : "Impossible de charger les tarifs d'hébergement de ce voyage (connexion)."
+        )
+      )
+      .finally(() => setTiersLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTripChange = async (e) => {
     const value = e.target.value;
@@ -61,18 +106,7 @@ export default function NewRegistrationForm({ trips }) {
     const trip = trips.find((t) => String(t.id) === String(value));
     if (trip?.family === "omra_hajj") {
       setTiersLoading(true);
-      try {
-        const res = await fetch(`/api/admin/trips/${value}/tiers`);
-        if (res.ok) {
-          setTiers(await res.json());
-        } else {
-          setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (erreur serveur).");
-        }
-      } catch {
-        setTiersError("Impossible de charger les tarifs d'hébergement de ce voyage (connexion).");
-      } finally {
-        setTiersLoading(false);
-      }
+      await loadTiers(value);
     }
   };
 
@@ -183,6 +217,8 @@ export default function NewRegistrationForm({ trips }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
+      <h2 className="text-lg font-semibold text-zinc-900">Informations Voyageurs</h2>
+
       <div>
         <label className="block text-sm font-medium text-zinc-700">Voyage</label>
         <select
@@ -200,6 +236,33 @@ export default function NewRegistrationForm({ trips }) {
           ))}
         </select>
         {selectedTrip && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            <span className="font-medium text-zinc-900" translate="no">
+              {selectedTrip.title}
+            </span>
+            <span>
+              {new Date(selectedTrip.departure_date).toLocaleDateString("fr-FR")}
+              {selectedTrip.return_date &&
+                ` – ${new Date(selectedTrip.return_date).toLocaleDateString("fr-FR")}`}
+            </span>
+            {(selectedTrip.origin_iata || selectedTrip.destination_iata) && (
+              <span className="font-mono" translate="no">
+                {selectedTrip.origin_iata || "—"} → {selectedTrip.destination_iata || "—"}
+              </span>
+            )}
+            {(selectedTrip.destination_city || selectedTrip.destination_country) && (
+              <span>
+                {[selectedTrip.destination_city, selectedTrip.destination_country].filter(Boolean).join(", ")}
+              </span>
+            )}
+          </div>
+        )}
+        {selectedTrip && tiers.length > 0 && !selectedTier && (
+          <p className="mt-1 text-sm text-zinc-600">
+            Prix : selon le tarif d&apos;hébergement choisi ci-dessous.
+          </p>
+        )}
+        {selectedTrip && !(tiers.length > 0 && !selectedTier) && (
           <p className="mt-1 text-sm text-zinc-600">
             Prix : <span className="font-semibold text-zinc-900">
               {unitPrice.toLocaleString("fr-FR", {
@@ -225,33 +288,36 @@ export default function NewRegistrationForm({ trips }) {
         )}
       </div>
 
-      {selectedTrip?.family === "omra_hajj" && (
-        <div>
-          {tiersLoading && (
-            <p className="text-sm text-zinc-500">Chargement des tarifs d&apos;hébergement...</p>
-          )}
-          {tiersError && <p className="text-sm text-red-600">{tiersError}</p>}
-          {!tiersLoading && !tiersError && tiers.length > 0 && (
-            <>
-              <label className="block text-sm font-medium text-zinc-700">
-                Tarif d&apos;hébergement (optionnel)
-              </label>
-              <select
-                value={selectedTierId}
-                onChange={(e) => setSelectedTierId(e.target.value)}
-                className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-              >
-                <option value="">Aucun (prix plat du voyage)</option>
-                {tiers.map((tier) => (
-                  <option key={tier.id} value={tier.id}>
-                    {tier.label} — {tier.makkah_hotel_name} + {tier.madinah_hotel_name}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-        </div>
-      )}
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+        <label className="block text-sm font-medium text-zinc-700">
+          Nom du groupe / binôme
+        </label>
+        <input
+          required={inscriptionType !== "individuel"}
+          disabled={inscriptionType === "individuel"}
+          value={groupLabel}
+          onChange={(e) => setGroupLabel(e.target.value)}
+          placeholder="ex. Famille Alaoui, M. et Mme Idrissi"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100 disabled:text-zinc-400"
+        />
+        <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            disabled={inscriptionType === "individuel"}
+            checked={allowMixedGenderRoom}
+            onChange={(e) => setAllowMixedGenderRoom(e.target.checked)}
+          />
+          Couple / famille — autoriser à partager une chambre entre genres
+          différents
+        </label>
+        {inscriptionType !== "individuel" && (
+          <p className="mt-2 text-xs text-zinc-500">
+            Ce {inscriptionType === "binome" ? "binôme" : "groupe"} partagera un seul
+            montant dû et un seul suivi de paiement (voir la page du groupe après
+            création).
+          </p>
+        )}
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
@@ -279,38 +345,38 @@ export default function NewRegistrationForm({ trips }) {
         </div>
       </div>
 
-      {inscriptionType !== "individuel" && (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <label className="block text-sm font-medium text-zinc-700">
-            Nom du {inscriptionType === "binome" ? "binôme" : "groupe"}
-          </label>
-          <input
-            required
-            value={groupLabel}
-            onChange={(e) => setGroupLabel(e.target.value)}
-            placeholder="ex. Famille Alaoui, M. et Mme Idrissi"
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={allowMixedGenderRoom}
-              onChange={(e) => setAllowMixedGenderRoom(e.target.checked)}
-            />
-            Couple / famille — autoriser à partager une chambre entre genres
-            différents
-          </label>
-          <p className="mt-2 text-xs text-zinc-500">
-            Ce {inscriptionType === "binome" ? "binôme" : "groupe"} partagera un seul
-            montant dû et un seul suivi de paiement (voir la page du groupe après
-            création).
-          </p>
+      {selectedTrip?.family === "omra_hajj" && (
+        <div>
+          {tiersLoading && (
+            <p className="text-sm text-zinc-500">Chargement des tarifs d&apos;hébergement...</p>
+          )}
+          {tiersError && <p className="text-sm text-red-600">{tiersError}</p>}
+          {!tiersLoading && !tiersError && tiers.length > 0 && (
+            <>
+              <label className="block text-sm font-medium text-zinc-700">
+                Tarif d&apos;hébergement
+              </label>
+              <select
+                required
+                value={selectedTierId}
+                onChange={(e) => setSelectedTierId(e.target.value)}
+                className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              >
+                <option value="">Sélectionner un tarif...</option>
+                {tiers.map((tier) => (
+                  <option key={tier.id} value={tier.id}>
+                    {tier.label} — {tier.makkah_hotel_name} + {tier.madinah_hotel_name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       )}
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
-          Type de chambre souhaité{inscriptionType !== "binome" && " (optionnel)"}
+          Type de chambre souhaité
         </label>
         <select
           value={preferredRoomType}
@@ -370,9 +436,11 @@ export default function NewRegistrationForm({ trips }) {
           ? "Création..."
           : inscriptionType === "individuel"
           ? "Créer l'inscription"
-          : `Créer le ${inscriptionType === "binome" ? "binôme" : "groupe"} (${travelers.length} voyageur${
-              travelers.length > 1 ? "s" : ""
-            })`}
+          : `${tr(inscriptionType === "binome" ? "Créer le binôme" : "Créer le groupe")} (${tr.plural(
+              "{count} voyageur",
+              "{count} voyageurs",
+              travelers.length
+            )})`}
       </button>
     </form>
   );

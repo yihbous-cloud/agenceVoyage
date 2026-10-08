@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import Icon from "./Icon";
 
-// Même habillage que la modale de confirmation passeport
-// (TravelerFields.jsx) — fond noir semi-transparent, boîte blanche
-// centrée — généralisé ici avec un titre et un bouton fermer. Partagé
+// Modale générique de l'espace interne (charte designadmin.md) : voile flouté,
+// boîte blanche 16px, en-tête collant avec titre et bouton fermer. Partagée
 // entre plusieurs pages admin (voir CLAUDE.md).
-export default function Modal({ title, onClose, children }) {
+export default function Modal({ title, onClose, children, size = "md" }) {
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -15,27 +15,18 @@ export default function Modal({ title, onClose, children }) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
+  const maxWidth = size === "xl" ? 1040 : size === "lg" ? 760 : size === "sm" ? 440 : 620;
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-lg px-2 py-1 text-xl leading-none text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-          >
-            ×
+    <div className="gf-overlay" onClick={onClose}>
+      <div className="gf-dialog" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
+        <div className="gf-dialog-head">
+          <h2 className="gf-dialog-title">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Fermer" title="Fermer" className="gf-btn-icon">
+            <Icon name="close" size={18} />
           </button>
         </div>
-        {children}
+        <div className="gf-dialog-body">{children}</div>
       </div>
     </div>
   );

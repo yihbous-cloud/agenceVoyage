@@ -2,6 +2,7 @@ import { getAgencySettings } from "@/lib/agencySettings";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import AgencySettingsForm from "./AgencySettingsForm";
+import PageHeader from "../_components/PageHeader";
 
 export default async function ParametresPage() {
   const [settings, session] = await Promise.all([getAgencySettings(), getSession()]);
@@ -9,13 +10,16 @@ export default async function ParametresPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Paramètres de l&apos;agence</h1>
-        <p className="text-sm text-zinc-500">
-          Ces informations apparaissent en en-tête des reçus de paiement
-          imprimables (format A5).
-        </p>
-      </div>
+      <PageHeader
+        icon="storefront"
+        title="Paramètres de l'agence"
+        description={
+          <>
+            Ces informations apparaissent en en-tête des reçus de paiement
+            imprimables (format A5).
+          </>
+        }
+      />
 
       <AgencySettingsForm settings={settings} canEdit={canEdit} />
     </div>

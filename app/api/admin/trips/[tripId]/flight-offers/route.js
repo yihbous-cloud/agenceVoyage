@@ -3,8 +3,9 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getTripForBooking } from "@/lib/flightBookings";
 import { searchOffers, getDuffelMode } from "@/lib/duffel";
+import { withNotFound } from "@/lib/apiGuard";
 
-export async function POST(request, { params }) {
+async function POST_handler(request, { params }) {
   const session = await getSession();
   if (!(await hasPermission(session, "billets.manage"))) {
     return NextResponse.json({ message: "Non autorisé" }, { status: 403 });
@@ -62,9 +63,14 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ offers: simplifiedOffers, mode: getDuffelMode() });
   } catch (err) {
+    if (err?.code === "NOT_FOUND") {
+      return NextResponse.json({ message: "Ressource introuvable" }, { status: 404 });
+    }
     return NextResponse.json(
       { message: err.message || "Erreur lors de la recherche Duffel" },
       { status: 502 }
     );
   }
 }
+
+export const POST = withNotFound(POST_handler);
