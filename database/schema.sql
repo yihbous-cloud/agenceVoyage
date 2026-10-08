@@ -1947,3 +1947,13 @@ INSERT INTO role_permissions (role_id, permission_code)
 SELECT r.id, 'whatsapp.dashboard' FROM roles r WHERE r.name IN ('ventes', 'comptabilite', 'suivi');
 INSERT INTO role_permissions (role_id, permission_code)
 SELECT r.id, 'whatsapp.contacts' FROM roles r WHERE r.name IN ('ventes', 'suivi');
+
+-- Demande de compte par l'équipe (migration 041) : compte créé inactif au
+-- statut « en_attente », validé ou refusé par un administrateur
+-- (utilisateurs.manage) depuis /admin/parametres/utilisateurs.
+ALTER TABLE staff_users
+  ADD COLUMN approval_status ENUM('en_attente', 'valide', 'refuse') NOT NULL DEFAULT 'valide' AFTER is_active,
+  ADD COLUMN reviewed_by_staff_id BIGINT UNSIGNED NULL AFTER approval_status,
+  ADD COLUMN reviewed_at DATETIME NULL AFTER reviewed_by_staff_id,
+  ADD KEY idx_staff_users_approval (agency_id, approval_status),
+  ADD CONSTRAINT fk_staff_users_reviewer FOREIGN KEY (reviewed_by_staff_id) REFERENCES staff_users(id) ON DELETE SET NULL;

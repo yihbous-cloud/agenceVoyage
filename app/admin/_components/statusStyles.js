@@ -30,3 +30,11 @@ export function initialsOf(name) {
     .slice(0, 2)
     .toUpperCase();
 }
+
+// Libellés français des rôles fournis avec le système (le nom technique reste
+// affiché tel quel pour un rôle personnalisé). Traduits par le traducteur DOM.
+const ROLE_LABELS = { direction: "Direction", ventes: "Ventes", comptabilite: "Comptabilité", suivi: "Suivi" };
+
+export function roleLabel(name) {
+  return ROLE_LABELS[name] || name;
+}

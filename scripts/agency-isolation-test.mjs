@@ -91,6 +91,11 @@ const tierId = await tiers.createTier(tripId, {
 });
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
+// Demande de compte (migration 041)
+const signupA3 = await staff.createSignupRequest({ fullName: "Demande A3", email: "demande@a3.test", password: "Passw0rd123" });
+ok((await staff.countPendingSignupRequests()) === 1, "agence 3 : 1 demande de compte en attente");
+const [signupRow] = await q("SELECT r.agency_id, r.name FROM staff_users su JOIN roles r ON r.id = su.role_id WHERE su.id = ?", [signupA3]);
+ok(signupRow.agency_id === OTHER && signupRow.name !== "direction", "demande A3 : rôle d'attente de sa propre agence, jamais direction");
 
 // --- vue de l'agence 1 ---
 setScriptAgencyId(1);
@@ -116,7 +121,7 @@ ok((await ra.getTripSummary(tripId)) === null, "getTripSummary étranger = null"
 ok((await faqs.listAllFaqsForProgram(programId)).length === 0, "FAQ étrangères invisibles");
 const roles1 = await perms.listRoles();
 ok(roles1.every((r) => r.agency_id === 1), "listRoles : agence 1 seulement");
-ok((await staff.listStaffUsers()).every((u) => true), "listStaffUsers ok");
+ok((await staff.listStaffUsers()).every((u) => u.id !== signupA3), "demande de compte de l'agence 3 invisible");
 ok((await lists.getPnrPassengerList(tripId)).length === 0, "liste PNR d'un voyage étranger vide");
 try { await lists.getTravelerList(tripId); ok(false, "getTravelerList étranger devrait échouer"); } catch { ok(true, "getTravelerList (vue) refuse un voyage étranger"); }
 ok((await settings.getAgencySettings()).id === 1, "getAgencySettings = agence 1");
@@ -134,6 +139,8 @@ await throwsNotFound(() => slides.createSlide({ title: "x", programId }), "creat
 await throwsNotFound(() => perms.setRolePermissions(rolesA3[0].id, []), "setRolePermissions sur un rôle étranger");
 await throwsNotFound(() => staff.createStaffUser({ fullName: "x", email: "x@y.z", password: "Passw0rd123", roleId: rolesA3[0].id }), "createStaffUser avec un rôle étranger");
 await throwsNotFound(() => regs.updateRegistration(reg.id, { notes: "piraté" }), "updateRegistration étranger");
+await throwsNotFound(() => staff.reviewSignupRequest(signupA3, { decision: "valider", roleId: roles1[1].id }), "reviewSignupRequest (valider) d'une demande étrangère");
+await throwsNotFound(() => staff.reviewSignupRequest(signupA3, { decision: "refuser" }), "reviewSignupRequest (refuser) d'une demande étrangère");
 await throwsNotFound(() => regs.updateTraveler(1e9, {}), "updateTraveler inexistant");
 await throwsNotFound(() => groups.createGroup(tripId, "G-intrus", false), "createGroup sur un voyage étranger");
 
@@ -166,6 +173,7 @@ ok((await faqs.listAllFaqsForProgram(programId)).length === 1, "FAQ A3 intacte")
 ok((await pay.getPaymentById(payId)) !== null, "paiement A3 intact");
 ok((await tiers.listTiersForTrip(tripId)).length === 1, "tarif A3 intact");
 ok((await airlines.listAirlines()).some((a) => a.id === airlineId), "compagnie A3 intacte");
+ok((await staff.listStaffUsers()).find((u) => u.id === signupA3)?.approval_status === "en_attente", "demande de compte A3 toujours en attente");
 
 // même numéro WhatsApp dans deux agences = deux voyageurs distincts
 setScriptAgencyId(1);

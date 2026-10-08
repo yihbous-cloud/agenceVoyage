@@ -86,7 +86,10 @@ export async function proxy(request) {
   // agencyId) est traitée comme absente sur ce sous-domaine.
   const session = verified && Number(verified.agencyId) === agency.id ? verified : null;
 
-  if (pathname.startsWith("/admin/login")) {
+  // Connexion et demande de compte (migration 041) : seules pages /admin
+  // accessibles sans session ; une session déjà ouverte est renvoyée vers
+  // l'espace interne.
+  if (pathname.startsWith("/admin/login") || pathname.startsWith("/admin/demande-compte")) {
     if (session) {
       const next = request.nextUrl.searchParams.get("next") || "/admin";
       return NextResponse.redirect(new URL(next, request.url));

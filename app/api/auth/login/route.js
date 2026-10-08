@@ -47,7 +47,7 @@ async function POST_handler(request) {
   if (!limit.ok) return tooManyRequests(NextResponse, 15 * 60);
 
   const rows = await query(
-    `SELECT su.id, su.full_name, su.email, su.password_hash, su.is_active, su.role_id AS roleId, r.name AS role,
+    `SELECT su.id, su.full_name, su.email, su.password_hash, su.is_active, su.approval_status, su.role_id AS roleId, r.name AS role,
        su.totp_secret_enc, su.totp_enabled_at, su.failed_login_count,
        su.locked_until > UTC_TIMESTAMP() AS locked, su.locked_until
      FROM staff_users su
@@ -59,7 +59,11 @@ async function POST_handler(request) {
 
   const user = rows[0];
 
-  if (!user || !user.is_active) {
+  // Demande de compte (migration 041) : un compte en attente ou refusé passe
+  // le contrôle du mot de passe AVANT d'afficher son état — sans le bon mot
+  // de passe, réponse identique à un compte inexistant.
+  const isRequest = user && user.approval_status !== "valide";
+  if (!user || (!isRequest && !user.is_active)) {
     return NextResponse.json(INVALID, { status: 401 });
   }
   if (Number(user.locked)) {
@@ -73,6 +77,19 @@ async function POST_handler(request) {
   if (!valid) {
     await recordFailure(user, agencyId, request);
     return NextResponse.json(INVALID, { status: 401 });
+  }
+
+  if (user.approval_status === "en_attente") {
+    return NextResponse.json(
+      { message: "Votre compte est en attente de validation par un administrateur.", pending: true },
+      { status: 403 }
+    );
+  }
+  if (isRequest) {
+    return NextResponse.json(
+      { message: "Votre demande de compte a été refusée. Contactez la direction de l'agence.", refused: true },
+      { status: 403 }
+    );
   }
 
   // Double authentification activée : code demandé (sans session tant qu'il

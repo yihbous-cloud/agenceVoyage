@@ -10,6 +10,12 @@ import Icon from "./Icon";
 const POLL_MS = 30_000;
 const SEEN_KEY = "gf-notif-last-id";
 
+// Page ouverte au clic sur une notification.
+function hrefFor(n) {
+  if (n.kind === "compte.demande") return "/admin/parametres/utilisateurs";
+  return n.conversation_id ? `/admin/whatsapp/conversations/${n.conversation_id}` : "/admin/whatsapp/taches";
+}
+
 function readSeen() {
   try {
     return Number(localStorage.getItem(SEEN_KEY)) || 0;
@@ -43,7 +49,7 @@ export default function NotificationBell() {
           const notif = new Notification(n.title, { body: n.body ? String(n.body).slice(0, 140) : undefined, tag: `gf-${n.id}` });
           notif.onclick = () => {
             window.focus();
-            window.location.href = n.conversation_id ? `/admin/whatsapp/conversations/${n.conversation_id}` : "/admin/whatsapp/taches";
+            window.location.href = hrefFor(n);
           };
         }
       }
@@ -92,7 +98,7 @@ export default function NotificationBell() {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.conversation_id ? `/admin/whatsapp/conversations/${n.conversation_id}` : "/admin/whatsapp/taches"}
+                  href={hrefFor(n)}
                   className="block border-b px-4 py-2.5 text-sm hover:bg-zinc-50"
                   onClick={() => setOpen(false)}
                 >

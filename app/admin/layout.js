@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { countActiveRegistrations } from "@/lib/registrations";
+import { countPendingSignupRequests } from "@/lib/staffUsers";
 import { countPendingForStaff } from "@/lib/whatsapp/conversations";
 import { getAgencySettings } from "@/lib/agencySettings";
 import AdminShell from "./_components/AdminShell";
@@ -117,7 +118,7 @@ const NAV_GROUPS = [
     label: "Paramètres",
     items: [
       { href: "/admin/parametres", label: "Infos agence", icon: "storefront" },
-      { href: "/admin/parametres/utilisateurs", label: "Utilisateurs", icon: "manage_accounts", perm: "utilisateurs.manage" },
+      { href: "/admin/parametres/utilisateurs", label: "Utilisateurs", icon: "manage_accounts", perm: "utilisateurs.manage", badgeKey: "accountRequests" },
       { href: "/admin/parametres/roles", label: "Rôles & permissions", icon: "admin_panel_settings", perm: "roles.manage" },
       { href: "/admin/securite", label: "Sécurité du compte", icon: "shield" },
     ],
@@ -157,16 +158,22 @@ export default async function AdminLayout({ children }) {
     const perms = [
       ...new Set([...NAV_GROUPS.flatMap((g) => g.items), ...QUICK_ACTIONS].flatMap((i) => [].concat(i.perm || []))),
     ];
-    const [granted, registrationsCount, agencySettings, whatsappPending] = await Promise.all([
+    const [granted, registrationsCount, agencySettings, whatsappPending, accountRequests] = await Promise.all([
       Promise.all(perms.map((p) => hasPermission(session, p))),
       countActiveRegistrations().catch(() => 0),
       getAgencySettings().catch(() => null),
       // Conversations WhatsApp transférées sans réponse humaine (son périmètre).
       countPendingForStaff(session).catch(() => 0),
+      // Demandes de compte en attente de validation (migration 041).
+      countPendingSignupRequests().catch(() => 0),
     ]);
     settings = agencySettings;
     const allowed = new Set(perms.filter((_, i) => granted[i]));
-    const badges = { registrations: registrationsCount || null, whatsapp: whatsappPending || null };
+    const badges = {
+      registrations: registrationsCount || null,
+      whatsapp: whatsappPending || null,
+      accountRequests: accountRequests || null,
+    };
     const keep = (item) => !item.perm || [].concat(item.perm).some((p) => allowed.has(p));
 
     groups = NAV_GROUPS.map((g) => ({
