@@ -38,7 +38,8 @@ server {
 }
 EOF
   ln -sf "$CONF" "/etc/nginx/sites-enabled/$NAME.conf"
-  nginx -t -q && systemctl reload nginx
+  nginx -t -q
+  systemctl reload nginx
   certbot certonly --webroot -w /var/www/certbot --cert-name "$NAME" "${CERT_ARGS[@]}" \
     --non-interactive --agree-tos --register-unsafely-without-email --keep-until-expiring
 fi
@@ -58,9 +59,8 @@ EOF
   if [ "$WWW" = "--www" ]; then
     cat <<EOF
 server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name www.$DOMAIN;
     ssl_certificate /etc/letsencrypt/live/$NAME/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$NAME/privkey.pem;
@@ -71,9 +71,8 @@ EOF
   fi
   cat <<EOF
 server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name $DOMAIN;
     ssl_certificate /etc/letsencrypt/live/$NAME/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$NAME/privkey.pem;
@@ -91,7 +90,8 @@ server {
 EOF
 } > "$CONF"
 ln -sf "$CONF" "/etc/nginx/sites-enabled/$NAME.conf"
-nginx -t -q && systemctl reload nginx
+nginx -t -q
+systemctl reload nginx
 
 REGISTRE=/srv/apps/REGISTRE
 if [ -f "$REGISTRE" ] && ! grep -q "^$NAME " "$REGISTRE"; then

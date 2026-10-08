@@ -41,3 +41,8 @@ ssh root@187.7.65.20 bash /root/deploy/server/setup.sh
 - Le `.env` de production est sur le serveur uniquement (`/srv/apps/goldenfantastic/.env`). **`BACKUP_ENCRYPTION_KEY` doit aussi être conservée ailleurs** : sans elle, les sauvegardes sont illisibles.
 - Domaine `goldenfantastic.com` rattaché à l'agence `goldenfantastic` par `AGENCY_DOMAINS` (`lib/agencyHost.js`) ; `www` redirige vers le domaine nu.
 - Journaux : `pm2 logs gf-web`, `pm2 logs gf-worker`, `/var/log/nginx/goldenfantastic.*.log`.
+- Premier compte direction (en root, une espace en tête de ligne évite d'enregistrer le mot de passe dans l'historique) :
+
+  ```bash
+   cd /srv/apps/goldenfantastic && sudo -u deploy node scripts/create-staff-user.js "Nom complet" email@exemple.com 'MotDePasse' direction 1
+  ```

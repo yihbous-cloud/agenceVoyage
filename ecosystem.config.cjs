@@ -3,7 +3,7 @@
 //   pm2 start ecosystem.config.cjs && pm2 save
 //
 // Serveur partagé entre plusieurs projets (deploy/README.md) : le site
-// n'écoute que sur 127.0.0.1 (Nginx est seul exposé) et sur le port attribué
+// n'écoute que sur la boucle locale (Nginx est seul exposé) et sur le port attribué
 // au projet dans /srv/apps/REGISTRE (PORT, 3000 par défaut). `cwd` fixé au
 // dossier du projet : storage/, public/uploads et .env sont relatifs à lui.
 const fs = require("fs");
@@ -25,7 +25,12 @@ module.exports = {
       name: "gf-web",
       cwd: __dirname,
       script: "node_modules/next/dist/bin/next",
-      args: `start -H 127.0.0.1 -p ${PORT}`,
+      // "localhost" et non "127.0.0.1" : Next compare l'origine des réécritures
+      // de proxy.js à celle du serveur — avec 127.0.0.1 elles diffèrent et Next
+      // tente de "proxyfier" vers https://localhost:3000 (erreur 500 EPROTO).
+      // ipv4first : "localhost" se résout en ::1 sur Ubuntu ; Nginx vise 127.0.0.1.
+      node_args: "--dns-result-order=ipv4first",
+      args: `start -H localhost -p ${PORT}`,
       env: { NODE_ENV: "production" },
       max_memory_restart: "1G",
     },

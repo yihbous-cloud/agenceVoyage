@@ -1952,6 +1952,20 @@ Un client peut acheter un **billet d'avion seul**, sans voyage organisé — mê
 - **Données de test CONSERVÉES (demande explicite de l'utilisateur)** : programme **« OMRA TEST CLÔTURÉ SEPT 2026 »** (programme 20, voyage 28 `OMRA-TEST-SEPT26`, 01/09→15/09/2026, statut `termine`, non publié), 6 voyageurs « TEST … » (WhatsApp `0700900001`→`0700900006`) dont le groupe « TEST Famille Tazi » (17), versements datés du 20/08/2026, charges hôtels 60 000 (payées) + billets Saudia 48 000 (une échéance de 18 000 impayée). Crédits attendus : 34 000 MAD (Salma 8 000, Youssef 12 000, famille Tazi 14 000). Créées via les vraies fonctions (`createProgram`/`createTrip`/`createRegistration`/`createPayment`/`createGroupPayment`/`createExpense`). À supprimer à la main quand ils ne serviront plus.
 - Vérifié en réel (compte temporaire, supprimé) : programme absent des inscrits en cours, des programmes en cours, du formulaire d'inscription et des compteurs ; présent dans les Archives avec 34 000 MAD de crédits ; Finances : 34 000 MAD (clôturés) séparés de 49 500 MAD (en cours) ; vue Archives en arabe sans texte manquant.
 
+## 3centdeuxetunquadragies. Production : VPS Hostinger multi-sites, https://goldenfantastic.com (08/10/2026)
+
+Site en ligne sur le VPS Hostinger `srv2036938.hstgr.cloud` (Ubuntu 24.04, `187.7.65.20`), conçu pour héberger **plusieurs projets**. Mode d'emploi complet : **`deploy/README.md`**.
+- **Organisation serveur** (`deploy/server/setup.sh`, relançable) : un projet = `/srv/apps/<nom>` (utilisateur `deploy`, PM2 relancé au démarrage) + un port local + une base Redis + une base MySQL, recensés dans `/srv/apps/REGISTRE` ; Nginx seul exposé (ufw 22/80/443, fail2ban, mises à jour de sécurité auto), MySQL 8 (UTC) et Redis (`noeviction`, AOF) sur la boucle locale. `new-site <nom> <domaine> <port> --www` crée vhost + certificat Let's Encrypt (renouvelé automatiquement) ; réglages propres à un site dans `/etc/nginx/apps/<nom>/*.conf`. Un domaine inconnu est refusé (444 / handshake TLS rejeté).
+- **Golden Fantastic** : `/srv/apps/goldenfantastic`, port 3000, Redis base 0, MySQL `golden_fantastic` (utilisateur `gf_app`). Installé **vide** (choix de l'utilisateur) depuis `database/schema.sql` + coordonnées/logo/Facebook de l'agence recopiés de la base locale. Le `.env` de production (secrets générés sur le serveur) n'existe que là-bas. Mises à jour : `git push` puis `ssh deploy@187.7.65.20 /srv/apps/goldenfantastic/scripts/deploy.sh` — **les migrations SQL ne sont pas appliquées automatiquement**.
+- **DNS** (hPanel) : `A @ → 187.7.65.20` (remplace le parking Hostinger), `CNAME www → goldenfantastic.com` ; `www` redirige vers le domaine nu.
+- **Domaine propre d'agence** : `AGENCY_DOMAINS=goldenfantastic.com=goldenfantastic` (`lib/agencyHost.js`) — prioritaire sur `ROOT_DOMAIN` (laissé vide : le domaine de la plateforme multi-agences n'est pas choisi) ; `siteBaseUrl()` renvoie alors `https://goldenfantastic.com` (canonical, hreflang, sitemap, URL du webhook WhatsApp).
+- ⚠️ **Pièges rencontrés** :
+  - `next start -H 127.0.0.1` → toutes les pages publiques en 500 (`Failed to proxy https://localhost:3000/... EPROTO`) : Next compare l'origine des réécritures de `proxy.js` (`localhost`) à celle du serveur (`127.0.0.1`) et prend la réécriture pour une URL externe. D'où `-H localhost` **et** `--dns-result-order=ipv4first` (sinon `localhost` → `::1` et Nginx, qui vise `127.0.0.1`, ne joint plus l'app) dans `ecosystem.config.cjs`.
+  - `next start` ne liste `public/` qu'au démarrage : une image uploadée ensuite répondait 404 (y compris via `next/image`). Nouvelle route `app/uploads/[...path]/route.js` (JPG/PNG/WEBP/GIF uniquement, chemin borné à `public/uploads`) ; Nginx sert aussi `/uploads/*.{jpg,png,webp,gif}` directement depuis le disque.
+  - `database/schema.sql` ne permettait plus une installation neuve (seeds rôles/compagnies insérés avant l'ajout de `agency_id` sans défaut → échec de clé étrangère) : `agency_id` ajouté avec `DEFAULT 1` puis défaut retiré juste après ; `services.agency_id` (migration 031) ajouté. Vérifié : import dans une base vierge = structure identique à la base de développement (tables, colonnes, clés étrangères).
+  - Nginx 1.24 (Ubuntu 24.04) : pas de directive `http2 on;` (→ `listen 443 ssl http2;`) et `gzip on;` déjà présent dans `nginx.conf`.
+- Premier compte direction : créé par l'utilisateur lui-même (`scripts/create-staff-user.js`, voir `deploy/README.md`) ; 2FA imposée à la première connexion. Non configurés en production : SMTP, clé Claude, WhatsApp Meta, copie des sauvegardes hors serveur (`BACKUP_RCLONE_REMOTE`).
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
@@ -2012,7 +2026,7 @@ Un client peut acheter un **billet d'avion seul**, sans voyage organisé — mê
 
 ## 7. Informations encore à préciser
 
-- Nom de domaine du site
+- ~~Nom de domaine du site~~ — tranché : `goldenfantastic.com` pour l'agence historique (§3centdeuxetunquadragies) ; domaine de la plateforme multi-agences (`ROOT_DOMAIN`) encore à choisir
 - Organisme(s) concerné(s) par les demandes de visa (pour construire le format requis)
 - ~~Types de chambres standards proposés~~ — tranché : simple/double/triple/quadruple/quintuple (1 à 5 personnes), voir §3terdecies
 - Devise(s) de facturation (MAD uniquement, ou multi-devises ?)

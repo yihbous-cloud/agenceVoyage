@@ -91,7 +91,7 @@ install -d -m 755 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$APPS_DIR"
 EOF
 chown "$DEPLOY_USER:$DEPLOY_USER" "$APPS_DIR/REGISTRE"
 env PATH="$PATH" pm2 startup systemd -u "$DEPLOY_USER" --hp "/home/$DEPLOY_USER" >/dev/null
-systemctl enable -q "pm2-$DEPLOY_USER"
+systemctl enable -q --now "pm2-$DEPLOY_USER"
 
 echo "==> Nginx (réglages communs, site par défaut fermé)"
 rm -f /etc/nginx/sites-enabled/default
@@ -99,7 +99,7 @@ install -d /var/www/certbot /etc/nginx/apps
 cat > /etc/nginx/conf.d/00-serveur.conf <<'EOF'
 server_tokens off;
 client_max_body_size 10m;
-gzip on;
+# gzip on; est déjà dans nginx.conf (Ubuntu) — le répéter ferait échouer nginx -t.
 gzip_vary on;
 gzip_proxied any;
 gzip_comp_level 5;
@@ -146,7 +146,8 @@ ln -sf /etc/nginx/sites-available/00-defaut.conf /etc/nginx/sites-enabled/00-def
 install -d /etc/letsencrypt/renewal-hooks/deploy
 printf '#!/bin/sh\nsystemctl reload nginx\n' > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
 chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
-nginx -t -q && systemctl reload nginx
+nginx -t -q
+systemctl reload nginx
 
 echo "==> Outil d'ajout de site"
 install -m 755 "$HERE/new-site.sh" /usr/local/sbin/new-site
