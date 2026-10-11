@@ -2,7 +2,8 @@ import Link from "next/link";
 import { getDashboardStats, listRegistrations } from "@/lib/registrations";
 import { getVisaServiceStats } from "@/lib/visaServices";
 import { getFinancialSummaryByTrip } from "@/lib/payments";
-import { listAllExpensesWithInstallments } from "@/lib/tripExpenses";
+import { listAllExpensesWithInstallments, listUrgentInstallments } from "@/lib/tripExpenses";
+import { EXPENSE_CATEGORY_META } from "@/lib/expenseState";
 import { listVisaServiceRequests } from "@/lib/visaServices";
 import { listFlightBookingTotalsByTrip } from "@/lib/flightBookings";
 import { listServices } from "@/lib/services";
@@ -18,6 +19,9 @@ import { INTL_TAGS } from "@/lib/i18n/locales";
 import Icon from "./_components/Icon";
 import PageHeader from "./_components/PageHeader";
 import FinanceWidget from "./_components/FinanceWidget";
+import BulkVisaButton from "./_components/BulkVisaButton";
+import { AccordionGroup, AccordionItem } from "./inscriptions/ProgramAccordion";
+import { listOutstandingCredits } from "@/lib/credits";
 
 // Tableau de bord — mise en page de référence de la charte (designadmin.md).
 const KPIS = [
@@ -52,6 +56,10 @@ export default async function AdminDashboard() {
   const intl = INTL_TAGS[locale] || "fr-FR";
   const canViewFinances = session ? await hasPermission(session, "finances.view") : false;
   const canCreateRegistration = session ? await hasPermission(session, "inscriptions.create") : false;
+  const canBulkVisa =
+    session && ["direction", "suivi"].includes(session.role)
+      ? await hasPermission(session, "inscriptions.edit")
+      : false;
 
   const [{ statusCounts, upcomingTrips }, { statusCounts: visaCounts }, partialRegs, financeRows] =
     await Promise.all([
@@ -80,6 +88,22 @@ export default async function AdminDashboard() {
   const canViewCharges =
     canViewFinances &&
     ((await hasPermission(session, "charges.view")) || (await hasPermission(session, "charges.manage")));
+  // Paiements (échéances de charges) à régler dans les 3 jours ou en retard.
+  const urgentPayments = canViewCharges ? await listUrgentInstallments(3) : [];
+  // Crédits en cours des programmes clôturés, regroupés par voyage (accordéon).
+  // Les totaux agrégés restent réservés à direction/comptabilité (§3soixanteonzequadragies).
+  const canViewTotals = ["direction", "comptabilite"].includes(session?.role);
+  const closedCredits = canViewFinances ? await listOutstandingCredits({ archived: true }) : [];
+  const creditsByTrip = [];
+  for (const c of closedCredits) {
+    let group = creditsByTrip.find((g) => g.tripId === c.trip_id);
+    if (!group) {
+      group = { tripId: c.trip_id, title: c.program_title, date: c.departure_date, items: [], total: 0 };
+      creditsByTrip.push(group);
+    }
+    group.items.push(c);
+    group.total += c.balance;
+  }
   const financeData = canViewFinances
     ? await buildFinanceData({
         financeRows,
@@ -155,6 +179,63 @@ export default async function AdminDashboard() {
           </>
         }
       />
+
+      {urgentPayments.length > 0 && (
+        <div
+          className="gf-card gf-blink"
+          role="alert"
+          style={{ border: "2px solid #e5484d", background: "#fff5f5" }}
+        >
+          <div className="gf-card-head">
+            <div className="gf-card-title" style={{ color: "#c4373b" }}>
+              <Icon name="notifications_active" fill />
+              {tr("Paiements à effectuer sous 3 jours")} ({urgentPayments.length})
+            </div>
+            <Link href="/admin/finances" className="gf-card-link">
+              {tr("Voir les finances")}
+            </Link>
+          </div>
+          <div className="flex flex-col gap-1 px-3 pb-3">
+            {urgentPayments.map((p) => {
+              const days = daysUntil(p.due_date);
+              const late = days < 0;
+              const name =
+                p.label ||
+                p.hotel_name ||
+                p.airline_name ||
+                tr(EXPENSE_CATEGORY_META[p.category]?.label || "Autres charges");
+              return (
+                <Link key={p.id} href={`/admin/programmes/${p.program_id}`} className="gf-insight">
+                  <span className="gf-kpi-icon flex-none" style={{ background: "#fdecec", color: "#c4373b" }}>
+                    <Icon name={late ? "warning" : "schedule"} size={17} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }} translate="no">
+                      {name}
+                      {p.supplier ? ` · ${p.supplier}` : ""}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "var(--gf-muted)", marginTop: 2 }}>
+                      <span translate="no">{p.program_title}</span> · {fmtDate(p.due_date)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "end", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }} translate="no">
+                      {fmtMoney(p.amount)} MAD
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#c4373b" }}>
+                      {late
+                        ? tr("En retard de {n} j", { n: Math.abs(days) })
+                        : days === 0
+                          ? tr("Aujourd'hui")
+                          : tr("Dans {n} j", { n: days })}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* KPI */}
       <div className="gf-kpis">
@@ -258,6 +339,7 @@ export default async function AdminDashboard() {
                         {tr("Inscrire")}
                       </Link>
                     )}
+                    {canBulkVisa && <BulkVisaButton tripId={trip.id} />}
                     <Link href={`/admin/voyages/${trip.id}/hebergement`} className="gf-btn-outline">
                       <Icon name="bed" size={16} />
                       {tr("Hébergement")}
@@ -351,6 +433,89 @@ export default async function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {creditsByTrip.length > 0 && (
+        <section className="gf-card overflow-hidden" style={{ borderColor: "#f7cfd0" }}>
+          <div className="gf-card-head gf-divided">
+            <div className="gf-card-title">
+              <Icon name="account_balance_wallet" style={{ color: "#c4373b" }} />
+              {tr("Crédits en cours — programmes clôturés")}
+            </div>
+            {canViewTotals && (
+              <span className="gf-pill" style={{ background: "#fdecec", color: "#c4373b" }}>
+                {fmtMoney(closedCredits.reduce((sum, c) => sum + c.balance, 0))} MAD
+              </span>
+            )}
+          </div>
+          <div className="p-3">
+            <AccordionGroup>
+              {creditsByTrip.map((g) => (
+                <AccordionItem
+                  key={g.tripId}
+                  id={g.tripId}
+                  title={g.title}
+                  date={fmtDate(g.date)}
+                  count={g.items.length}
+                  archived
+                  stats={
+                    canViewTotals
+                      ? [{ label: tr("Reste dû"), value: 1, display: `${fmtMoney(g.total)} MAD`, bg: "#fdecec", fg: "#c4373b" }]
+                      : []
+                  }
+                >
+                  <div className="overflow-x-auto">
+                    <table className="gf-table" style={{ minWidth: 640 }}>
+                      <thead>
+                        <tr>
+                          <th>{tr("Débiteur")}</th>
+                          <th>{tr("N° WhatsApp")}</th>
+                          <th style={{ textAlign: "end" }}>{tr("Dû")}</th>
+                          <th style={{ textAlign: "end" }}>{tr("Payé")}</th>
+                          <th style={{ textAlign: "end" }}>{tr("Reste dû")}</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {g.items.map((c) => (
+                          <tr key={`${c.kind}-${c.id}`}>
+                            <td>
+                              <span style={{ fontWeight: 500 }} translate="no">
+                                {c.kind === "individuel"
+                                  ? displayTravelerName({ full_name: c.name, full_name_arabic: c.name_arabic }, locale)
+                                  : c.name}
+                              </span>
+                              {c.kind === "groupe" && <span className="gf-chip ms-2">{tr("Groupe")}</span>}
+                            </td>
+                            <td className="gf-phone" translate="no">
+                              {c.phone_whatsapp || "—"}
+                            </td>
+                            <td style={{ textAlign: "end", whiteSpace: "nowrap" }}>{fmtMoney(c.total_due)} MAD</td>
+                            <td style={{ textAlign: "end", whiteSpace: "nowrap", color: "var(--gf-accent)" }}>
+                              {fmtMoney(c.total_paid)} MAD
+                            </td>
+                            <td style={{ textAlign: "end", whiteSpace: "nowrap", fontWeight: 600, color: "#c4373b" }}>
+                              {fmtMoney(c.balance)} MAD
+                            </td>
+                            <td className="gf-actions">
+                              <Link
+                                href={c.kind === "groupe" ? `/admin/groupes/${c.id}` : `/admin/inscriptions/${c.id}`}
+                                title={tr("Afficher")}
+                                className="gf-btn-icon"
+                              >
+                                <Icon name="visibility" size={18} />
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionItem>
+              ))}
+            </AccordionGroup>
+          </div>
+        </section>
+      )}
 
       <div className="gf-grid-cards">
         {/* Service visa */}

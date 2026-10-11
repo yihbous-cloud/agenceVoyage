@@ -191,6 +191,13 @@ html.gf-admin body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
+@keyframes gfBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.55); }
+  50% { opacity: 0.55; box-shadow: 0 0 0 6px rgba(229, 72, 77, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-blink { animation: none !important; }
+}
 @keyframes gfFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -834,6 +841,7 @@ html.gf-admin body {
     background: var(--gf-accent);
     animation: gfPulseDot 2s infinite;
   }
+  .gf-blink { animation: gfBlink 1.2s ease-in-out infinite; }
   .gf-grid-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));

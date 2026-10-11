@@ -59,7 +59,7 @@ export function AccordionItem({ id, title, date, count, stats = [], archived = f
             .filter((s) => s.value > 0)
             .map((s) => (
               <span key={s.label} className="gf-pill" style={{ background: s.bg, color: s.fg }}>
-                {s.label} · {s.value}
+                {s.display ?? `${s.label} · ${s.value}`}
               </span>
             ))}
         </span>

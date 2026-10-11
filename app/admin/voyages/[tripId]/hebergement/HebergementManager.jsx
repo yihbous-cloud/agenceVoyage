@@ -313,6 +313,32 @@ export default function HebergementManager({
     return typeMatches.length > 0 ? typeMatches : hotelMatches;
   };
 
+  // Remarque pour un voyageur (ou groupe) non affecté dont le type de chambre
+  // demandé n'a plus de place dans une ville encore à affecter : la répartition
+  // automatique ne le déplace pas vers un autre type (voir autoAssignTrip).
+  // Retourne, par ville encore à affecter, un libellé « Ville : hôtel, type »
+  // quand aucune chambre ne correspond (hôtel du tarif choisi ET type demandé).
+  const exhaustedTypeCities = (members) => {
+    const first = members[0];
+    const type = first?.preferred_room_type;
+    const out = [];
+    for (const city of first?.missingCities || []) {
+      const pref = first.hotelPreferences?.find((p) => p.city === city);
+      if (!type && !pref) continue;
+      const ok = rooms.some(
+        (r) =>
+          r.hotel_city === city &&
+          (!type || r.room_type === type) &&
+          (!pref || r.hotel_id === pref.hotel_id) &&
+          r.capacity - r.occupants_count >= members.length
+      );
+      if (!ok) {
+        out.push(`${city} : ${[pref?.hotel_name, type].filter(Boolean).join(", ")}`);
+      }
+    }
+    return out;
+  };
+
   // Voyageurs déjà affectés, groupés par chambre — pour vérifier que
   // l'affectation réelle correspond à la préférence exprimée à
   // l'inscription (§3quaterdecies) : un changement manuel ou une
@@ -675,6 +701,14 @@ export default function HebergementManager({
                         </li>
                       ))}
                     </ul>
+                    {exhaustedTypeCities(g.members).length > 0 && (
+                      <p className="mt-1 text-xs text-amber-700">
+                        ⚠{" "}
+                        {tr("Plus de chambre disponible ({cities}) : non affecté, à traiter manuellement", {
+                          cities: exhaustedTypeCities(g.members).join(" ; "),
+                        })}
+                      </p>
+                    )}
                   </div>
                   {canManage && (
                     <div className="flex items-center gap-2">
@@ -734,6 +768,14 @@ export default function HebergementManager({
                           .join(", ")
                       : "—"}
                     {u.preferred_room_type ? ` — ${u.preferred_room_type}` : ""}
+                  </span>
+                )}
+                {exhaustedTypeCities([u]).length > 0 && (
+                  <span className="mt-0.5 block text-xs text-amber-700">
+                    ⚠{" "}
+                    {tr("Plus de chambre disponible ({cities}) : non affecté, à traiter manuellement", {
+                      cities: exhaustedTypeCities([u]).join(" ; "),
+                    })}
                   </span>
                 )}
               </span>
