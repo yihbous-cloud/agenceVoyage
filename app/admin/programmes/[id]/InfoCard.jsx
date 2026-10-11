@@ -11,7 +11,11 @@ const FAMILIES = [
 ];
 const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "annule"];
 
-export default function InfoCard({ program, trip, canManage, onSuccess }) {
+// canAdminDiscount / discountCap : plafond de réduction par voyageur
+// (migration 042), rattaché aux informations du programme (son voyage
+// principal) et visible/modifiable par l'administrateur seulement — jamais
+// transmis à un autre rôle (voir page.js).
+export default function InfoCard({ program, trip, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
   const router = useRouter();
 
   const [title, setTitle] = useState(program.title || "");
@@ -28,6 +32,7 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
     trip?.destination_country || "Arabie Saoudite"
   );
   const [destinationCity, setDestinationCity] = useState(trip?.destination_city || "");
+  const [cap, setCap] = useState(discountCap ?? "");
 
   // Affichage public (site) — regroupé ici au bas de la carte Informations
   // (fusion de l'ancienne carte "Affichage").
@@ -111,6 +116,8 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
             totalSeats: Number(totalSeats),
             destinationCountry,
             destinationCity: destinationCity || null,
+            // Envoyé seulement par l'administrateur : la route le refuse sinon.
+            ...(canAdminDiscount ? { discountCap: cap === "" ? null : Number(cap) } : {}),
           }),
         });
         if (!tripRes.ok) {
@@ -294,6 +301,27 @@ export default function InfoCard({ program, trip, canManage, onSuccess }) {
               className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
             />
           </div>
+
+          {canAdminDiscount && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <label className="block text-sm font-medium text-zinc-700">
+                Plafond de réduction par voyageur (MAD)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={cap}
+                onChange={(e) => setCap(e.target.value)}
+                className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-zinc-600">
+                Visible par l&apos;administrateur seulement. L&apos;équipe peut accorder une réduction jusqu&apos;à ce
+                montant ; au-delà, et pour toute gratuité, l&apos;accord de l&apos;administrateur est obligatoire. Vide =
+                réductions réservées à l&apos;administrateur.
+              </p>
+            </div>
+          )}
         </>
       ) : (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">

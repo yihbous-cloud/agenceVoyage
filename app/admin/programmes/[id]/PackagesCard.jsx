@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Carte « Formules et réductions » (migration 042) : prix du billet seul du
-// voyage (sert à « Vol seul » et à « Hébergement seul » = prix complet −
-// billet) et, pour l'administrateur seulement, le plafond de réduction en MAD
-// par voyageur. discountCap n'est jamais transmis à un autre rôle.
-export default function PackagesCard({ tripId, priceFlightOnly, canManage, canAdminDiscount, discountCap, onSuccess }) {
+// Carte « Formules partielles » (migration 042) : prix du billet seul du
+// voyage — sert à « Vol seul » et à « Hébergement seul » (= prix complet −
+// billet). Le plafond de réduction par voyageur, sans rapport avec le
+// billet, est dans la carte « Informations » (InfoCard.jsx).
+export default function PackagesCard({ tripId, priceFlightOnly, canManage, onSuccess }) {
   const router = useRouter();
   const [flight, setFlight] = useState(priceFlightOnly ?? "");
-  const [cap, setCap] = useState(discountCap ?? "");
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -20,14 +19,11 @@ export default function PackagesCard({ tripId, priceFlightOnly, canManage, canAd
     e.preventDefault();
     setSaving(true);
     setError(null);
-    const body = {};
-    if (canManage) body.priceFlightOnly = flight === "" ? null : Number(flight);
-    if (canAdminDiscount) body.discountCap = cap === "" ? null : Number(cap);
     try {
       const res = await fetch(`/api/admin/trips/${tripId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ priceFlightOnly: flight === "" ? null : Number(flight) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -60,29 +56,8 @@ export default function PackagesCard({ tripId, priceFlightOnly, canManage, canAd
         </p>
       </div>
 
-      {canAdminDiscount && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <label className="block text-sm font-medium text-zinc-700">
-            Plafond de réduction par voyageur (MAD)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={cap}
-            onChange={(e) => setCap(e.target.value)}
-            className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <p className="mt-1 text-xs text-zinc-600">
-            Visible par l&apos;administrateur seulement. L&apos;équipe peut accorder une réduction jusqu&apos;à ce
-            montant ; au-delà, et pour toute gratuité, l&apos;accord de l&apos;administrateur est obligatoire. Vide =
-            réductions réservées à l&apos;administrateur.
-          </p>
-        </div>
-      )}
-
       {error && <p className="text-sm text-red-600">{error}</p>}
-      {(canManage || canAdminDiscount) && (
+      {canManage && (
         <button
           type="submit"
           disabled={saving}

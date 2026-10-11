@@ -57,6 +57,14 @@ export default function ProgramManagerGrid({
         : program.is_published
         ? "Publié"
         : "Brouillon",
+      // Plafond de réduction (administrateur seulement) : fait partie des
+      // informations du programme, pas de la formule billet.
+      meta:
+        canAdminDiscount && primaryTrip
+          ? discountCap === null
+            ? "Plafond de réduction non défini"
+            : tr("Plafond : {amount}", { amount: `${formatMoney(discountCap)} ${tr("MAD")}` })
+          : null,
     },
     {
       key: "airport",
@@ -110,16 +118,11 @@ export default function ProgramManagerGrid({
           {
             key: "packages",
             icon: "redeem",
-            title: "Formules et réductions",
+            title: "Formules partielles",
             subtitle:
               Number(primaryTrip.price_flight_only) > 0
                 ? tr("Billet seul : {amount}", { amount: `${formatMoney(primaryTrip.price_flight_only)} ${tr("MAD")}` })
                 : "Prix billet seul à renseigner",
-            meta: canAdminDiscount
-              ? discountCap === null
-                ? "Plafond de réduction non défini"
-                : tr("Plafond : {amount}", { amount: `${formatMoney(discountCap)} ${tr("MAD")}` })
-              : null,
           },
         ]
       : []),
@@ -147,13 +150,11 @@ export default function ProgramManagerGrid({
       </div>
 
       {openModule === "packages" && (
-        <Modal title="Formules et réductions" onClose={close}>
+        <Modal title="Formules partielles" onClose={close}>
           <PackagesCard
             tripId={primaryTrip?.id}
             priceFlightOnly={primaryTrip?.price_flight_only}
             canManage={canManageTrips}
-            canAdminDiscount={canAdminDiscount}
-            discountCap={discountCap}
             onSuccess={close}
           />
         </Modal>
@@ -181,6 +182,8 @@ export default function ProgramManagerGrid({
             program={program}
             trip={primaryTrip}
             canManage={canManageInfo}
+            canAdminDiscount={canAdminDiscount}
+            discountCap={discountCap}
             onSuccess={close}
           />
         </Modal>
