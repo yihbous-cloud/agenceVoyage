@@ -35,15 +35,19 @@ async function POST_handler(request, { params }) {
       { status: 400 }
     );
   }
-  if (!body.label?.trim() || !body.makkahHotelId || !body.madinahHotelId) {
-    return NextResponse.json(
-      { message: "Le nom du tarif et les deux hôtels sont requis" },
-      { status: 400 }
-    );
+  if (!body.label?.trim()) {
+    return NextResponse.json({ message: "Le nom du tarif est requis" }, { status: 400 });
   }
 
-  const tierId = await createTier(tripId, body);
-  return NextResponse.json({ id: tierId }, { status: 201 });
+  try {
+    const tierId = await createTier(tripId, body);
+    return NextResponse.json({ id: tierId }, { status: 201 });
+  } catch (err) {
+    if (err?.code === "INVALID_TIER") {
+      return NextResponse.json({ message: err.message }, { status: 400 });
+    }
+    throw err;
+  }
 }
 
 export const GET = withNotFound(GET_handler);

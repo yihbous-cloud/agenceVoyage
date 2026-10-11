@@ -28,24 +28,34 @@ function groupHotelsByCity(hotels) {
 
 function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
   const [label, setLabel] = useState(initial?.label || "");
-  const [makkahHotelId, setMakkahHotelId] = useState(initial?.makkah_hotel_id || "");
-  const [madinahHotelId, setMadinahHotelId] = useState(initial?.madinah_hotel_id || "");
 
-  // Un même hôtel ne doit pas pouvoir être choisi à la fois pour Mecque et
-  // Médine (demande explicite) : chaque liste exclut la sélection actuelle
-  // de l'AUTRE champ — jamais la sienne propre, sinon la valeur déjà
-  // sélectionnée de ce champ disparaîtrait de sa propre liste.
-  const makkahHotelsByCity = groupHotelsByCity(
-    hotels.filter((h) => String(h.id) !== String(madinahHotelId))
-  );
-  const madinahHotelsByCity = groupHotelsByCity(
-    hotels.filter((h) => String(h.id) !== String(makkahHotelId))
-  );
+  // Un menu par VILLE (autant de villes que le programme en compte :
+  // Istanbul + Makka + Madina...), chacun ne proposant que les hôtels
+  // habituels de cette ville — un même hôtel ne peut donc jamais servir pour
+  // deux villes. Un hôtel déjà enregistré sur ce tarif mais qui ne serait
+  // plus « habituel » reste proposé, pour ne pas disparaître en édition.
+  const options = [...hotels];
+  for (const h of initial?.hotels || []) {
+    if (!options.some((o) => String(o.id) === String(h.hotel_id))) {
+      options.push({
+        id: h.hotel_id,
+        name: h.hotel_name,
+        display_name: h.hotel_name,
+        city: h.city,
+        board_basis: h.board_basis,
+      });
+    }
+  }
+  const cityGroups = groupHotelsByCity(options);
 
-  // Dérivées du catalogue hôtel, jamais éditées indépendamment — voir
-  // boardBasisForHotel ci-dessus.
-  const makkahBoardBasis = boardBasisForHotel(hotels, makkahHotelId);
-  const madinahBoardBasis = boardBasisForHotel(hotels, madinahHotelId);
+  // { [ville]: hotelId } — vide = pas d'hôtel dans cette ville pour ce tarif.
+  const [selectedByCity, setSelectedByCity] = useState(() => {
+    const map = {};
+    for (const h of initial?.hotels || []) map[h.city] = String(h.hotel_id);
+    return map;
+  });
+  const selectHotel = (city, hotelId) => setSelectedByCity((prev) => ({ ...prev, [city]: hotelId }));
+  const [formError, setFormError] = useState(null);
 
   const initialPrices = {};
   for (const p of initial?.prices || []) {
@@ -72,14 +82,17 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
       pricePerPerson: priceRows[rt].pricePerPerson,
       seatsLimit: priceRows[rt].seatsLimit === "" ? null : Number(priceRows[rt].seatsLimit),
     }));
-    onSubmit({
-      label,
-      makkahHotelId: Number(makkahHotelId),
-      makkahBoardBasis,
-      madinahHotelId: Number(madinahHotelId),
-      madinahBoardBasis,
-      prices,
-    });
+    // Dans l'ordre des villes affichées (ordre du séjour tel que listé).
+    const selectedHotels = cityGroups
+      .map((group) => selectedByCity[group.city])
+      .filter(Boolean)
+      .map((hotelId) => ({ hotelId: Number(hotelId) }));
+    if (selectedHotels.length === 0) {
+      setFormError("Choisissez au moins un hôtel pour ce tarif");
+      return;
+    }
+    setFormError(null);
+    onSubmit({ label, hotels: selectedHotels, prices });
   };
 
   return (
@@ -95,74 +108,53 @@ function TierForm({ hotels, initial, onSubmit, onCancel, submitting }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Hôtel Mecque</label>
-          <select
-            required
-            value={makkahHotelId}
-            onChange={(e) => setMakkahHotelId(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Sélectionner...</option>
-            {makkahHotelsByCity.map((group) => (
-              <optgroup key={group.city} label={group.city}>
-                {group.items.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.display_name || h.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <select
-            disabled
-            value={makkahBoardBasis}
-            className="mt-2 w-full rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
-          >
-            {BOARD_BASIS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+      {cityGroups.length === 0 ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Aucun hôtel habituel pour ce programme : ajoutez-les d&apos;abord dans la tuile « Hôtels ».
+        </p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {cityGroups.map((group) => {
+            const selectedId = selectedByCity[group.city] || "";
+            return (
+              <div key={group.city}>
+                <label className="block text-sm font-medium text-zinc-700">
+                  Hôtel — <span>{group.city}</span>
+                </label>
+                <select
+                  value={selectedId}
+                  onChange={(e) => selectHotel(group.city, e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Aucun hôtel dans cette ville</option>
+                  {group.items.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.display_name || h.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  disabled
+                  value={selectedId ? boardBasisForHotel(options, selectedId) : ""}
+                  className="mt-2 w-full rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
+                >
+                  <option value="">—</option>
+                  {BOARD_BASIS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700">Hôtel Médine</label>
-          <select
-            required
-            value={madinahHotelId}
-            onChange={(e) => setMadinahHotelId(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          >
-            <option value="">Sélectionner...</option>
-            {madinahHotelsByCity.map((group) => (
-              <optgroup key={group.city} label={group.city}>
-                {group.items.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.display_name || h.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <select
-            disabled
-            value={madinahBoardBasis}
-            className="mt-2 w-full rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-600"
-          >
-            {BOARD_BASIS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      )}
       <p className="-mt-2 text-xs text-zinc-500">
-        La restauration est celle définie sur la fiche de l&apos;hôtel choisi (catalogue), pas
-        modifiable ici.
+        Un hôtel par ville du programme. La restauration est celle définie sur la fiche de
+        l&apos;hôtel choisi (catalogue), pas modifiable ici.
       </p>
+      {formError && <p className="text-sm text-red-600">{formError}</p>}
 
       <div>
         <p className="text-sm font-medium text-zinc-700">Prix par personne, par type de chambre</p>
@@ -299,14 +291,15 @@ export default function TiersCard({ trip, hotels, initialTiers, canManage }) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-zinc-900">{tier.label}</p>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Mecque : {tier.makkah_hotel_name} ({tier.makkah_hotel_city}) —{" "}
-                    {BOARD_BASIS_OPTIONS.find((o) => o.value === tier.makkah_board_basis)?.label}
-                  </p>
-                  <p className="text-sm text-zinc-600">
-                    Médine : {tier.madinah_hotel_name} ({tier.madinah_hotel_city}) —{" "}
-                    {BOARD_BASIS_OPTIONS.find((o) => o.value === tier.madinah_board_basis)?.label}
-                  </p>
+                  {(tier.hotels || []).map((h, i) => (
+                    <p key={h.hotel_id} className={`${i === 0 ? "mt-1 " : ""}text-sm text-zinc-600`}>
+                      <span className="font-medium">{h.city}</span>
+                      <span> : </span>
+                      <span translate="no">{h.hotel_name}</span>
+                      <span> — </span>
+                      <span>{BOARD_BASIS_OPTIONS.find((o) => o.value === h.board_basis)?.label}</span>
+                    </p>
+                  ))}
                   {tier.prices.length > 0 && (
                     <ul className="mt-2 text-sm text-zinc-600">
                       {tier.prices.map((p) => (

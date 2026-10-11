@@ -289,9 +289,9 @@ CREATE TABLE trip_hotel_tiers (
     trip_id BIGINT UNSIGNED NOT NULL,
     agency_id BIGINT UNSIGNED NOT NULL,
     label VARCHAR(100) NOT NULL COMMENT 'ex: Économique, Standard, VIP',
-    makkah_hotel_id BIGINT UNSIGNED NOT NULL,
+    makkah_hotel_id BIGINT UNSIGNED NULL COMMENT 'DÉPRÉCIÉE (migration 043) — voir trip_hotel_tier_hotels',
     makkah_board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul',
-    madinah_hotel_id BIGINT UNSIGNED NOT NULL,
+    madinah_hotel_id BIGINT UNSIGNED NULL COMMENT 'DÉPRÉCIÉE (migration 043) — voir trip_hotel_tier_hotels',
     madinah_board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul',
     sort_order INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1974,3 +1974,20 @@ ALTER TABLE staff_users
 -- Migration 042 : réductions / gratuités
 INSERT INTO permissions (code, label, category, sort_order) VALUES
     ('remises.admin', 'Fixer le plafond de réduction, accorder des réductions au-delà et les gratuités', 'Paiements & finances', 50);
+
+-- Migration 043 : un tarif d'hébergement rattache un hôtel par VILLE, sans
+-- limite de villes (remplace makkah_hotel_id / madinah_hotel_id, dépréciées).
+CREATE TABLE trip_hotel_tier_hotels (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    agency_id BIGINT UNSIGNED NOT NULL,
+    tier_id BIGINT UNSIGNED NOT NULL,
+    hotel_id BIGINT UNSIGNED NOT NULL,
+    board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul'
+      COMMENT 'Copie de hotels.board_basis à l''enregistrement (l''écran affiche celle du catalogue)',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT 'Ordre des villes dans le tarif',
+    UNIQUE KEY uq_tier_hotel (tier_id, hotel_id),
+    KEY idx_tier_hotels_tier (tier_id),
+    CONSTRAINT fk_tier_hotels_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
+    CONSTRAINT fk_tier_hotels_tier FOREIGN KEY (tier_id) REFERENCES trip_hotel_tiers(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tier_hotels_hotel FOREIGN KEY (hotel_id) REFERENCES hotels(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

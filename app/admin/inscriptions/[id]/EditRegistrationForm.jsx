@@ -191,7 +191,7 @@ export default function EditRegistrationForm({
                 <option value="">Aucun (prix plat du voyage)</option>
                 {tiers.map((tier) => (
                   <option key={tier.id} value={tier.id}>
-                    {tier.label} — {tier.makkah_hotel_name} + {tier.madinah_hotel_name}
+                    {tier.label} — {(tier.hotels || []).map((h) => h.hotel_name).join(" + ")}
                   </option>
                 ))}
               </select>

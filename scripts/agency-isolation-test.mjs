@@ -85,8 +85,7 @@ const visaId = await visa.createVisaType({ name: "VISA-A3", price: 100, document
 const newsId = await news.createNews({ title: "NEWS-A3", slug: "news-a3", isPublished: true });
 const slideId = await slides.createSlide({ title: "SLIDE-A3", programId });
 const tierId = await tiers.createTier(tripId, {
-  label: "TIER-A3", makkahHotelId: hotelId, makkahBoardBasis: "logement_seul",
-  madinahHotelId: hotel2Id, madinahBoardBasis: "logement_seul",
+  label: "TIER-A3", hotels: [{ hotelId }, { hotelId: hotel2Id }],
   prices: [{ roomType: "double", pricePerPerson: 1200 }],
 });
 const rolesA3 = await perms.listRoles();
@@ -134,7 +133,7 @@ await throwsNotFound(() => ra.addTripHotel(tripId, hotelId, "2027-05-02", "2027-
 await throwsNotFound(() => ra.createRoom(th, { roomNumber: "9", roomType: "double", capacity: 2 }), "createRoom sur un trip_hotel étranger");
 await throwsNotFound(() => pay.createPayment(reg.id, { amount: 1 }, null), "createPayment sur une inscription étrangère");
 await throwsNotFound(() => ra.assignRegistrationsToRoom([reg.id], roomId), "assignRegistrationsToRoom (inscription étrangère)");
-await throwsNotFound(() => tiers.createTier(tripId, { label: "x", makkahHotelId: hotelId, madinahHotelId: hotel2Id, makkahBoardBasis: "logement_seul", madinahBoardBasis: "logement_seul" }), "createTier sur un voyage étranger");
+await throwsNotFound(() => tiers.createTier(tripId, { label: "x", hotels: [{ hotelId }, { hotelId: hotel2Id }] }), "createTier sur un voyage étranger");
 await throwsNotFound(() => slides.createSlide({ title: "x", programId }), "createSlide lié à un programme étranger");
 await throwsNotFound(() => perms.setRolePermissions(rolesA3[0].id, []), "setRolePermissions sur un rôle étranger");
 await throwsNotFound(() => staff.createStaffUser({ fullName: "x", email: "x@y.z", password: "Passw0rd123", roleId: rolesA3[0].id }), "createStaffUser avec un rôle étranger");

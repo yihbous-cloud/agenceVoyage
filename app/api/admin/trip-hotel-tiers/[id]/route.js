@@ -13,15 +13,19 @@ async function PUT_handler(request, { params }) {
   const { id } = await params;
   const body = await request.json();
 
-  if (!body.label?.trim() || !body.makkahHotelId || !body.madinahHotelId) {
-    return NextResponse.json(
-      { message: "Le nom du tarif et les deux hôtels sont requis" },
-      { status: 400 }
-    );
+  if (!body.label?.trim()) {
+    return NextResponse.json({ message: "Le nom du tarif est requis" }, { status: 400 });
   }
 
-  await updateTier(id, body);
-  return NextResponse.json({ ok: true });
+  try {
+    await updateTier(id, body);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if (err?.code === "INVALID_TIER") {
+      return NextResponse.json({ message: err.message }, { status: 400 });
+    }
+    throw err;
+  }
 }
 
 async function DELETE_handler(request, { params }) {

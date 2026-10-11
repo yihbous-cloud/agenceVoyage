@@ -16,7 +16,7 @@ const TENANT_TABLES = [
   "flight_bookings", "hotels", "news_posts", "payments", "program_faqs", "program_hotels",
   "programs", "registration_groups", "registration_hotel_preferences",
   "registration_room_assignments", "registrations", "roles", "rooms", "slides", "staff_users",
-  "traveler_phone_numbers", "travelers", "trip_hotel_tier_prices", "trip_hotel_tiers",
+  "traveler_phone_numbers", "travelers", "trip_hotel_tier_prices", "trip_hotel_tiers", "trip_hotel_tier_hotels",
   "trip_hotels", "trip_meal_offers", "trips", "visa_service_documents", "visa_service_requests",
   "visa_type_documents", "visa_types", "whatsapp_messages_log", "whatsapp_qa_templates",
   "whatsapp_reminders", "services", "trip_expenses", "trip_expense_installments", "ticket_sales",
