@@ -72,17 +72,24 @@ export default function HomeShowcaseCard({ program }) {
               {tr(SEASON_LABELS[program.season] || program.season)}
             </div>
           )}
-          {program.starting_price && (
-            <div className="absolute end-0 bottom-0 bg-gold px-4 py-2 text-end font-display text-lg text-ink">
-              <span className="block font-sans text-[10px] font-normal uppercase tracking-wide text-ink/70">
-                {tr("à partir de")}
-              </span>
-              {program.starting_price} {tr(program.currency)}
-            </div>
-          )}
         </div>
         <div className="flex-1 p-6">
-          <h3 className="font-display text-xl font-normal text-ink">{program.title}</h3>
+          {/* Prix sous l'image (plus en surimpression) : les visuels des
+              programmes sont souvent des affiches complètes (texte, dates,
+              téléphones) qu'un bandeau posé dessus masquait. */}
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="font-display text-xl font-normal text-ink">{program.title}</h3>
+            {program.starting_price && (
+              <div className="shrink-0 text-end">
+                <span className="block text-[10px] uppercase tracking-wide text-muted">
+                  {tr("à partir de")}
+                </span>
+                <span className="font-display text-lg whitespace-nowrap text-[#A8863C]">
+                  {program.starting_price} {tr(program.currency)}
+                </span>
+              </div>
+            )}
+          </div>
           <div className="mt-2 space-y-1 text-sm text-muted">
             {program.next_departure_date && (
               <p>

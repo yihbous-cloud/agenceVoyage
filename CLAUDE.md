@@ -2030,6 +2030,10 @@ Signalé en production : un programme passant par **Istanbul + Makka + Madina** 
 - Réservé aux programmes Omra/Hajj comme avant (aucun changement de règle).
 - Vérifié : script avec les vraies fonctions (3 villes dans l'ordre, restauration du catalogue, prix, anciennes colonnes non écrites, 2 hôtels d'une même ville refusés, tarif vide refusé, modification, tarifs existants repris, nettoyage par cascade) ; `test:agency` et `lint:agency` OK ; `schema.sql` réimporté dans une base vierge (tables de tarifs identiques) ; parcours réel dans le navigateur en arabe (compte et rôle de test temporaires, programme jetable Istanbul/Makka/Madina : 3 menus, création, affichage, rechargement en modification), données de test supprimées.
 
+## 3centdouzequadragies. Carte Omra & Hajj : prix sous l'image, plus en surimpression
+
+Retour de l'utilisateur (capture d'une carte « OMRA PAR TURK 4 DEC ») : le bandeau doré « à partir de 17000.00 DH », posé en bas de l'image (`HomeShowcaseCard.jsx`, branche Omra/Hajj), masquait une partie de l'affiche (dates, téléphones). Le prix est désormais **dans le corps de la carte**, sur la ligne du titre (côté fin, « à partir de » en petit + montant en `#A8863C`) ; l'image n'a plus aucune surimpression hormis le ruban de saison (inchangé). Carte voyage organisé non concernée (prix déjà en pied de carte). Vérifié en local (accueil/hub `/omra-hajj`, arabe) : aucun élément superposé à l'image.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
