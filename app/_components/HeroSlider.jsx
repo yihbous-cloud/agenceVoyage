@@ -62,6 +62,7 @@ export default function HeroSlider({ slides }) {
               fill
               priority={index === 0}
               sizes="100vw"
+              quality={90}
               className="hidden object-cover sm:block"
             />
           )}
@@ -72,14 +73,20 @@ export default function HeroSlider({ slides }) {
               fill
               priority={index === 0}
               sizes="100vw"
+              quality={90}
               className="block object-cover sm:hidden"
             />
           )}
           {!slide.image_url && !slide.mobile_image_url && (
             <div className="absolute inset-0 bg-gradient-to-br from-ink via-ink-soft to-amber-900/40" />
           )}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(200,162,74,0.16),transparent_60%)]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/50 to-ink/30" />
+          {/* Voile sombre UNIQUEMENT quand la diapositive affiche du texte
+              (titre/sous-titre/bouton) : une affiche déjà composée (texte
+              intégré à l'image) reste nette, sans perte de contraste. Voile
+              léger et concentré en bas pour garder les couleurs de l'image. */}
+          {(slide.title || slide.subtitle || slide.href !== "#") && (
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent" />
+          )}
 
           <div className="relative flex h-full items-center justify-center px-6">
             <div className="flex max-w-3xl flex-col items-center gap-5 text-center">

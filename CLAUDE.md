@@ -2017,6 +2017,10 @@ Carte rouge **clignotante** (`gf-blink`, désactivée si l'utilisateur a demand�
 
 Carte « Crédits en cours — programmes clôturés » sur `/admin` (visible avec `finances.view`, masquée s'il n'y a aucun crédit) : un **accordéon par programme clôturé** (même composant que la liste des inscrits, `AccordionGroup`/`AccordionItem`, un seul ouvert à la fois, tout fermé au départ) ; en-tête = programme, date, pastille « Clôturé », reste dû du programme, nombre de débiteurs ; contenu = tableau Débiteur (individuel ou groupe) / N° WhatsApp / Dû / Payé / Reste dû / lien vers la fiche ou le groupe. Source : `listOutstandingCredits({ archived: true })` (§3centetunquadragies). Les **totaux** (pastilles « reste dû » du programme et du bandeau) ne s'affichent que pour direction/comptabilité ; les lignes restent visibles pour tout rôle avec `finances.view`. `AccordionItem` accepte `stats[].display` pour un texte de pastille libre. Vérifié en réel avec un compte comptabilité temporaire (supprimé) : 3 débiteurs / 34 000 MAD du programme de test, ouverture de l'accordéon.
 
+## 3centdixquadragies. Slider d'accueil : plus de voile noir sur les affiches
+
+Le slider (`HeroSlider.jsx`) superposait toujours un voile sombre (dégradé `from-ink via-ink/50 to-ink/30` + halo doré) qui ternissait les affiches déjà composées. Le voile n'est plus posé que si la diapositive affiche du **texte** (titre, sous-titre ou bouton) — et il est plus léger (`from-ink/70 via-ink/20 to-transparent`, concentré en bas) ; une affiche sans texte s'affiche **sans aucun voile**. Les images sont servies en **qualité 90** (`quality={90}`) au lieu de 75 : Next 16 n'autorise que la qualité 75 par défaut, d'où `images: { qualities: [75, 90] }` dans `next.config.mjs` (**redémarrer le serveur** après ce changement). Vérifié en réel : requête d'image `q=90`, aucun calque de voile sur la diapositive de l'accueil.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public
