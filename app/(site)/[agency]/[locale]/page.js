@@ -8,14 +8,26 @@ import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 import HeroSlider from "@/app/_components/HeroSlider";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { pageAlternates } from "@/lib/i18n/seo";
+import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
 
 export const revalidate = 300;
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
-  return { alternates: pageAlternates(locale, "/") };
+  const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  const alternates = pageAlternates(locale, "/");
+  return {
+    alternates,
+    ...buildSocialMetadata({
+      locale,
+      siteName: agencyRow.name,
+      title: `${agencyRow.name} — ${tr("Agence de voyages")}`,
+      description: tr("Golden Fantastic, agence de voyages spécialisée Omra, Hajj et séjours touristiques."),
+      url: alternates.canonical,
+      logoUrl: agencyRow.logo_url,
+    }),
+  };
 }
 
 export default async function Home({ params }) {
@@ -55,41 +67,30 @@ export default async function Home({ params }) {
         </section>
       )}
 
-      {/* Accès rapide aux deux catalogues */}
-      <section className="relative z-10 mx-auto -mt-14 max-w-3xl px-6">
-        <div className="grid gap-px bg-ink p-2 sm:grid-cols-2">
-          <Link
-            href="/omra-hajj"
-            className="group flex items-center justify-between bg-cream-card px-7 py-6 transition-colors hover:bg-gold-pale/50"
-          >
-            <div>
-              <div className="text-xs tracking-widest text-muted uppercase">
-                {tr("Catalogue")}
+      {/* Accès rapide aux trois piliers (Omra, Hajj, voyages organisés) */}
+      <section className="relative z-10 mx-auto -mt-14 max-w-4xl px-6">
+        <div className="grid gap-px bg-ink p-2 sm:grid-cols-3">
+          {[
+            { href: "/omra", label: "Omra" },
+            { href: "/hajj", label: "Hajj" },
+            { href: "/voyages-organises", label: "Voyages organisés" },
+          ].map((pillar) => (
+            <Link
+              key={pillar.href}
+              href={pillar.href}
+              className="group flex items-center justify-between bg-cream-card px-7 py-6 transition-colors hover:bg-gold-pale/50"
+            >
+              <div>
+                <div className="text-xs tracking-widest text-muted uppercase">
+                  {tr("Catalogue")}
+                </div>
+                <div className="mt-1 font-display text-xl text-ink">{tr(pillar.label)}</div>
               </div>
-              <div className="mt-1 font-display text-xl text-ink">
-                {tr("Omra & Hajj")}
-              </div>
-            </div>
-            <span className="text-gold transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-              {locale === "ar" ? "←" : "→"}
-            </span>
-          </Link>
-          <Link
-            href="/voyages-organises"
-            className="group flex items-center justify-between bg-cream-card px-7 py-6 transition-colors hover:bg-gold-pale/50"
-          >
-            <div>
-              <div className="text-xs tracking-widest text-muted uppercase">
-                {tr("Catalogue")}
-              </div>
-              <div className="mt-1 font-display text-xl text-ink">
-                {tr("Voyages organisés")}
-              </div>
-            </div>
-            <span className="text-gold transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-              {locale === "ar" ? "←" : "→"}
-            </span>
-          </Link>
+              <span className="text-gold transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
+                {locale === "ar" ? "←" : "→"}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -111,7 +112,7 @@ export default async function Home({ params }) {
           </div>
           <div className="mt-10 flex justify-center">
             <Link
-              href="/omra-hajj"
+              href="/omra"
               className="border border-gold px-9 py-3.5 text-xs tracking-widest text-[#A8863C] uppercase transition-colors hover:bg-gold hover:text-ink"
             >
               {tr("Voir tous les programmes")}

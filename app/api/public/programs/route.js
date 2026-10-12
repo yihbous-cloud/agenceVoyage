@@ -3,6 +3,8 @@ import { getProgramsByFamily } from "@/lib/programs";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { withNotFound } from "@/lib/apiGuard";
 import { rateLimit, clientIp, tooManyRequests } from "@/lib/rateLimit";
+import { programPath } from "@/lib/programUrls";
+import { stripMarkdown } from "@/lib/markdown";
 
 // Multi-agences : le contenu dépend du sous-domaine de la requête (en-tête
 // posé par proxy.js) — jamais pré-généré au build.
@@ -21,18 +23,22 @@ async function GET_handler(request) {
     getProgramsByFamily("voyage_organise").catch(() => []),
   ]);
 
+  // Texte brut (le Markdown de l'admin n'a pas de sens dans un flux JSON) ;
+  // un prix à 0 = palier jamais saisi, exposé comme inconnu (null).
   const toItem = (p) => ({
     title: p.title,
     slug: p.slug,
     family: p.family,
-    url: `${baseUrl}/${p.family === "omra_hajj" ? "omra-hajj" : "voyages-organises"}/${p.slug}`,
-    shortDescription: p.short_description,
+    programType: p.program_type,
+    url: `${baseUrl}${programPath(p)}`,
+    shortDescription: stripMarkdown(p.short_description) || null,
     season: p.season || undefined,
     theme: p.theme || undefined,
     nextDepartureDate: p.next_departure_date,
-    startingPrice: p.starting_price,
+    startingPrice: Number(p.starting_price) > 0 ? p.starting_price : null,
     currency: p.currency,
     seatsRemaining: p.seats_remaining,
+    updatedAt: p.updated_at,
   });
 
   return NextResponse.json({

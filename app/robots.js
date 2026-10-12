@@ -4,16 +4,33 @@ import { getCurrentAgency } from "@/lib/currentAgency";
 // posé par proxy.js) — jamais pré-généré au build.
 export const dynamic = "force-dynamic";
 
-// Bots IA autorisés explicitement (plutôt que de compter sur la seule règle
-// "*") pour signaler clairement que le contenu peut être cité par les
-// moteurs génératifs (GEO/AIO) — voir PLAN-SEO-GEO-AIO.md §1.3.
-const AI_CRAWLERS = [
+// Robots des moteurs de recherche et des assistants IA autorisés
+// explicitement (cahier des charges référencement §9.2 : tout autoriser, y
+// compris l'entraînement, pour que la marque soit connue des modèles). Liste à
+// revoir tous les 6 mois — les éditeurs en ajoutent régulièrement.
+const CRAWLERS = [
+  "Googlebot",
+  "Google-Extended",
+  "Bingbot",
+  "OAI-SearchBot",
+  "ChatGPT-User",
   "GPTBot",
+  "Claude-SearchBot",
+  "Claude-User",
   "ClaudeBot",
   "PerplexityBot",
-  "Google-Extended",
+  "Perplexity-User",
+  "Applebot",
   "Applebot-Extended",
+  "Meta-ExternalAgent",
+  "MistralAI-User",
+  "CCBot",
 ];
+
+// Espace interne et API fermés aux robots, sauf l'API publique en lecture
+// seule (/api/public, citée dans llms.txt).
+const ALLOW = ["/", "/api/public/"];
+const DISALLOW = ["/admin", "/api/"];
 
 // Dynamique par agence (multi-agences) : le sitemap annoncé est celui du
 // sous-domaine demandé.
@@ -22,12 +39,8 @@ export default async function robots() {
 
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: ["/admin"] },
-      ...AI_CRAWLERS.map((userAgent) => ({
-        userAgent,
-        allow: "/",
-        disallow: ["/admin"],
-      })),
+      { userAgent: "*", allow: ALLOW, disallow: DISALLOW },
+      { userAgent: CRAWLERS, allow: ALLOW, disallow: DISALLOW },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

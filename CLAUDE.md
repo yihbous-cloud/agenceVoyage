@@ -66,7 +66,7 @@ Le site public distingue deux familles de programmes, à l'intention d'achat dif
 2. **Voyages organisés** — achat inspirationnel, comparaison par destination et par thème/envie (`programs.theme`)
 
 - Chaque programme porte une colonne `programs.family` (`omra_hajj` / `voyage_organise`), indépendante de `programs.program_type` (voir `database/migrations/001_add_program_family.sql` pour la justification de ne pas les fusionner)
-- Deux hubs publics dédiés : `/omra-hajj` et `/voyages-organises`, chacun avec ses propres filtres (saison ; destination/envie)
+- ~~Deux hubs publics dédiés : `/omra-hajj` et `/voyages-organises`~~ — **remplacé par §3centtreizequadragies** : trois piliers `/omra`, `/hajj`, `/voyages-organises` (le Hajj se distingue par `program_type = 'hajj'`, `family` reste inchangé) ; `/omra-hajj/*` redirige définitivement. Filtres inchangés (saison sur `/omra` ; destination/envie sur `/voyages-organises`)
 - Un seul gabarit technique de détail (`app/_components/ProgramDetail.jsx`), habillage conditionné par `family` — pas de duplication du moteur de réservation
 - La distance à un point de repère (`hotels.landmark_name` + `hotels.landmark_distance_m`, généralisé depuis la migration `004_generalize_hotel_landmark.sql` — tout hôtel peut avoir un repère de proximité, pas seulement le Haram) est désormais affichée sur les cartes et le détail Omra/Hajj (voyage le plus proche)
 - Anciennes URLs `/programmes` et `/programmes/[slug]` conservées : la première devient une page de bascule vers les deux hubs, la seconde redirige (308) vers la nouvelle URL préfixée par famille
@@ -75,7 +75,9 @@ Le site public distingue deux familles de programmes, à l'intention d'achat dif
 
 Suite à `PLAN-SEO-GEO-AIO.md` (fourni par l'utilisateur). La Phase 1 (fondations techniques), le pSEO villes de départ et la structure FAQ par programme ont été implémentés ; le reste (Google Business Profile, backlinks, contenu multilingue, statistiques propriétaires...) reste à faire côté business/contenu — voir `ETAT_DES_LIEUX.md` pour le détail à jour.
 
-- **`robots.txt`** autorise explicitement GPTBot/ClaudeBot/PerplexityBot/Google-Extended/Applebot-Extended, en plus de la règle générale
+⚠️ **Remplacé par le cahier des charges « Référencement global » (12/10/2026)** : voir §3centtreizequadragies et `docs/referencement-global.md` (feuille de route). Les points ci-dessous restent l'historique ; robots.txt, hreflang et JSON-LD y ont été revus.
+
+- **`robots.txt`** ~~autorise explicitement GPTBot/ClaudeBot/PerplexityBot/Google-Extended/Applebot-Extended~~ — 16 robots depuis §3centtreizequadragies
 - **`next/image`** utilisé sur toutes les images publiques (Core Web Vitals) ; le formulaire admin garde `<img>` (page protégée, non indexée)
 - **JSON-LD enrichi** : `TouristTrip` avec `datePublished`/`dateModified`, `BreadcrumbList` sur les hubs et le détail programme, `FAQPage` par programme quand du contenu existe
 - **pSEO — villes de départ** (`/villes-depart/[ville]`) : dimension orthogonale aux deux hubs existants, n'a **pas** remplacé leur structure d'URL. Correspondance IATA → ville dans `lib/airports.js` (liste statique, pas de table SQL) ; pages générées uniquement pour les codes IATA mappés
@@ -2033,6 +2035,37 @@ Signalé en production : un programme passant par **Istanbul + Makka + Madina** 
 ## 3centdouzequadragies. Carte Omra & Hajj : prix sous l'image, plus en surimpression
 
 Retour de l'utilisateur (capture d'une carte « OMRA PAR TURK 4 DEC ») : le bandeau doré « à partir de 17000.00 DH », posé en bas de l'image (`HomeShowcaseCard.jsx`, branche Omra/Hajj), masquait une partie de l'affiche (dates, téléphones). Le prix est désormais **dans le corps de la carte**, sur la ligne du titre (côté fin, « à partir de » en petit + montant en `#A8863C`) ; l'image n'a plus aucune surimpression hormis le ruban de saison (inchangé). Carte voyage organisé non concernée (prix déjà en pied de carte). Vérifié en local (accueil/hub `/omra-hajj`, arabe) : aucun élément superposé à l'image.
+
+## 3centtreizequadragies. Référencement global — phase 0 : corrections et piliers Omra / Hajj
+
+Cahier des charges « Référencement global (SEO · AEO · AIO · GEO · PSEO) » du 12/10/2026. **Feuille de route, décisions et actions hors code : `docs/referencement-global.md`** (document partageable, à tenir à jour à chaque phase). Chaque lot suivant (L1 à L12) a son propre plan, validé avant lancement.
+
+### Décisions du 12/10/2026
+
+- **D1 langues** : l'arabe reste à la racine, le français sous `/fr` (écart assumé au TECH-05 qui demande `/ar/`). L'anglais reste proposé aux visiteurs mais **hors index** (noindex, absent des hreflang, du sitemap et de `llms.txt`) jusqu'à la phase 2 du cahier. `lib/i18n/locales.js` : `INDEXED_LOCALES = ["ar", "fr"]`, `HREFLANG_TAGS` (`ar-MA`, `fr-MA`), `OG_LOCALES`
+- **D2 piliers** : `/omra`, `/hajj`, `/voyages-organises` (remplace le hub `/omra-hajj`, §3quater). **`lib/programUrls.js` est la seule source des URL de programme** (`programPath`, `pillarPath`, `programPillar`) : Hajj = `program_type = 'hajj'`, tout le reste de la famille `omra_hajj` = Omra. Ne jamais réécrire `/omra/${slug}` à la main (cartes, diapositives, sitemap, `llms.txt`, API publique, liste d'hébergement PDF, agent WhatsApp l'utilisent déjà)
+- **D3** : programmes permanents portant plusieurs départs (pas un programme par départ). Regroupement des programmes existants en phase 1, **après** la table de redirections (L2) — d'ici là, ne changer aucun slug
+- **D4** : marque unique « Golden Fantastic » (le nom en base est à corriger par l'agence dans `/admin/parametres`)
+
+### Livré
+
+- **Piliers** : gabarits partagés `app/_components/omraHajjHub.js` (pilier `/omra` avec filtre de saison, `/hajj` sans filtre — n'accède pas à `searchParams`, donc statique) et `app/_components/programPage.js` (fiche des trois piliers). Une fiche ouverte sous le mauvais pilier redirige (308) vers le bon. `/omra-hajj`, `/omra-hajj/[slug]` et `/programmes/[slug]` redirigent ; `/programmes` reste une page d'aiguillage en noindex. `getProgramsByFamily` gagne `filters.programType` (`'hajj'` | `'not_hajj'`). Navigation (en-tête, pied de page, accueil) : Omra et Hajj séparés
+- **Cache ISR réel** : les routes `[slug]` (fiches, actualités) n'avaient **pas** de `generateStaticParams` → Next les rendait à **chaque requête** (constaté en production : `Cache-Control: no-store`), malgré `revalidate = 300`. Ajout de `generateStaticParams() { return [] }` (doc Next 16 `generate-static-params.md`, « All paths at runtime ») : mise en cache à la première visite puis régénération toutes les 5 min. ⚠️ À reproduire sur toute nouvelle route dynamique publique
+- **Markdown** : `lib/markdown.js` (pur, sans dépendance — `stripMarkdown`, `plainSummary`, `parseMarkdownBlocks`, `parseInline`) et `app/_components/RichText.jsx` (rendu en éléments React, jamais de HTML injecté ; liens limités à http(s) et chemins internes). Fiches et actualités rendues avec `RichText` ; texte brut pour les meta, JSON-LD, `llms.txt`, API publique et RSS
+- **Doublons de langue (garde-fou provisoire jusqu'au lot L1)** : `lib/i18n/contentLocale.js` détecte la langue réelle d'un contenu saisi en base (lettres arabes vs latines, `null` sous 80 lettres). `programContentLocale`/`newsContentLocale` — **mêmes champs partout** (titre + description courte / extrait), sinon la page et le sitemap divergeraient. Si la langue est connue, `pageAlternates(locale, path, { contentLocale })` pointe la canonical de toutes les versions vers elle, sans hreflang, et le sitemap ne liste qu'une URL
+- **Balises** : `buildSocialMetadata()` (`lib/i18n/seo.js`) — Open Graph + Twitter (Next **remplace** l'objet `openGraph` du parent : chaque page qui en définit un doit tout redonner). Image = couverture, sinon logo de l'agence. Icône (public et admin) = `logo_url` de l'agence ; `app/favicon.ico` (icône Next par défaut) supprimé. Un `meta_title` saisi dans l'admin est utilisé tel quel (`title: { absolute }`), sans le gabarit « … | marque »
+- **JSON-LD** : offre sans `validFrom` (valait la date de départ), avec `availabilityEnds` (départ) et `url` ; aucune offre si le prix vaut 0 (« Prix sur demande » affiché, aussi sur les cartes) ; `TravelAgency` gagne `logo` et `sameAs` (réseaux sociaux saisis, dédoublonnés)
+- **Fil d'Ariane visible** : `app/_components/Breadcrumbs.jsx` (nav + `BreadcrumbJsonLd`), sur les piliers, fiches, villes de départ et actualités
+- **404** : `app/(site)/[agency]/[locale]/not-found.js` (client, langue via `useLocale()` — `not-found.js` ne reçoit pas les paramètres) + route attrape-tout `[...introuvable]/page.js` → page habillée avec un vrai code 404 et `noindex`
+- **robots.txt** : 16 robots nommés (Googlebot, Google-Extended, Bingbot, OAI-SearchBot, ChatGPT-User, GPTBot, Claude-SearchBot, Claude-User, ClaudeBot, PerplexityBot, Perplexity-User, Applebot, Applebot-Extended, Meta-ExternalAgent, MistralAI-User, CCBot) ; `/admin` et `/api/` bloqués, `/api/public/` autorisé. Liste à revoir tous les 6 mois
+- **Sitemap** : langues indexées seulement, `lastModified` (`programs.updated_at`, ajouté aux SELECT publics)
+- **Admin** : carte « Informations » d'un programme publié → avertissement (non bloquant) s'il manque prix (paliers du voyage principal ou tarif d'hébergement), description ou image
+- **Compression** : `compress: false` dans `next.config.mjs` — Next compressait lui-même en gzip, ce qui empêchait Nginx de servir Brotli ; Nginx (`gzip_proxied any`) compresse désormais tout. `deploy/server/setup.sh` installe le module Brotli s'il existe dans les dépôts Ubuntu (sinon gzip seul). ⚠️ Le serveur doit être mis à jour (relancer `setup.sh` ou appliquer la partie Brotli) **en même temps** que ce déploiement, sinon les réponses ne seraient plus compressées que par le gzip Nginx — ce qui reste correct
+- Traductions ar/en ajoutées (`public.*`, `admin.*`) ; `node scripts/i18n-check.mjs public` : 0 manquant
+
+### Vérification
+
+`npm run build` (fiches et actualités en ● ISR, pilier Hajj statique), `lint:agency`, `test:agency` (tous les contrôles passent), ESLint sur les fichiers touchés. Build de production lancé localement (`next start -p 3100`, `goldenfantastic.localhost`) : redirections 308 (`/omra-hajj`, `/fr/omra-hajj?saison=…`, `/omra-hajj/<slug>`, `/programmes/<slug>`, mauvais pilier), 404 habillée sur URL inconnue, balises (canonical, hreflang `ar-MA`/`fr-MA`, `og:*`, icône, noindex sur `/en`), JSON-LD analysé, `robots.txt`, sitemap, `llms.txt`, API publique ; affichage vérifié en arabe sur mobile (fiche, pilier Hajj, 404) et navigation à 1024 px sans débordement. Fonctions pures testées avec la vraie description de production (« OMRA PAR TURK 4 DEC » → langue `ar`, canonical vers la version arabe). La carte admin n'a pas été vérifiée visuellement (connexion direction + 2FA).
 
 ## 4. Modules fonctionnels
 

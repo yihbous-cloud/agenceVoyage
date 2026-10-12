@@ -2,6 +2,7 @@ import { listPublishedNews } from "@/lib/news";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
 import { getCurrentAgency } from "@/lib/currentAgency";
+import { plainSummary } from "@/lib/markdown";
 
 // Multi-agences : le contenu dépend du sous-domaine de la requête (en-tête
 // posé par proxy.js) — jamais pré-généré au build.
@@ -43,7 +44,7 @@ export async function GET() {
       <link>${baseUrl}/actualites/${post.slug}</link>
       <guid>${baseUrl}/actualites/${post.slug}</guid>
       <pubDate>${new Date(post.published_at).toUTCString()}</pubDate>
-      <description>${escapeXml(post.excerpt || "")}</description>
+      <description>${escapeXml(plainSummary(post.excerpt || post.content, 300))}</description>
     </item>`
     )
     .join("");

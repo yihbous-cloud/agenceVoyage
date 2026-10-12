@@ -2,21 +2,32 @@ import { getProgramsByFamily } from "@/lib/programs";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
-import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
+import Breadcrumbs from "@/app/_components/Breadcrumbs";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { localizePath } from "@/lib/i18n/locales";
-import { pageAlternates, siteBaseUrl } from "@/lib/i18n/seo";
+import { pageAlternates, siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  const title = tr("Voyages organisés");
+  const description = tr(
+    "Nos séjours et voyages organisés : plage, culture, aventure, famille, couple — partez à la découverte de nouvelles destinations."
+  );
+  const alternates = pageAlternates(locale, "/voyages-organises");
   return {
-    title: tr("Voyages organisés"),
-    description: tr(
-      "Nos séjours et voyages organisés : plage, culture, aventure, famille, couple — partez à la découverte de nouvelles destinations."
-    ),
-    alternates: pageAlternates(locale, "/voyages-organises"),
+    title,
+    description,
+    alternates,
+    ...buildSocialMetadata({
+      locale,
+      siteName: agencyRow.name,
+      title,
+      description,
+      url: alternates.canonical,
+      logoUrl: agencyRow.logo_url,
+    }),
   };
 }
 
@@ -51,14 +62,17 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
 
   return (
     <main className="flex-1 bg-ink">
-      <BreadcrumbJsonLd
-        items={[
-          { name: tr("Accueil"), item: `${baseUrl}${localizePath("/", locale)}` },
-          { name: tr("Voyages organisés") },
-        ]}
-      />
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <Breadcrumbs
+          tone="dark"
+          locale={locale}
+          baseUrl={baseUrl}
+          label={tr("Fil d'Ariane")}
+          items={[{ name: tr("Accueil"), href: "/" }, { name: tr("Voyages organisés") }]}
+        />
+      </div>
 
-      <section className="mx-auto max-w-3xl px-6 pt-16 pb-6 text-center">
+      <section className="mx-auto max-w-3xl px-6 pt-10 pb-6 text-center">
         <h1 className="font-script text-6xl leading-none text-gold">
           {tr("Voyages organisés")}
         </h1>

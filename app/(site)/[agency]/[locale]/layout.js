@@ -6,9 +6,9 @@ import { getAgencySettings } from "@/lib/agencySettings";
 import { LocaleProvider } from "@/app/_components/LocaleProvider";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
-import { SUPPORTED_LOCALES, isValidLocale, isRtl } from "@/lib/i18n/locales";
+import { SUPPORTED_LOCALES, isValidLocale, isRtl, isIndexedLocale } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { siteBaseUrl } from "@/lib/i18n/seo";
+import { siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
 import "../../../globals.css";
 
 const geistSans = Geist({
@@ -68,20 +68,31 @@ export async function generateMetadata({ params }) {
   const agencyRow = await requirePublicAgency(subdomain);
   const brand = agencyRow.name;
   const tr = makeTranslator(locale, "public", { brandName: brand });
+  const description = tr(
+    "Golden Fantastic, agence de voyages spécialisée Omra, Hajj et séjours touristiques."
+  );
   return {
     metadataBase: new URL(siteBaseUrl(subdomain)),
     title: {
       default: `${brand} — ${tr("Agence de voyages")}`,
       template: `%s | ${brand}`,
     },
-    description: tr(
-      "Golden Fantastic, agence de voyages spécialisée Omra, Hajj et séjours touristiques."
-    ),
+    description,
     alternates: {
       types: {
         "application/rss+xml": "/feed.xml",
       },
     },
+    // Anglais accessible aux visiteurs mais hors index tant que le contenu
+    // n'est pas traduit (CLAUDE.md §3centtreizequadragies, décision D1).
+    ...(isIndexedLocale(locale) ? {} : { robots: { index: false, follow: true } }),
+    // Aperçus de liens (WhatsApp, Facebook...) : valeurs par défaut, chaque
+    // page importante redonne les siennes (buildSocialMetadata).
+    ...buildSocialMetadata({ locale, siteName: brand, description, logoUrl: agencyRow.logo_url }),
+    // Icône = logo de l'agence (multi-agences), plus l'icône Next.js par défaut.
+    ...(agencyRow.logo_url
+      ? { icons: { icon: agencyRow.logo_url, apple: agencyRow.logo_url } }
+      : {}),
   };
 }
 
@@ -98,6 +109,14 @@ function buildOrganizationJsonLd(agency, tr, baseUrl) {
     ),
     url: baseUrl,
   };
+  // Logo et profils officiels (sameAs) : relient l'entité « agence » à ses
+  // présences ailleurs sur le web (cahier des charges §9.4) — seulement les
+  // liens réellement saisis dans /admin/parametres.
+  if (agency?.logo_url) jsonLd.logo = new URL(agency.logo_url, baseUrl).toString();
+  const sameAs = [
+    ...new Set((agency?.social_links || []).map((l) => l.url).filter((u) => /^https?:\/\//.test(u || ""))),
+  ];
+  if (sameAs.length > 0) jsonLd.sameAs = sameAs;
 
   if (agency?.address && agency?.phone) {
     jsonLd["@type"] = ["TravelAgency", "LocalBusiness"];

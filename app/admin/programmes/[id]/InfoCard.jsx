@@ -15,7 +15,7 @@ const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "
 // (migration 042), rattaché aux informations du programme (son voyage
 // principal) et visible/modifiable par l'administrateur seulement — jamais
 // transmis à un autre rôle (voir page.js).
-export default function InfoCard({ program, trip, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
+export default function InfoCard({ program, trip, hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
   const router = useRouter();
 
   const [title, setTitle] = useState(program.title || "");
@@ -49,6 +49,17 @@ export default function InfoCard({ program, trip, canManage, canAdminDiscount = 
   const [confirm, confirmDialog] = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+
+  // Éléments manquants d'une fiche publiée (avertissement sous « Publié »).
+  // Prix : l'un des 4 paliers du voyage principal, ou un tarif d'hébergement.
+  const hasTripPrice = ["price_double", "price_triple", "price_quadruple", "price_quintuple"].some(
+    (field) => Number(trip?.[field]) > 0
+  );
+  const publishWarnings = [
+    !hasTripPrice && !hasTierPrices && "aucun prix (affiché « Prix sur demande »)",
+    !shortDescription.trim() && !fullDescription.trim() && "aucune description",
+    !coverImageUrl && "aucune image de couverture",
+  ].filter(Boolean);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -436,6 +447,20 @@ export default function InfoCard({ program, trip, canManage, canAdminDiscount = 
           />
           Publié (visible sur le site public)
         </label>
+
+        {/* Référencement (CLAUDE.md §3centtreizequadragies) : une fiche publiée
+            sans prix ni description est une page vide pour Google et les
+            assistants IA. Simple avertissement, rien n'est bloqué. */}
+        {isPublished && publishWarnings.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="font-medium">Fiche publiée mais incomplète :</p>
+            <ul className="mt-1 list-disc ps-5">
+              {publishWarnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -52,6 +52,8 @@ export async function generateMetadata() {
       template: `%s | ${tr("Espace interne")}`,
     },
     robots: { index: false, follow: false },
+    // Icône = logo de l'agence (multi-agences), comme sur le site public.
+    ...(agency.logoUrl ? { icons: { icon: agency.logoUrl, apple: agency.logoUrl } } : {}),
   };
 }
 

@@ -14,7 +14,7 @@ const GOLD_ON_LIGHT = "#A8863C";
 // "Liens rapides" scindé en 2 groupes (demande explicite) — dérivés de
 // NAV_LINKS (partagé avec SiteHeader.jsx) par simple filtre sur les clés,
 // l'ordre d'origine de NAV_LINKS est préservé dans chaque groupe.
-const QUICK_LINKS_GROUP_1_HREFS = ["/omra-hajj", "/voyages-organises", "/actualites"];
+const QUICK_LINKS_GROUP_1_HREFS = ["/omra", "/hajj", "/voyages-organises", "/actualites"];
 const QUICK_LINKS_GROUP_2_HREFS = ["/a-propos", "/faq", "/contact"];
 
 // WhatsApp exige un numéro international sans "0" initial (wa.me) — les

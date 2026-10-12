@@ -106,6 +106,21 @@ gzip_comp_level 5;
 gzip_types text/plain text/css text/xml application/json application/javascript application/xml application/rss+xml image/svg+xml;
 map $http_upgrade $connection_upgrade { default upgrade; '' close; }
 EOF
+# Compression Brotli (référencement, TECH-13 ; Next.js n'en fait pas — il
+# laisse la compression à Nginx, voir compress: false dans next.config.mjs).
+# Module Ubuntu installé seulement s'il existe dans les dépôts : sinon le gzip
+# ci-dessus reste seul, jamais bloquant.
+if apt-cache show libnginx-mod-http-brotli-filter >/dev/null 2>&1; then
+  apt-get -y -q install libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static
+  cat > /etc/nginx/conf.d/01-brotli.conf <<'EOF'
+brotli on;
+brotli_comp_level 5;
+brotli_types text/plain text/css text/xml application/json application/javascript application/xml application/rss+xml image/svg+xml;
+EOF
+else
+  rm -f /etc/nginx/conf.d/01-brotli.conf
+  echo "    (module Brotli absent des dépôts : compression gzip seule)"
+fi
 cat > /etc/nginx/snippets/proxy-app.conf <<'EOF'
 proxy_http_version 1.1;
 proxy_set_header Host $host;

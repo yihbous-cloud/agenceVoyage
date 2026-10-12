@@ -6,17 +6,18 @@ import { useLocale } from "./LocaleProvider";
 import { SEASON_LABELS, formatDate, computeDuration } from "./formatTrip";
 import { getCityByIata } from "@/lib/airports";
 import { findAirportByIata } from "@/lib/airportsReference";
+import { programPath } from "@/lib/programUrls";
 
 // Carte "vitrine" (habillage doré/sombre) utilisée sur l'accueil et sur tous
-// les hubs publics (/omra-hajj, /voyages-organises, /villes-depart) pour une
+// les hubs publics (/omra, /hajj, /voyages-organises, /villes-depart) pour une
 // identité visuelle unique sur tout le site. Un seul composant,
 // `program.family` pilote l'habillage, comme pour ProgramDetail.
 export default function HomeShowcaseCard({ program }) {
   const { tr, intlTag, dir } = useLocale();
-  const href =
-    program.family === "omra_hajj"
-      ? `/omra-hajj/${program.slug}`
-      : `/voyages-organises/${program.slug}`;
+  const href = programPath(program);
+  // Prix à 0 = palier jamais saisi : n'afficher aucun prix plutôt que
+  // « à partir de 0.00 MAD » (starting_price arrive en chaîne, "0.00" est vrai).
+  const hasPrice = Number(program.starting_price) > 0;
   const duration = computeDuration(program.next_departure_date, program.next_return_date);
   const isOmraHajj = program.family === "omra_hajj";
   const durationLabel = duration
@@ -79,7 +80,7 @@ export default function HomeShowcaseCard({ program }) {
               téléphones) qu'un bandeau posé dessus masquait. */}
           <div className="flex items-start justify-between gap-4">
             <h3 className="font-display text-xl font-normal text-ink">{program.title}</h3>
-            {program.starting_price && (
+            {hasPrice && (
               <div className="shrink-0 text-end">
                 <span className="block text-[10px] uppercase tracking-wide text-muted">
                   {tr("à partir de")}
@@ -165,7 +166,7 @@ export default function HomeShowcaseCard({ program }) {
         <span className="text-xs font-semibold tracking-widest text-gold uppercase">
           {tr("Découvrir")}
         </span>
-        {program.starting_price && (
+        {hasPrice && (
           <div className="text-end text-xs text-white/55">
             {tr("à partir de")}
             <div className="font-display text-lg text-gold">

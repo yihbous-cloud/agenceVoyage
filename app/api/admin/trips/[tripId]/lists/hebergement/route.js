@@ -13,6 +13,7 @@ import { findAirportByIata } from "@/lib/airportsReference";
 import { buildExcelBuffer } from "@/lib/exporters/excel";
 import { buildHebergementPdfBuffer } from "@/lib/exporters/hebergementPdf";
 import { withNotFound } from "@/lib/apiGuard";
+import { programPath as programPathFor } from "@/lib/programUrls";
 
 function formatDateFr(value) {
   if (!value) return null;
@@ -89,10 +90,11 @@ async function GET_handler(request, { params }) {
     const [rows, agency] = await Promise.all([getHebergementRoomOccupants(tripId), getAgencySettings()]);
 
     const { baseUrl } = await getCurrentAgency();
-    const programPath =
-      trip.program_family === "omra_hajj"
-        ? `/omra-hajj/${trip.program_slug}`
-        : `/voyages-organises/${trip.program_slug}`;
+    const programPath = programPathFor({
+      family: trip.program_family,
+      program_type: trip.program_type,
+      slug: trip.program_slug,
+    });
 
     const buffer = await buildHebergementPdfBuffer({
       trip,

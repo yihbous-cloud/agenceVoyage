@@ -157,7 +157,7 @@ export default function ProgramForm() {
             ))}
           </select>
           <p className="mt-1 text-xs text-zinc-500">
-            Détermine le hub public (/omra-hajj ou /voyages-organises).
+            Détermine le pilier public (/omra, /hajj ou /voyages-organises).
           </p>
         </div>
       </div>

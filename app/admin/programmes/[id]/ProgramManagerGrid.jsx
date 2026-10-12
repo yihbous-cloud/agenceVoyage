@@ -181,6 +181,7 @@ export default function ProgramManagerGrid({
           <InfoCard
             program={program}
             trip={primaryTrip}
+            hasTierPrices={tiers.some((t) => (t.prices || []).some((p) => Number(p.price_per_person) > 0))}
             canManage={canManageInfo}
             canAdminDiscount={canAdminDiscount}
             discountCap={discountCap}

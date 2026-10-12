@@ -3,9 +3,8 @@ import { requirePublicAgency } from "@/lib/publicAgency";
 import { getProgramsByDepartureCity } from "@/lib/programs";
 import { getIataBySlug, getCityByIata } from "@/lib/airports";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
-import BreadcrumbJsonLd from "@/app/_components/BreadcrumbJsonLd";
+import Breadcrumbs from "@/app/_components/Breadcrumbs";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { localizePath } from "@/lib/i18n/locales";
 import { pageAlternates, siteBaseUrl } from "@/lib/i18n/seo";
 
 export const revalidate = 300;
@@ -29,7 +28,7 @@ export async function generateMetadata({ params }) {
 }
 
 // Page pSEO : agrège les deux familles pour une ville de départ donnée
-// (dimension orthogonale à /omra-hajj et /voyages-organises, ne remplace
+// (dimension orthogonale aux piliers /omra, /hajj et /voyages-organises, ne remplace
 // pas ces URLs — voir PLAN-SEO-GEO-AIO.md §3).
 export default async function DepartureCityPage({ params, searchParams }) {
   const { agency: subdomain, locale, ville } = await params;
@@ -61,14 +60,19 @@ export default async function DepartureCityPage({ params, searchParams }) {
 
   return (
     <main className="flex-1 bg-cream">
-      <BreadcrumbJsonLd
-        items={[
-          { name: tr("Accueil"), item: `${baseUrl}${localizePath("/", locale)}` },
-          { name: tr("Départ de {city}", { city: cityName }) },
-        ]}
-      />
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <Breadcrumbs
+          locale={locale}
+          baseUrl={baseUrl}
+          label={tr("Fil d'Ariane")}
+          items={[
+            { name: tr("Accueil"), href: "/" },
+            { name: tr("Départ de {city}", { city: cityName }) },
+          ]}
+        />
+      </div>
 
-      <section className="mx-auto max-w-3xl px-6 pt-16 pb-6 text-center">
+      <section className="mx-auto max-w-3xl px-6 pt-10 pb-6 text-center">
         <h1 className="font-script text-6xl leading-none text-gold">
           {tr("Départ de {city}", { city: cityName })}
         </h1>

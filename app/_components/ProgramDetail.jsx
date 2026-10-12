@@ -4,11 +4,19 @@ import { siteBaseUrl } from "@/lib/i18n/seo";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { INTL_TAGS, localizePath } from "@/lib/i18n/locales";
 import ReservationForm from "./ReservationForm";
-import BreadcrumbJsonLd from "./BreadcrumbJsonLd";
+import Breadcrumbs from "./Breadcrumbs";
+import RichText from "./RichText";
 import { SEASON_LABELS, formatDate } from "./formatTrip";
 import { getCityByIata, citySlug } from "@/lib/airports";
+import { programPath, pillarPath, programPillar, PILLAR_LABELS } from "@/lib/programUrls";
+import { plainSummary } from "@/lib/markdown";
 
-// Gabarit de détail partagé par /omra-hajj/[slug] et /voyages-organises/[slug].
+// Prix à 0 = palier jamais saisi dans l'admin : jamais affiché ni balisé
+// (une offre à 0 MAD dans le JSON-LD serait fausse).
+const hasPrice = (trip) => Number(trip.starting_price) > 0;
+
+// Gabarit de détail partagé par /omra/[slug], /hajj/[slug] et
+// /voyages-organises/[slug] (app/_components/programPage.js).
 // Un seul composant technique : `family` pilote uniquement l'habillage
 // (ton spirituel vs ton évasion) et le contenu mis en avant, jamais le
 // moteur de réservation (identique pour les deux familles, cf. ReservationForm).
@@ -24,22 +32,25 @@ export default function ProgramDetail({
   const intlTag = INTL_TAGS[locale];
   const isOmraHajj = family === "omra_hajj";
   const baseUrl = siteBaseUrl(agency?.subdomain);
-  const hubHref = isOmraHajj ? "/omra-hajj" : "/voyages-organises";
-  const hubLabel = tr(isOmraHajj ? "Omra & Hajj" : "Voyages organisés");
+  const pageUrl = `${baseUrl}${localizePath(programPath(program), locale)}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TouristTrip",
     name: program.title,
-    description: program.short_description,
-    image: program.cover_image_url || undefined,
+    description: plainSummary(program.short_description || program.full_description, 300) || undefined,
+    url: pageUrl,
+    image: program.cover_image_url ? new URL(program.cover_image_url, baseUrl).toString() : undefined,
     datePublished: program.created_at,
     dateModified: program.updated_at,
     provider: {
       "@type": "TravelAgency",
       name: agency?.name || "Golden Fantastic",
+      url: baseUrl,
     },
-    offers: trips.map((trip) => ({
+    // Une offre par départ dont le prix est connu ; availabilityEnds = date
+    // de départ (on ne peut plus réserver ensuite).
+    offers: trips.filter(hasPrice).map((trip) => ({
       "@type": "Offer",
       price: trip.starting_price,
       priceCurrency: trip.currency,
@@ -47,15 +58,11 @@ export default function ProgramDetail({
         trip.seats_remaining > 0
           ? "https://schema.org/InStock"
           : "https://schema.org/SoldOut",
-      validFrom: trip.departure_date,
+      availabilityEnds: trip.departure_date,
+      url: pageUrl,
     })),
   };
-
-  const breadcrumbItems = [
-    { name: tr("Accueil"), item: `${baseUrl}${localizePath("/", locale)}` },
-    { name: hubLabel, item: `${baseUrl}${localizePath(hubHref, locale)}` },
-    { name: program.title },
-  ];
+  if (jsonLd.offers.length === 0) delete jsonLd.offers;
 
   const faqJsonLd =
     faqs.length > 0
@@ -77,7 +84,17 @@ export default function ProgramDetail({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <BreadcrumbJsonLd items={breadcrumbItems} />
+        <Breadcrumbs
+          className="mb-6"
+          locale={locale}
+          baseUrl={baseUrl}
+          label={tr("Fil d'Ariane")}
+          items={[
+            { name: tr("Accueil"), href: "/" },
+            { name: tr(PILLAR_LABELS[programPillar(program)]), href: pillarPath(program) },
+            { name: program.title },
+          ]}
+        />
         {faqJsonLd && (
           <script
             type="application/ld+json"
@@ -116,9 +133,10 @@ export default function ProgramDetail({
         <h1 className="mt-3 font-display text-2xl font-normal text-ink sm:text-3xl">
           {program.title}
         </h1>
-        <p className="mt-4 whitespace-pre-line text-muted">
-          {program.full_description || program.short_description}
-        </p>
+        <RichText
+          className="mt-4 text-muted"
+          text={program.full_description || program.short_description}
+        />
 
         <h2 className="mt-10 font-display text-xl font-normal text-ink">
           {tr("Prochains départs")}
@@ -188,10 +206,14 @@ export default function ProgramDetail({
                       </div>
                     )}
                   </div>
-                  <p className="mt-2 font-display text-lg text-[#A8863C] sm:mt-0">
-                    <span className="block text-xs font-sans text-muted">{tr("à partir de")}</span>
-                    {trip.starting_price} {tr(trip.currency)}
-                  </p>
+                  {hasPrice(trip) ? (
+                    <p className="mt-2 font-display text-lg text-[#A8863C] sm:mt-0">
+                      <span className="block text-xs font-sans text-muted">{tr("à partir de")}</span>
+                      {trip.starting_price} {tr(trip.currency)}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted sm:mt-0">{tr("Prix sur demande")}</p>
+                  )}
                 </div>
                 <p className="mt-2 text-sm text-muted">
                   {trip.seats_remaining > 0

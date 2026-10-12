@@ -1,57 +1,20 @@
-import { notFound } from "next/navigation";
-import { requirePublicAgency } from "@/lib/publicAgency";
-import { getProgramBySlug, getOpenTripsForProgram } from "@/lib/programs";
-import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
-import ProgramDetail from "@/app/_components/ProgramDetail";
-import { makeTranslator } from "@/lib/i18n/translate";
-import { pageAlternates } from "@/lib/i18n/seo";
+import { programMetadata, renderProgramPage } from "@/app/_components/programPage";
 
+// Fiche programme du pilier « voyage » (gabarit partagé :
+// app/_components/programPage.js — CLAUDE.md §3centtreizequadragies).
 export const revalidate = 300;
 
-async function loadProgram(slug, agencyId) {
-  const program = await getProgramBySlug(slug, agencyId).catch(() => null);
-  if (!program || program.family !== "voyage_organise") return null;
-  return program;
+// Aucune fiche pré-générée au build, mais chacune est mise en cache à sa
+// première visite puis régénérée toutes les 5 min (ISR) — sans cette
+// fonction, Next rend la page à CHAQUE requête (doc generate-static-params).
+export async function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }) {
-  const { agency: subdomain, locale, slug } = await params;
-  const agencyRow = await requirePublicAgency(subdomain);
-  const program = await loadProgram(slug, agencyRow.id);
-
-  if (!program) {
-    return { title: makeTranslator(locale, "public", { brandName: agencyRow.name })("Programme introuvable") };
-  }
-
-  return {
-    title: program.meta_title || program.title,
-    description: program.meta_description || program.short_description,
-    alternates: pageAlternates(locale, `/voyages-organises/${slug}`),
-  };
+  return programMetadata(params);
 }
 
-export default async function VoyageOrganiseDetailPage({ params }) {
-  const { agency: subdomain, locale, slug } = await params;
-  const agencyRow = await requirePublicAgency(subdomain);
-  const program = await loadProgram(slug, agencyRow.id);
-
-  if (!program) {
-    notFound();
-  }
-
-  const [trips, faqs] = await Promise.all([
-    getOpenTripsForProgram(program.id, agencyRow.id, locale).catch(() => []),
-    listPublishedFaqsForProgram(program.id, agencyRow.id).catch(() => []),
-  ]);
-
-  return (
-    <ProgramDetail
-      program={program}
-      trips={trips}
-      family="voyage_organise"
-      faqs={faqs}
-      locale={locale}
-      agency={{ id: agencyRow.id, name: agencyRow.name, subdomain }}
-    />
-  );
+export default async function VoyageOrganiseProgramPage({ params }) {
+  return renderProgramPage(params, "voyage");
 }
