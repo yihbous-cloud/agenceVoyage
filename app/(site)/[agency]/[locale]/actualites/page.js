@@ -2,7 +2,10 @@ import Link from "@/app/_components/LocalizedLink";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import { listPublishedNews } from "@/lib/news";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { INTL_TAGS } from "@/lib/i18n/locales";
+import { INTL_TAGS, localizePath } from "@/lib/i18n/locales";
+import { itemListNode } from "@/lib/seo/jsonLd";
+import PageJsonLd from "@/app/_components/PageJsonLd";
+import Breadcrumbs from "@/app/_components/Breadcrumbs";
 import { pageAlternates } from "@/lib/i18n/seo";
 import { formatDate } from "@/app/_components/formatTrip";
 
@@ -29,6 +32,27 @@ export default async function ActualitesPage({ params }) {
 
   return (
     <main className="mx-auto max-w-4xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path="/actualites"
+        name={tr("Actualités")}
+        pageType="CollectionPage"
+        breadcrumb={[{ name: tr("Accueil"), href: "/" }, { name: tr("Actualités") }]}
+        mainEntity={posts.length > 0 ? "list" : undefined}
+        nodes={(url, baseUrl) => [
+          itemListNode(
+            url,
+            posts.map((post) => ({ name: post.title, url: `${baseUrl}${localizePath(`/actualites/${post.slug}`, locale)}` }))
+          ),
+        ]}
+      />
+      <Breadcrumbs
+        className="mb-6"
+        locale={locale}
+        label={tr("Fil d'Ariane")}
+        items={[{ name: tr("Accueil"), href: "/" }, { name: tr("Actualités") }]}
+      />
       <h1 className="text-3xl font-bold text-zinc-900">{tr("Actualités")}</h1>
 
       {posts.length === 0 && (

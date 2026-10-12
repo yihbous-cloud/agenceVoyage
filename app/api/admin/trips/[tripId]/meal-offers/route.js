@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllMealOffersForTrip, createMealOffer } from "@/lib/tripMealOffers";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -29,6 +30,7 @@ async function POST_handler(request, { params }) {
   }
 
   const offerId = await createMealOffer(tripId, body);
+  await refreshPublicPages({ tripId });
   return NextResponse.json({ id: offerId }, { status: 201 });
 }
 

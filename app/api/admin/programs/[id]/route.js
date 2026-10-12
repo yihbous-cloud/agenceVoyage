@@ -4,6 +4,9 @@ import { hasPermission } from "@/lib/permissions";
 import { updateProgram, deleteProgram, slugify, getProgramById } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 import { withNotFound } from "@/lib/apiGuard";
+import { syncContentRedirects, redirectDeletedContent } from "@/lib/redirects";
+import { refreshPublicPages } from "@/lib/publicRevalidation";
+import { programPath, pillarPath } from "@/lib/programUrls";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -26,21 +29,46 @@ async function PUT_handler(request, { params }) {
       { status: 400 }
     );
   }
+  if (body.successorProgramId !== undefined && body.successorProgramId && Number(body.successorProgramId) === Number(id)) {
+    return NextResponse.json(
+      { message: "Un programme ne peut pas prendre sa propre suite" },
+      { status: 400 }
+    );
+  }
 
   try {
+    // État AVANT : sert aux redirections automatiques (slug ou pilier
+    // changé, dépublication) — CLAUDE.md §3centquatorzequadragies.
+    const before = await getProgramById(id);
     const payload = { ...body };
     if (body.slug !== undefined) {
       const trimmed = body.slug?.trim();
       if (trimmed) {
         payload.slug = trimmed;
       } else {
-        const title = body.title !== undefined ? body.title : (await getProgramById(id))?.title;
+        const title = body.title !== undefined ? body.title : before?.title;
         payload.slug = slugify(title || "");
       }
     }
     await updateProgram(id, payload);
     if (Array.isArray(body.defaultHotelIds)) {
       await setDefaultHotelsForProgram(id, body.defaultHotelIds);
+    }
+
+    const after = await getProgramById(id);
+    if (before && after) {
+      const stalePaths = await syncContentRedirects({
+        beforePath: programPath(before),
+        afterPath: programPath(after),
+        beforePublished: Boolean(before.is_published),
+        afterPublished: Boolean(after.is_published),
+        fallbackPath: pillarPath(after),
+        staffId: session?.id || null,
+      });
+      await refreshPublicPages({
+        programId: id,
+        previousPaths: [...stalePaths, pillarPath(before)],
+      });
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -69,7 +97,17 @@ async function DELETE_handler(request, { params }) {
   const { id } = await params;
 
   try {
+    const before = await getProgramById(id);
     await deleteProgram(id);
+    // Une fiche publiée supprimée redirige vers son pilier (TECH-09).
+    if (before?.is_published) {
+      await redirectDeletedContent({
+        path: programPath(before),
+        fallbackPath: pillarPath(before),
+        staffId: session?.id || null,
+      });
+      await refreshPublicPages({ paths: [programPath(before), pillarPath(before), "/"] });
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {

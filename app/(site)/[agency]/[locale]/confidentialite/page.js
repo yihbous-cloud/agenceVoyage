@@ -2,6 +2,8 @@ import Link from "@/app/_components/LocalizedLink";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates } from "@/lib/i18n/seo";
+import PageJsonLd from "@/app/_components/PageJsonLd";
+import Breadcrumbs from "@/app/_components/Breadcrumbs";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -21,6 +23,19 @@ export default async function ConfidentialitePage({ params }) {
 
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-16 text-zinc-700">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path="/confidentialite"
+        name={tr("Politique de confidentialité")}
+        breadcrumb={[{ name: tr("Accueil"), href: "/" }, { name: tr("Politique de confidentialité") }]}
+      />
+      <Breadcrumbs
+        className="mb-6"
+        locale={locale}
+        label={tr("Fil d'Ariane")}
+        items={[{ name: tr("Accueil"), href: "/" }, { name: tr("Politique de confidentialité") }]}
+      />
       <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">
         {tr("Politique de confidentialité")}
       </h1>

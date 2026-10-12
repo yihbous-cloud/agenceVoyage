@@ -16,6 +16,9 @@ import * as perms from "../lib/permissions.js";
 import * as staff from "../lib/staffUsers.js";
 import * as settings from "../lib/agencySettings.js";
 import * as lists from "../lib/listGenerators.js";
+import * as redirects from "../lib/redirects.js";
+import { getRedirectMap } from "../lib/redirectMap.js";
+import { listIndexNowPings } from "../lib/indexNow.js";
 import { getPool } from "../lib/db.js";
 
 // Test d'isolation multi-agences (CLAUDE.md §3sexvicies passe 2). Crée une
@@ -88,6 +91,10 @@ const tierId = await tiers.createTier(tripId, {
   label: "TIER-A3", hotels: [{ hotelId }, { hotelId: hotel2Id }],
   prices: [{ roomType: "double", pricePerPerson: 1200 }],
 });
+// Référencement (migration 044) : redirection et journal IndexNow de l'agence 3
+const redirA3 = await redirects.createRedirect({ fromPath: "/omra/ancien-a3", toPath: "/omra/prog-a3" });
+const [redirRowA3] = await q("SELECT id FROM redirects WHERE agency_id = ? AND from_path = ?", [OTHER, redirA3.from_path]);
+await q("INSERT INTO seo_indexnow_pings (agency_id, url_count, urls, status) VALUES (?, 1, ?, 'ignore')", [OTHER, JSON.stringify(["https://a3.test/omra/prog-a3"])]);
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
 // Demande de compte (migration 041)
@@ -124,6 +131,9 @@ ok((await staff.listStaffUsers()).every((u) => u.id !== signupA3), "demande de c
 ok((await lists.getPnrPassengerList(tripId)).length === 0, "liste PNR d'un voyage étranger vide");
 try { await lists.getTravelerList(tripId); ok(false, "getTravelerList étranger devrait échouer"); } catch { ok(true, "getTravelerList (vue) refuse un voyage étranger"); }
 ok((await settings.getAgencySettings()).id === 1, "getAgencySettings = agence 1");
+ok((await redirects.listRedirects()).every((r) => r.id !== redirRowA3.id), "redirections de l'agence 3 invisibles");
+ok(!(await getRedirectMap(1)).has("/omra/ancien-a3"), "le proxy n'applique pas la redirection d'une autre agence");
+ok((await listIndexNowPings(1)).every((p) => !String(JSON.stringify(p.urls)).includes("a3.test")), "journal IndexNow de l'agence 3 invisible");
 
 // écritures croisées : tout doit échouer ou ne rien faire
 await throwsNotFound(() => pa.createTrip(programId, { referenceCode: "X", departureDate: "2027-01-01", returnDate: "2027-01-02" }), "createTrip sur un programme étranger");
@@ -155,6 +165,9 @@ await throwsNotFound(() => pay.deletePayment(payId), "deletePayment étranger");
 await throwsNotFound(() => regs.deleteRegistration(reg.id), "deleteRegistration étranger");
 await throwsNotFound(() => visa.deleteVisaType(visaId), "deleteVisaType étranger");
 await throwsNotFound(() => tiers.deleteTier(tierId), "deleteTier étranger");
+await throwsNotFound(() => redirects.deleteRedirect(redirRowA3.id), "deleteRedirect étranger");
+const [ownProgram] = await q("SELECT id FROM programs WHERE agency_id = 1 LIMIT 1");
+if (ownProgram) await throwsNotFound(() => pa.updateProgram(ownProgram.id, { successorProgramId: programId }), "successeur pris dans une autre agence");
 try { await pa.deleteProgram(programId); ok(false, "deleteProgram étranger devrait échouer"); } catch { ok(true, "deleteProgram étranger refusé"); }
 
 // --- l'agence 3 doit avoir tout conservé ---
@@ -172,6 +185,7 @@ ok((await faqs.listAllFaqsForProgram(programId)).length === 1, "FAQ A3 intacte")
 ok((await pay.getPaymentById(payId)) !== null, "paiement A3 intact");
 ok((await tiers.listTiersForTrip(tripId)).length === 1, "tarif A3 intact");
 ok((await airlines.listAirlines()).some((a) => a.id === airlineId), "compagnie A3 intacte");
+ok((await redirects.listRedirects()).some((r) => r.id === redirRowA3.id), "redirection A3 intacte");
 ok((await staff.listStaffUsers()).find((u) => u.id === signupA3)?.approval_status === "en_attente", "demande de compte A3 toujours en attente");
 
 // même numéro WhatsApp dans deux agences = deux voyageurs distincts

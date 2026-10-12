@@ -1,6 +1,11 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { requirePublicAgency } from "@/lib/publicAgency";
-import { getProgramBySlug, getOpenTripsForProgram } from "@/lib/programs";
+import {
+  getProgramBySlug,
+  getOpenTripsForProgram,
+  getPastTripsForProgram,
+  getProgramSuggestions,
+} from "@/lib/programs";
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
 import { programPath, programPillar } from "@/lib/programUrls";
 import { programContentLocale } from "@/lib/i18n/contentLocale";
@@ -70,6 +75,16 @@ export async function renderProgramPage(params, pillar) {
     listPublishedFaqsForProgram(program.id, agencyRow.id).catch(() => []),
   ]);
 
+  // TECH-09 : plus aucun départ ouvert → départs terminés + suite proposée
+  // (programme successeur, ou autres programmes du même pilier).
+  const [pastTrips, { successor, suggestions }] =
+    trips.length === 0
+      ? await Promise.all([
+          getPastTripsForProgram(program.id, agencyRow.id).catch(() => []),
+          getProgramSuggestions(program, agencyRow.id).catch(() => ({ successor: null, suggestions: [] })),
+        ])
+      : [[], { successor: null, suggestions: [] }];
+
   return (
     <ProgramDetail
       program={program}
@@ -78,6 +93,10 @@ export async function renderProgramPage(params, pillar) {
       faqs={faqs}
       locale={locale}
       agency={{ id: agencyRow.id, name: agencyRow.name, subdomain }}
+      canonicalLocale={programContentLocale(program) || undefined}
+      pastTrips={pastTrips}
+      successor={successor}
+      suggestions={suggestions}
     />
   );
 }

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateFaq, deleteFaq } from "@/lib/programFaqs";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -21,6 +22,7 @@ async function PUT_handler(request, { params }) {
   }
 
   await updateFaq(id, body);
+  await refreshPublicPages({ faqId: id });
   return NextResponse.json({ ok: true });
 }
 
@@ -31,7 +33,9 @@ async function DELETE_handler(request, { params }) {
   }
 
   const { id } = await params;
+  const programIds = await findProgramIds({ faqId: id });
   await deleteFaq(id);
+  await refreshPublicPages({ programIds });
   return NextResponse.json({ ok: true });
 }
 

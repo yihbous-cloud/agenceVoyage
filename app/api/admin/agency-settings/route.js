@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { getAgencySettings, updateAgencySettings, setAgencySocialLinks } from "@/lib/agencySettings";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler() {
   const session = await getSession();
@@ -29,6 +30,9 @@ async function PUT_handler(request) {
     await setAgencySocialLinks(body.socialLinks);
   }
   const updated = await getAgencySettings();
+  // Coordonnées, logo, réseaux sociaux : en-tête, pied de page et balisage
+  // de toutes les pages publiques.
+  await refreshPublicPages({ site: true });
   return NextResponse.json(updated);
 }
 

@@ -55,7 +55,7 @@ Le détail technique de chaque livraison est tenu à jour dans `CLAUDE.md` (sect
 | Phase | Développement (dans le site) | Contenu et commercial | Condition de passage |
 |---|---|---|---|
 | **0 · S1** (livrée) | L0 corrections + piliers `/omra` `/hajj` | Décisions restantes, Search Console + Bing, fiche Google, mots-clés, brief Ramadan | Phase 0 vérifiée en production |
-| **1 · S2 à S5** | L1 contenu multilingue par entité (titre, description, slug et SEO par langue) · L2 table de redirections gérée dans l'admin + cycle de vie des départs terminés · L4 balisage `@graph` complet · L7 mise à jour immédiate des pages + IndexNow · L8 GA4 + source des leads dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3) | Recette technique (§16 du cahier) |
+| **1 · S2 à S5** | **1A (prête) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C :** L8 GA4 + source des leads dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
 | **2 · S6 à S10** | L3 fiche voyage en 10 blocs · L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · L11 santé SEO dans l'admin | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
 | **3 · S11 à S16** | L6 PSEO, un gabarit à la fois, avec garde-fous · L10 GEO (baromètre des prix, `llms-full.txt`, panel de prompts) · L9 performance | Textes uniques des pages PSEO, premier panel IA | ≥ 70 % des pages PSEO indexées après 8 semaines |
 | **4 · en continu** | Anglais, ajustements | Netlinking, presse, YouTube, panel mensuel | — |
@@ -92,3 +92,12 @@ Pages indexées (Search Console, Bing), positions sur les 50 requêtes cœur, Co
 - Arabe à la racine au lieu de `/ar/` (D1).
 - Anglais proposé aux visiteurs mais hors index jusqu'à la phase 2.
 - En attendant les traductions par entité (lot L1), une fiche saisie dans une seule langue pointe sa balise canonical vers cette langue, sans hreflang, plutôt que de publier deux versions identiques.
+
+## 9. Ce que la vague 1A change pour l'équipe
+
+- **Changer l'adresse d'un programme ne casse plus rien** : quand le slug (ou le pilier Omra/Hajj) change, l'ancienne adresse redirige automatiquement vers la nouvelle. Le regroupement des programmes en programmes permanents (décision D3) peut donc commencer.
+- **Dépublier ou supprimer** un programme ou une actualité redirige son adresse vers le catalogue (Omra, Hajj, Voyages organisés ou Actualités) au lieu d'afficher une page introuvable. Republier annule la redirection.
+- **Programme terminé** : sa page reste en ligne avec la mention « Départ terminé » et propose la suite. Dans la carte « Informations » du programme, le champ « Programme qui prend la suite » permet de désigner la prochaine édition ; sinon le site propose automatiquement les prochains départs du même catalogue.
+- **Mise à jour immédiate** : toute modification dans l'admin (prix, dates, hôtels, textes) apparaît aussitôt sur le site, et la page est signalée à Bing et aux moteurs compatibles IndexNow.
+- **Nouvel écran « Référencement »** (menu Paramètres, réservé à la direction par défaut) : liste des redirections avec leur nombre d'utilisations, ajout manuel (ex. ancienne adresse d'une campagne), journal des signalements aux moteurs.
+- Après chaque mise en production, un contrôle automatique vérifie toutes les pages du plan du site (balisage, adresses de référence, page 404).

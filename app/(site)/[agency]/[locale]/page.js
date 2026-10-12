@@ -7,6 +7,7 @@ import { listActiveSlides } from "@/lib/slides";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 import HeroSlider from "@/app/_components/HeroSlider";
+import PageJsonLd from "@/app/_components/PageJsonLd";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
 
@@ -45,6 +46,13 @@ export default async function Home({ params }) {
 
   return (
     <main id="top" className="flex-1 bg-cream">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path="/"
+        name={`${agencyRow.name} — ${tr("Agence de voyages")}`}
+        description={tr("Golden Fantastic, agence de voyages spécialisée Omra, Hajj et séjours touristiques.")}
+      />
       {/* Hero : slider animé (/admin/slider) si des diapositives actives
           existent, sinon repli sur le hero statique historique. */}
       {slides.length > 0 ? (

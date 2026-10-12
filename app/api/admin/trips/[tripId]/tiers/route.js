@@ -4,6 +4,7 @@ import { hasPermission } from "@/lib/permissions";
 import { listTiersForTrip, createTier } from "@/lib/tripHotelTiers";
 import { getTripSummary } from "@/lib/roomAssignment";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -41,6 +42,7 @@ async function POST_handler(request, { params }) {
 
   try {
     const tierId = await createTier(tripId, body);
+    await refreshPublicPages({ tripId });
     return NextResponse.json({ id: tierId }, { status: 201 });
   } catch (err) {
     if (err?.code === "INVALID_TIER") {

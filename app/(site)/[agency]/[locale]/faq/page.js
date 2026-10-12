@@ -1,6 +1,9 @@
 import { makeTranslator } from "@/lib/i18n/translate";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import { pageAlternates } from "@/lib/i18n/seo";
+import { faqNode } from "@/lib/seo/jsonLd";
+import PageJsonLd from "@/app/_components/PageJsonLd";
+import Breadcrumbs from "@/app/_components/Breadcrumbs";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -53,25 +56,20 @@ export default async function FaqPage({ params }) {
     answer: tr(item.answer),
   }));
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: items.map((item) => ({
-      "@type": "Question",
-      name: item.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.answer,
-      },
-    })),
-  };
+  const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr("Questions fréquentes") }];
 
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path="/faq"
+        name={tr("Questions fréquentes")}
+        breadcrumb={breadcrumb}
+        mainEntity="faq"
+        nodes={(url) => [faqNode(url, items)]}
       />
+      <Breadcrumbs className="mb-6" locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
 
       <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">{tr("Questions fréquentes")}</h1>
 

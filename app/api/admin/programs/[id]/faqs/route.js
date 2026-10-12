@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllFaqsForProgram, createFaq } from "@/lib/programFaqs";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -32,6 +33,7 @@ async function POST_handler(request, { params }) {
   }
 
   const faqId = await createFaq(id, body);
+  await refreshPublicPages({ programId: id });
   return NextResponse.json({ id: faqId }, { status: 201 });
 }
 

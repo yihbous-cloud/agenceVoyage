@@ -3,9 +3,12 @@ import { requirePublicAgency } from "@/lib/publicAgency";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
+import PageJsonLd from "@/app/_components/PageJsonLd";
+import { itemListNode } from "@/lib/seo/jsonLd";
+import { programPath } from "@/lib/programUrls";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { localizePath } from "@/lib/i18n/locales";
-import { pageAlternates, siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
+import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -58,18 +61,27 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
     dbError = err.message;
   }
 
-  const baseUrl = siteBaseUrl(subdomain);
+  const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr("Voyages organisés") }];
 
   return (
     <main className="flex-1 bg-ink">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path="/voyages-organises"
+        name={tr("Voyages organisés")}
+        pageType="CollectionPage"
+        breadcrumb={breadcrumb}
+        mainEntity={programs.length > 0 ? "list" : undefined}
+        nodes={(url, siteUrl) => [
+          itemListNode(
+            url,
+            programs.map((p) => ({ name: p.title, url: `${siteUrl}${localizePath(programPath(p), locale)}` }))
+          ),
+        ]}
+      />
       <div className="mx-auto max-w-6xl px-6 pt-6">
-        <Breadcrumbs
-          tone="dark"
-          locale={locale}
-          baseUrl={baseUrl}
-          label={tr("Fil d'Ariane")}
-          items={[{ name: tr("Accueil"), href: "/" }, { name: tr("Voyages organisés") }]}
-        />
+        <Breadcrumbs tone="dark" locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
       </div>
 
       <section className="mx-auto max-w-3xl px-6 pt-10 pb-6 text-center">

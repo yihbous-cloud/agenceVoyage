@@ -4,6 +4,7 @@ import { hasPermission } from "@/lib/permissions";
 import { getTripFullById, updateTrip, deleteTrip } from "@/lib/programsAdmin";
 import { withNotFound } from "@/lib/apiGuard";
 import { getTripDiscountCap } from "@/lib/registrationPricing";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -49,6 +50,7 @@ async function PUT_handler(request, { params }) {
 
   try {
     await updateTrip(tripId, body);
+    await refreshPublicPages({ tripId });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {
@@ -76,7 +78,9 @@ async function DELETE_handler(request, { params }) {
   const { tripId } = await params;
 
   try {
+    const programIds = await findProgramIds({ tripId });
     await deleteTrip(tripId);
+    await refreshPublicPages({ programIds });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {

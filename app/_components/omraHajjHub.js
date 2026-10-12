@@ -3,9 +3,12 @@ import { requirePublicAgency } from "@/lib/publicAgency";
 import HomeShowcaseCard from "./HomeShowcaseCard";
 import ReassuranceBanner from "./ReassuranceBanner";
 import Breadcrumbs from "./Breadcrumbs";
+import PageJsonLd from "./PageJsonLd";
+import { itemListNode } from "@/lib/seo/jsonLd";
+import { programPath } from "@/lib/programUrls";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { localizePath } from "@/lib/i18n/locales";
-import { pageAlternates, siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
+import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
 import { PILLAR_PATHS } from "@/lib/programUrls";
 
 // Piliers publics /omra et /hajj (CLAUDE.md §3centtreizequadragies, décision
@@ -94,15 +97,28 @@ export async function renderOmraHajjHub(params, searchParams, pillarKey) {
     dbError = err.message;
   }
 
+  const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr(pillar.heading) }];
+
   return (
     <main className="flex-1 bg-cream">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path={pillar.path}
+        name={tr(pillar.metaTitle)}
+        description={tr(pillar.metaDescription)}
+        pageType="CollectionPage"
+        breadcrumb={breadcrumb}
+        mainEntity={programs.length > 0 ? "list" : undefined}
+        nodes={(url, baseUrl) => [
+          itemListNode(
+            url,
+            programs.map((p) => ({ name: p.title, url: `${baseUrl}${localizePath(programPath(p), locale)}` }))
+          ),
+        ]}
+      />
       <div className="mx-auto max-w-6xl px-6 pt-6">
-        <Breadcrumbs
-          locale={locale}
-          baseUrl={siteBaseUrl(subdomain)}
-          label={tr("Fil d'Ariane")}
-          items={[{ name: tr("Accueil"), href: "/" }, { name: tr(pillar.heading) }]}
-        />
+        <Breadcrumbs locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
       </div>
 
       <section className="mx-auto max-w-3xl px-6 pt-10 pb-6 text-center">

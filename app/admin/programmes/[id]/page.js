@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProgramById, listTripsForProgram } from "@/lib/programsAdmin";
+import { getProgramById, listTripsForProgram, listAllPrograms } from "@/lib/programsAdmin";
 import { listAllFaqsForProgram } from "@/lib/programFaqs";
 import { listTiersForTrip } from "@/lib/tripHotelTiers";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
@@ -15,7 +15,7 @@ import { getTripDiscountCap } from "@/lib/registrationPricing";
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
 
-  const [program, trips, faqs, defaultHotels, hotels, airlines, session] = await Promise.all([
+  const [program, trips, faqs, defaultHotels, hotels, airlines, session, allPrograms] = await Promise.all([
     getProgramById(id),
     listTripsForProgram(id),
     listAllFaqsForProgram(id),
@@ -23,6 +23,7 @@ export default async function ProgramDetailPage({ params }) {
     listHotels(),
     listAirlines(),
     getSession(),
+    listAllPrograms(),
   ]);
 
   if (!program) {
@@ -64,6 +65,9 @@ export default async function ProgramDetailPage({ params }) {
       <ProgramManagerGrid
         programId={id}
         program={program}
+        successorOptions={allPrograms
+          .filter((p) => p.id !== Number(id))
+          .map((p) => ({ id: p.id, title: p.title, is_published: p.is_published }))}
         primaryTrip={primaryTrip}
         airlines={airlines}
         hotels={hotels}

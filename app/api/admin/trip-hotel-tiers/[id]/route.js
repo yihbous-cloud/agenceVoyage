@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateTier, deleteTier } from "@/lib/tripHotelTiers";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -19,6 +20,7 @@ async function PUT_handler(request, { params }) {
 
   try {
     await updateTier(id, body);
+    await refreshPublicPages({ tierId: id });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err?.code === "INVALID_TIER") {
@@ -36,7 +38,9 @@ async function DELETE_handler(request, { params }) {
 
   const { id } = await params;
   try {
+    const programIds = await findProgramIds({ tierId: id });
     await deleteTier(id);
+    await refreshPublicPages({ programIds });
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {

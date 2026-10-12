@@ -4,8 +4,12 @@ import { getProgramsByDepartureCity } from "@/lib/programs";
 import { getIataBySlug, getCityByIata } from "@/lib/airports";
 import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
+import PageJsonLd from "@/app/_components/PageJsonLd";
+import { itemListNode } from "@/lib/seo/jsonLd";
+import { programPath } from "@/lib/programUrls";
+import { localizePath } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { pageAlternates, siteBaseUrl } from "@/lib/i18n/seo";
+import { pageAlternates } from "@/lib/i18n/seo";
 
 export const revalidate = 300;
 
@@ -42,7 +46,10 @@ export default async function DepartureCityPage({ params, searchParams }) {
   }
 
   const cityName = tr(getCityByIata(iata).city);
-  const baseUrl = siteBaseUrl(subdomain);
+  const breadcrumb = [
+    { name: tr("Accueil"), href: "/" },
+    { name: tr("Départ de {city}", { city: cityName }) },
+  ];
 
   let programs = [];
   let dbError = null;
@@ -60,16 +67,23 @@ export default async function DepartureCityPage({ params, searchParams }) {
 
   return (
     <main className="flex-1 bg-cream">
+      <PageJsonLd
+        agency={agencyRow}
+        locale={locale}
+        path={`/villes-depart/${ville}`}
+        name={tr("Voyages au départ de {city}", { city: cityName })}
+        pageType="CollectionPage"
+        breadcrumb={breadcrumb}
+        mainEntity={programs.length > 0 ? "list" : undefined}
+        nodes={(url, baseUrl) => [
+          itemListNode(
+            url,
+            programs.map((p) => ({ name: p.title, url: `${baseUrl}${localizePath(programPath(p), locale)}` }))
+          ),
+        ]}
+      />
       <div className="mx-auto max-w-6xl px-6 pt-6">
-        <Breadcrumbs
-          locale={locale}
-          baseUrl={baseUrl}
-          label={tr("Fil d'Ariane")}
-          items={[
-            { name: tr("Accueil"), href: "/" },
-            { name: tr("Départ de {city}", { city: cityName }) },
-          ]}
-        />
+        <Breadcrumbs locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
       </div>
 
       <section className="mx-auto max-w-3xl px-6 pt-10 pb-6 text-center">

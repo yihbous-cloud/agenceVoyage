@@ -4,6 +4,9 @@ import { hasPermission } from "@/lib/permissions";
 import { listAllPrograms, createProgram, slugify } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 import { withNotFound } from "@/lib/apiGuard";
+import { removeRedirectsFrom } from "@/lib/redirects";
+import { refreshPublicPages } from "@/lib/publicRevalidation";
+import { programPath } from "@/lib/programUrls";
 
 async function GET_handler() {
   const session = await getSession();
@@ -38,6 +41,14 @@ async function POST_handler(request) {
     });
     if (Array.isArray(body.defaultHotelIds)) {
       await setDefaultHotelsForProgram(id, body.defaultHotelIds);
+    }
+    // Publié dès la création : son URL redevient vivante (une ancienne
+    // redirection ne doit pas la masquer), pilier et accueil rafraîchis.
+    if (body.isPublished) {
+      await removeRedirectsFrom([
+        programPath({ family: body.family, program_type: body.programType, slug: body.slug?.trim() || slugify(body.title) }),
+      ]);
+      await refreshPublicPages({ programId: id });
     }
     return NextResponse.json({ id }, { status: 201 });
   } catch (err) {

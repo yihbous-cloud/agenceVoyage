@@ -122,6 +122,7 @@ const NAV_GROUPS = [
       { href: "/admin/parametres", label: "Infos agence", icon: "storefront" },
       { href: "/admin/parametres/utilisateurs", label: "Utilisateurs", icon: "manage_accounts", perm: "utilisateurs.manage", badgeKey: "accountRequests" },
       { href: "/admin/parametres/roles", label: "Rôles & permissions", icon: "admin_panel_settings", perm: "roles.manage" },
+      { href: "/admin/referencement", label: "Référencement", icon: "manage_search", perm: "seo.manage" },
       { href: "/admin/securite", label: "Sécurité du compte", icon: "shield" },
     ],
   },

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateAirline, deleteAirline } from "@/lib/airlines";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -13,6 +14,8 @@ async function PUT_handler(request, { params }) {
   const { id } = await params;
   const body = await request.json();
   await updateAirline(id, body);
+  // Nom de la compagnie affiché sur les fiches des départs.
+  await refreshPublicPages({ site: true });
   return NextResponse.json({ ok: true });
 }
 

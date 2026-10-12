@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllNews, createNews, slugify } from "@/lib/news";
 import { withNotFound } from "@/lib/apiGuard";
+import { removeRedirectsFrom } from "@/lib/redirects";
+import { refreshPublicPages } from "@/lib/publicRevalidation";
 
 async function GET_handler() {
   const session = await getSession();
@@ -25,7 +27,14 @@ async function POST_handler(request) {
   }
 
   try {
-    const id = await createNews({ ...body, slug: body.slug?.trim() || slugify(body.title) });
+    const slug = body.slug?.trim() || slugify(body.title);
+    const id = await createNews({ ...body, slug });
+    // Publié dès la création : son URL redevient vivante (une ancienne
+    // redirection ne doit pas la masquer) et la liste est rafraîchie.
+    if (body.isPublished) {
+      await removeRedirectsFrom([`/actualites/${slug}`]);
+      await refreshPublicPages({ newsSlug: slug });
+    }
     return NextResponse.json({ id }, { status: 201 });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {

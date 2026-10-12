@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllSlides, createSlide } from "@/lib/slides";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler() {
   const session = await getSession();
@@ -24,6 +25,7 @@ async function POST_handler(request) {
   // diapositive peut n'avoir qu'une image (CLAUDE.md).
 
   const id = await createSlide(body);
+  await refreshPublicPages({ paths: ["/"] });
   return NextResponse.json({ id }, { status: 201 });
 }
 

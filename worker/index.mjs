@@ -37,6 +37,7 @@ import { purgeAgencyData } from "../lib/whatsapp/privacy.js";
 import { ensureWeeklyAudit } from "../lib/whatsapp/journal.js";
 import { localParts } from "../lib/whatsapp/team.js";
 import { recordJob } from "../lib/systemJobs.js";
+import { pingIndexNow } from "../lib/indexNow.js";
 import { query } from "../lib/db.js";
 
 const SWEEP_INTERVAL_MS = 30_000;
@@ -151,6 +152,22 @@ async function handleOutbound(job) {
       replyToMetaId: replyToMetaId || null,
     })
   );
+}
+
+// Signalement IndexNow des pages publiques modifiées dans l'admin
+// (référencement, CLAUDE.md §3centquatorzequadragies). La revalidation des
+// pages elle-même est faite par Next (route API) : le worker n'en est pas
+// capable (hors Next), il ne fait que l'envoi.
+async function handleIndexNow(job) {
+  const { agencyId, urls } = job.data;
+  if (!inScope(agencyId)) return OUT_OF_SCOPE;
+  const result = await runWithAgency(agencyId, () => pingIndexNow(agencyId, urls));
+  await recordJob(
+    "indexnow",
+    result.status === "echec" ? "erreur" : "ok",
+    `agence ${agencyId} : ${result.status}${result.httpStatus ? ` (HTTP ${result.httpStatus})` : ""}`
+  ).catch(() => {});
+  return result;
 }
 
 async function requeue(queueName, jobId, jobName, data, opts = {}) {
@@ -305,6 +322,7 @@ const workers = [
     "campaigns",
     new Worker(QUEUES.campaigns, handleCampaign, { connection: redisConnectionOptions(), concurrency: 1, limiter: { max: 1, duration: 1000 } }),
   ],
+  ["seo", new Worker(QUEUES.seo, handleIndexNow, { connection: redisConnectionOptions(), concurrency: 1, limiter: { max: 5, duration: 1000 } })],
   [
     "outbound",
     new Worker(QUEUES.outbound, handleOutbound, {

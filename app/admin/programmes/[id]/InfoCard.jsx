@@ -15,7 +15,7 @@ const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "
 // (migration 042), rattaché aux informations du programme (son voyage
 // principal) et visible/modifiable par l'administrateur seulement — jamais
 // transmis à un autre rôle (voir page.js).
-export default function InfoCard({ program, trip, hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
+export default function InfoCard({ program, trip, successorOptions = [], hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
   const router = useRouter();
 
   const [title, setTitle] = useState(program.title || "");
@@ -43,6 +43,7 @@ export default function InfoCard({ program, trip, hasTierPrices = false, canMana
   const [metaTitle, setMetaTitle] = useState(program.meta_title || "");
   const [metaDescription, setMetaDescription] = useState(program.meta_description || "");
   const [isPublished, setIsPublished] = useState(!!program.is_published);
+  const [successorProgramId, setSuccessorProgramId] = useState(program.successor_program_id || "");
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -108,6 +109,7 @@ export default function InfoCard({ program, trip, hasTierPrices = false, canMana
           metaTitle: metaTitle || null,
           metaDescription: metaDescription || null,
           isPublished,
+          successorProgramId: successorProgramId || null,
         }),
       });
       if (!programRes.ok) {
@@ -447,6 +449,32 @@ export default function InfoCard({ program, trip, hasTierPrices = false, canMana
           />
           Publié (visible sur le site public)
         </label>
+
+        {/* TECH-09 (CLAUDE.md §3centquatorzequadragies) : quand tous les
+            départs de ce programme sont passés, sa fiche reste en ligne et
+            renvoie vers ce programme (« Prochaine édition »). */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700">
+            Programme qui prend la suite
+          </label>
+          <select
+            disabled={!canManage}
+            value={successorProgramId}
+            onChange={(e) => setSuccessorProgramId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+          >
+            <option value="">Aucun (suggestions automatiques)</option>
+            {successorOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.title}
+                {option.is_published ? "" : " (non publié)"}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-zinc-500">
+            Affiché sur la fiche publique quand tous les départs de ce programme sont terminés.
+          </p>
+        </div>
 
         {/* Référencement (CLAUDE.md §3centtreizequadragies) : une fiche publiée
             sans prix ni description est une page vide pour Google et les

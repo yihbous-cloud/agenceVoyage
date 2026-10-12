@@ -17,6 +17,7 @@ import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 export default function ProgramManagerGrid({
   programId,
   program,
+  successorOptions = [],
   primaryTrip,
   airlines,
   hotels,
@@ -180,6 +181,7 @@ export default function ProgramManagerGrid({
         <Modal title="Informations" onClose={close}>
           <InfoCard
             program={program}
+            successorOptions={successorOptions}
             trip={primaryTrip}
             hasTierPrices={tiers.some((t) => (t.prices || []).some((p) => Number(p.price_per_person) > 0))}
             canManage={canManageInfo}

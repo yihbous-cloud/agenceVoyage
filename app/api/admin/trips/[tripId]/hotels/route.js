@@ -9,6 +9,7 @@ import {
 } from "@/lib/roomAssignment";
 import { listDefaultHotelsForProgram } from "@/lib/programHotels";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -88,6 +89,7 @@ async function POST_handler(request, { params }) {
   }
 
   const id = await addTripHotel(tripId, hotelId, checkInDate, checkOutDate);
+  await refreshPublicPages({ tripId });
   return NextResponse.json({ id }, { status: 201 });
 }
 

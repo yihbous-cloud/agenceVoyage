@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { moveSlide } from "@/lib/slides";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -17,6 +18,7 @@ async function PUT_handler(request, { params }) {
   }
 
   await moveSlide(id, direction);
+  await refreshPublicPages({ paths: ["/"] });
   return NextResponse.json({ ok: true });
 }
 

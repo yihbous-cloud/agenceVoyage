@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { updateHotel, deleteHotel } from "@/lib/hotels";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -13,6 +14,8 @@ async function PUT_handler(request, { params }) {
   const { id } = await params;
   const body = await request.json();
   await updateHotel(id, body);
+  // Nom, nom arabe, distance... affichés sur de nombreuses fiches.
+  await refreshPublicPages({ site: true });
   return NextResponse.json({ ok: true });
 }
 

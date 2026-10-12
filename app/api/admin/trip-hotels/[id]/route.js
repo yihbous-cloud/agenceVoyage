@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { removeTripHotel } from "@/lib/roomAssignment";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function DELETE_handler(request, { params }) {
   const session = await getSession();
@@ -11,7 +12,9 @@ async function DELETE_handler(request, { params }) {
   }
 
   const { id } = await params;
+  const programIds = await findProgramIds({ tripHotelId: id });
   await removeTripHotel(id);
+  await refreshPublicPages({ programIds });
   return NextResponse.json({ ok: true });
 }
 

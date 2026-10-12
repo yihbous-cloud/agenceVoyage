@@ -148,11 +148,13 @@ CREATE TABLE programs (
     full_description TEXT NULL COMMENT 'contenu riche, utilisé aussi pour schema.org / GEO',
     cover_image_url VARCHAR(500) NULL,
     is_published BOOLEAN NOT NULL DEFAULT FALSE,
+    successor_program_id BIGINT UNSIGNED NULL COMMENT 'Programme qui prend la suite, affiché quand tous les départs sont terminés (migration 044)',
     meta_title VARCHAR(200) NULL,
     meta_description VARCHAR(300) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_program_family (family)
+    INDEX idx_program_family (family),
+    CONSTRAINT fk_programs_successor FOREIGN KEY (successor_program_id) REFERENCES programs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Un "voyage" est une instance datée d'un programme (départ précis)
@@ -1991,3 +1993,41 @@ CREATE TABLE trip_hotel_tier_hotels (
     CONSTRAINT fk_tier_hotels_tier FOREIGN KEY (tier_id) REFERENCES trip_hotel_tiers(id) ON DELETE CASCADE,
     CONSTRAINT fk_tier_hotels_hotel FOREIGN KEY (hotel_id) REFERENCES hotels(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Migration 044 : référencement (CLAUDE.md §3centquatorzequadragies) —
+-- redirections 301 gérées depuis /admin/referencement et créées
+-- automatiquement (slug changé, dépublication, suppression), journal des
+-- notifications IndexNow. Chemins SANS préfixe de langue.
+CREATE TABLE redirects (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    agency_id BIGINT UNSIGNED NOT NULL,
+    from_path VARCHAR(500) NOT NULL COMMENT 'Chemin public SANS préfixe de langue, ex. /omra/ancien-slug',
+    to_path VARCHAR(500) NOT NULL COMMENT 'Chemin cible sans préfixe de langue, ou URL absolue https://',
+    status_code SMALLINT UNSIGNED NOT NULL DEFAULT 301,
+    source ENUM('manuel', 'auto_slug', 'auto_depublication', 'auto_suppression') NOT NULL DEFAULT 'manuel',
+    hits INT UNSIGNED NOT NULL DEFAULT 0,
+    last_hit_at DATETIME NULL,
+    created_by_staff_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_redirect_from (agency_id, from_path(255)),
+    KEY idx_redirect_to (agency_id, to_path(255)),
+    CONSTRAINT fk_redirects_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
+    CONSTRAINT fk_redirects_staff FOREIGN KEY (created_by_staff_id) REFERENCES staff_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE seo_indexnow_pings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    agency_id BIGINT UNSIGNED NOT NULL,
+    url_count INT UNSIGNED NOT NULL DEFAULT 0,
+    urls JSON NULL,
+    status ENUM('envoye', 'echec', 'ignore') NOT NULL,
+    http_status SMALLINT UNSIGNED NULL,
+    message VARCHAR(500) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_indexnow_agency_date (agency_id, created_at),
+    CONSTRAINT fk_indexnow_agency FOREIGN KEY (agency_id) REFERENCES agencies(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO permissions (code, label, category, sort_order) VALUES
+    ('seo.manage', 'Référencement : redirections, indexation, sources des leads', 'Référencement', 10);

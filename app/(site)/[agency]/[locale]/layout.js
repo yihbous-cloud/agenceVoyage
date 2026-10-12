@@ -96,43 +96,6 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// LocalBusiness n'est ajouté que si l'adresse/téléphone réels de l'agence
-// sont renseignés (agency_settings, saisis depuis /admin/parametres) — pas
-// de coordonnées inventées (voir CLAUDE.md §3quinquies/§7).
-function buildOrganizationJsonLd(agency, tr, baseUrl) {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "TravelAgency",
-    name: agency?.name || "Golden Fantastic",
-    description: tr(
-      "Agence de voyages spécialisée dans l'organisation d'Omra, de Hajj et de séjours touristiques."
-    ),
-    url: baseUrl,
-  };
-  // Logo et profils officiels (sameAs) : relient l'entité « agence » à ses
-  // présences ailleurs sur le web (cahier des charges §9.4) — seulement les
-  // liens réellement saisis dans /admin/parametres.
-  if (agency?.logo_url) jsonLd.logo = new URL(agency.logo_url, baseUrl).toString();
-  const sameAs = [
-    ...new Set((agency?.social_links || []).map((l) => l.url).filter((u) => /^https?:\/\//.test(u || ""))),
-  ];
-  if (sameAs.length > 0) jsonLd.sameAs = sameAs;
-
-  if (agency?.address && agency?.phone) {
-    jsonLd["@type"] = ["TravelAgency", "LocalBusiness"];
-    jsonLd.telephone = agency.phone.split("/")[0].trim();
-    jsonLd.address = {
-      "@type": "PostalAddress",
-      streetAddress: agency.address,
-      addressLocality: agency.city || undefined,
-      addressCountry: "MA",
-    };
-    if (agency.email) jsonLd.email = agency.email;
-  }
-
-  return jsonLd;
-}
-
 // Layout racine du site public — indépendant de app/admin/layout.js (voir
 // celui-ci). Les deux sont des "root layouts" distincts (route group
 // (site) ci-contre) : l'espace interne n'hérite plus du header/footer
@@ -146,9 +109,10 @@ export default async function SiteLayout({ children, params }) {
   if (!isValidLocale(locale)) notFound();
   const agencyRow = await requirePublicAgency(subdomain);
 
-  const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  // Le balisage schema.org (organisation, site...) n'est plus produit ici :
+  // chaque page a UN SEUL bloc JSON-LD qui l'inclut (PageJsonLd,
+  // CLAUDE.md §3centquatorzequadragies).
   const agency = await getAgencySettings(agencyRow.id).catch(() => null);
-  const organizationJsonLd = buildOrganizationJsonLd(agency, tr, siteBaseUrl(subdomain));
 
   return (
     <html
@@ -157,10 +121,6 @@ export default async function SiteLayout({ children, params }) {
       className={`${geistSans.variable} ${geistMono.variable} ${italianno.variable} ${marcellus.variable} ${jost.variable} ${cairo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream font-sans text-ink">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
         <LocaleProvider locale={locale} brandName={agencyRow.name}>
           <SiteHeader agencyName={agencyRow.name} />
           <div className="flex flex-1 flex-col">{children}</div>

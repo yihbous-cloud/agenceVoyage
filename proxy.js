@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getAgencyBySubdomain } from "@/lib/agencies";
 import { resolveSubdomainFromHost } from "@/lib/agencyHost";
-import { DEFAULT_LOCALE } from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, localizePath, stripLocalePrefix } from "@/lib/i18n/locales";
+import {
+  normalizeRedirectPath,
+  isExternalTarget,
+  getRedirectMap,
+  recordRedirectHit,
+} from "@/lib/redirectMap";
 
 // Chemins qui ne sont PAS des pages publiques localisées (ni /admin, qui a
 // sa propre langue par cookie) : API, flux et fichiers servis tels quels.
@@ -52,6 +58,25 @@ export async function proxy(request) {
 
   if (!pathname.startsWith("/admin")) {
     if (NON_LOCALIZED.test(pathname)) return pass();
+
+    // Redirections 301 de l'agence (table `redirects`, CLAUDE.md
+    // §3centquatorzequadragies) : AVANT le traitement de /ar, pour qu'un
+    // ancien lien (/x, /fr/x ou /ar/x) n'arrive à destination qu'en un seul
+    // saut. Une panne de lecture ne bloque jamais la page demandée.
+    try {
+      const fromPath = normalizeRedirectPath(pathname);
+      const redirect = fromPath ? (await getRedirectMap(agency.id)).get(fromPath) : null;
+      if (redirect) {
+        const { locale } = stripLocalePrefix(pathname);
+        const target = isExternalTarget(redirect.to)
+          ? redirect.to
+          : `${localizePath(redirect.to, locale)}${request.nextUrl.search}`;
+        recordRedirectHit(agency.id, fromPath);
+        return NextResponse.redirect(new URL(target, request.url), redirect.status || 301);
+      }
+    } catch {
+      // Table absente ou base indisponible : on sert la page normalement.
+    }
 
     // Arabe = langue principale, sans préfixe : "/ar/x" redirige (308) vers
     // "/x" pour qu'une page n'ait qu'une seule URL canonique par langue.

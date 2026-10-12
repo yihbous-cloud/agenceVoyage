@@ -2,13 +2,15 @@ import { notFound } from "next/navigation";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import { getPublishedNewsBySlug } from "@/lib/news";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { INTL_TAGS, localizePath } from "@/lib/i18n/locales";
-import { pageAlternates, siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
+import { INTL_TAGS } from "@/lib/i18n/locales";
+import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
 import { newsContentLocale } from "@/lib/i18n/contentLocale";
 import { plainSummary } from "@/lib/markdown";
+import { newsArticleNode } from "@/lib/seo/jsonLd";
 import { formatDate } from "@/app/_components/formatTrip";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
 import RichText from "@/app/_components/RichText";
+import PageJsonLd from "@/app/_components/PageJsonLd";
 
 export const revalidate = 300;
 
@@ -62,40 +64,28 @@ export default async function NewsDetailPage({ params }) {
     notFound();
   }
 
-  const baseUrl = siteBaseUrl(subdomain);
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    headline: post.title,
-    url: `${baseUrl}${localizePath(`/actualites/${slug}`, locale)}`,
-    datePublished: post.published_at,
-    dateModified: post.updated_at || post.published_at,
-    description: plainSummary(post.excerpt || post.content, 300) || undefined,
-    image: post.cover_image_url ? new URL(post.cover_image_url, baseUrl).toString() : undefined,
-    publisher: {
-      "@type": "Organization",
-      name: agencyRow.name,
-      url: baseUrl,
-    },
-  };
+  const description = plainSummary(post.excerpt || post.content, 300);
+  const breadcrumb = [
+    { name: tr("Accueil"), href: "/" },
+    { name: tr("Actualités"), href: "/actualites" },
+    { name: post.title },
+  ];
 
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <Breadcrumbs
-        className="mb-6"
+      <PageJsonLd
+        agency={agencyRow}
         locale={locale}
-        baseUrl={baseUrl}
-        label={tr("Fil d'Ariane")}
-        items={[
-          { name: tr("Accueil"), href: "/" },
-          { name: tr("Actualités"), href: "/actualites" },
-          { name: post.title },
-        ]}
+        path={`/actualites/${slug}`}
+        canonicalLocale={newsContentLocale(post) || undefined}
+        name={post.meta_title || post.title}
+        description={description}
+        breadcrumb={breadcrumb}
+        mainEntity="article"
+        dateModified={post.updated_at || post.published_at}
+        nodes={(url, baseUrl) => [newsArticleNode({ post, url, baseUrl, description })]}
       />
+      <Breadcrumbs className="mb-6" locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
 
       <p className="text-xs text-zinc-400">
         {formatDate(post.published_at, INTL_TAGS[locale])}

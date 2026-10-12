@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listTripsForProgram, createTrip } from "@/lib/programsAdmin";
 import { withNotFound } from "@/lib/apiGuard";
+import { refreshPublicPages, findProgramIds } from "@/lib/publicRevalidation";
 
 async function GET_handler(request, { params }) {
   const session = await getSession();
@@ -32,6 +33,7 @@ async function POST_handler(request, { params }) {
 
   try {
     const tripId = await createTrip(id, body);
+    await refreshPublicPages({ programId: id });
     return NextResponse.json({ id: tripId }, { status: 201 });
   } catch (err) {
     if (err?.code === "NOT_FOUND") {

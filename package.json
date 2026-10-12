@@ -18,7 +18,8 @@
     "test:whatsapp-lot3": "node --env-file=.env --import ./scripts/esm-register.mjs scripts/whatsapp-lot3-test.mjs",
     "backup": "node --env-file=.env scripts/backup.mjs",
     "restore": "node --env-file=.env scripts/restore.mjs",
-    "healthcheck": "node --env-file=.env scripts/healthcheck.mjs"
+    "healthcheck": "node --env-file=.env scripts/healthcheck.mjs",
+    "test:seo": "node scripts/seo-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

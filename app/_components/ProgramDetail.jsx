@@ -1,15 +1,17 @@
 import Image from "next/image";
 import Link from "./LocalizedLink";
-import { siteBaseUrl } from "@/lib/i18n/seo";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { INTL_TAGS, localizePath } from "@/lib/i18n/locales";
+import { INTL_TAGS } from "@/lib/i18n/locales";
 import ReservationForm from "./ReservationForm";
 import Breadcrumbs from "./Breadcrumbs";
 import RichText from "./RichText";
+import PageJsonLd from "./PageJsonLd";
+import HomeShowcaseCard from "./HomeShowcaseCard";
 import { SEASON_LABELS, formatDate } from "./formatTrip";
 import { getCityByIata, citySlug } from "@/lib/airports";
 import { programPath, pillarPath, programPillar, PILLAR_LABELS } from "@/lib/programUrls";
 import { plainSummary } from "@/lib/markdown";
+import { touristTripNode, faqNode } from "@/lib/seo/jsonLd";
 
 // Prix à 0 = palier jamais saisi dans l'admin : jamais affiché ni balisé
 // (une offre à 0 MAD dans le JSON-LD serait fausse).
@@ -27,80 +29,41 @@ export default function ProgramDetail({
   faqs = [],
   locale,
   agency, // { id, name, subdomain } — multi-agences (CLAUDE.md §3sexvicies)
+  canonicalLocale, // langue de l'URL canonique (contenu saisi dans une seule langue)
+  pastTrips = [], // départs terminés (TECH-09), seulement s'il n'y a plus de départ ouvert
+  successor = null, // « Prochaine édition » désignée dans l'admin
+  suggestions = [], // sinon : autres programmes du même pilier avec un départ ouvert
 }) {
   const tr = makeTranslator(locale, "public", { brandName: agency?.name });
   const intlTag = INTL_TAGS[locale];
   const isOmraHajj = family === "omra_hajj";
-  const baseUrl = siteBaseUrl(agency?.subdomain);
-  const pageUrl = `${baseUrl}${localizePath(programPath(program), locale)}`;
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "TouristTrip",
-    name: program.title,
-    description: plainSummary(program.short_description || program.full_description, 300) || undefined,
-    url: pageUrl,
-    image: program.cover_image_url ? new URL(program.cover_image_url, baseUrl).toString() : undefined,
-    datePublished: program.created_at,
-    dateModified: program.updated_at,
-    provider: {
-      "@type": "TravelAgency",
-      name: agency?.name || "Golden Fantastic",
-      url: baseUrl,
-    },
-    // Une offre par départ dont le prix est connu ; availabilityEnds = date
-    // de départ (on ne peut plus réserver ensuite).
-    offers: trips.filter(hasPrice).map((trip) => ({
-      "@type": "Offer",
-      price: trip.starting_price,
-      priceCurrency: trip.currency,
-      availability:
-        trip.seats_remaining > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/SoldOut",
-      availabilityEnds: trip.departure_date,
-      url: pageUrl,
-    })),
-  };
-  if (jsonLd.offers.length === 0) delete jsonLd.offers;
-
-  const faqJsonLd =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: { "@type": "Answer", text: faq.answer },
-          })),
-        }
-      : null;
+  const breadcrumb = [
+    { name: tr("Accueil"), href: "/" },
+    { name: tr(PILLAR_LABELS[programPillar(program)]), href: pillarPath(program) },
+    { name: program.title },
+  ];
+  const ended = trips.length === 0 && pastTrips.length > 0;
+  const nextPrograms = successor ? [successor] : suggestions;
 
   return (
     <main className="flex-1 bg-cream">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <Breadcrumbs
-          className="mb-6"
+        {/* Un seul bloc JSON-LD : organisation, site, page, fil d'Ariane,
+            voyage (offres + itinéraire hôtel par hôtel) et FAQ. */}
+        <PageJsonLd
+          agency={agency}
           locale={locale}
-          baseUrl={baseUrl}
-          label={tr("Fil d'Ariane")}
-          items={[
-            { name: tr("Accueil"), href: "/" },
-            { name: tr(PILLAR_LABELS[programPillar(program)]), href: pillarPath(program) },
-            { name: program.title },
-          ]}
+          path={programPath(program)}
+          canonicalLocale={canonicalLocale}
+          name={program.meta_title || program.title}
+          description={program.meta_description || plainSummary(program.short_description || program.full_description)}
+          pageType="ItemPage"
+          breadcrumb={breadcrumb}
+          mainEntity="trip"
+          dateModified={program.updated_at}
+          nodes={(url, baseUrl) => [touristTripNode({ program, trips, url, baseUrl }), faqNode(url, faqs)]}
         />
-        {faqJsonLd && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-          />
-        )}
+        <Breadcrumbs className="mb-6" locale={locale} label={tr("Fil d'Ariane")} items={breadcrumb} />
 
         {!isOmraHajj && program.cover_image_url && (
           <div className="relative mb-6 h-48 w-full overflow-hidden sm:h-64">
@@ -142,10 +105,43 @@ export default function ProgramDetail({
           {tr("Prochains départs")}
         </h2>
 
-        {trips.length === 0 && (
+        {trips.length === 0 && !ended && (
           <p className="mt-4 text-muted">
             {tr("Aucun départ ouvert à la réservation pour le moment.")}
           </p>
+        )}
+
+        {/* TECH-09 : un programme dont tous les départs sont passés reste
+            en ligne (jamais de 404) et oriente vers la suite. */}
+        {ended && (
+          <div className="mt-4 border border-gold-pale/60 bg-white p-6">
+            <p className="font-semibold text-ink">{tr("Départ terminé")}</p>
+            <ul className="mt-2 space-y-1 text-sm text-muted">
+              {pastTrips.map((trip) => (
+                <li key={trip.id}>
+                  {formatDate(trip.departure_date, intlTag)} – {formatDate(trip.return_date, intlTag)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-muted">
+              {nextPrograms.length > 0
+                ? tr("Ce programme est terminé. Découvrez nos prochains départs ci-dessous.")
+                : tr("Ce programme est terminé. Contactez-nous pour connaître la prochaine édition.")}
+            </p>
+          </div>
+        )}
+
+        {trips.length === 0 && nextPrograms.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-xl font-normal text-ink">
+              {successor ? tr("Prochaine édition") : tr("Nos prochains départs")}
+            </h2>
+            <div className="mt-6 grid gap-7 sm:grid-cols-2">
+              {nextPrograms.map((next) => (
+                <HomeShowcaseCard key={next.id} program={next} />
+              ))}
+            </div>
+          </section>
         )}
 
         <div className="mt-6 space-y-4">
