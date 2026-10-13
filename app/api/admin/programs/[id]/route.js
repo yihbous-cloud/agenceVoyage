@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { updateProgram, deleteProgram, slugify, getProgramById } from "@/lib/programsAdmin";
+import { updateProgram, deleteProgram, slugify, getProgramById, normalizeContentLocale } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 import { withNotFound } from "@/lib/apiGuard";
 import { syncContentRedirects, redirectDeletedContent } from "@/lib/redirects";
 import { refreshPublicPages } from "@/lib/publicRevalidation";
 import { programPath, pillarPath } from "@/lib/programUrls";
+import { setTranslations } from "@/lib/contentTranslations";
+import { countFaqsMissingLocale, swapFaqsContentLocale } from "@/lib/programFaqs";
 
 async function PUT_handler(request, { params }) {
   const session = await getSession();
@@ -40,6 +42,25 @@ async function PUT_handler(request, { params }) {
     // État AVANT : sert aux redirections automatiques (slug ou pilier
     // changé, dépublication) — CLAUDE.md §3centquatorzequadragies.
     const before = await getProgramById(id);
+    // Langue principale changée : les FAQ du programme suivent. Chacune doit
+    // déjà avoir sa version dans la nouvelle langue (sinon son texte serait
+    // présenté dans la mauvaise langue).
+    const previousLocale = before?.content_locale || "ar";
+    const nextLocale = body.contentLocale !== undefined ? normalizeContentLocale(body.contentLocale) : previousLocale;
+    if (before && nextLocale !== previousLocale) {
+      const missing = await countFaqsMissingLocale(id, nextLocale);
+      if (missing > 0) {
+        return NextResponse.json(
+          {
+            message:
+              nextLocale === "fr"
+                ? `Changement de langue impossible : ${missing} question(s) de la FAQ sans version française. Complétez-les d'abord dans la carte FAQ.`
+                : `Changement de langue impossible : ${missing} question(s) de la FAQ sans version arabe. Complétez-les d'abord dans la carte FAQ.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
     const payload = { ...body };
     if (body.slug !== undefined) {
       const trimmed = body.slug?.trim();
@@ -56,6 +77,14 @@ async function PUT_handler(request, { params }) {
     }
 
     const after = await getProgramById(id);
+    if (before && after && after.content_locale !== previousLocale) {
+      await swapFaqsContentLocale(id, previousLocale, after.content_locale);
+    }
+    // Autre langue du contenu (vague 1B) : écrite seulement si le formulaire
+    // l'envoie — une carte qui ne la gère pas n'efface rien.
+    if (body.translations !== undefined && after) {
+      await setTranslations("program", id, body.translations, { baseLocale: after.content_locale });
+    }
     if (before && after) {
       const stalePaths = await syncContentRedirects({
         beforePath: programPath(before),

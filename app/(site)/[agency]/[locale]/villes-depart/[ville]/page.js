@@ -56,6 +56,7 @@ export default async function DepartureCityPage({ params, searchParams }) {
   try {
     programs = await getProgramsByDepartureCity(iata, { agencyId: agencyRow.id,
       family: famille === "omra_hajj" || famille === "voyage_organise" ? famille : undefined,
+      locale,
     });
   } catch (err) {
     dbError = err.message;

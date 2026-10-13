@@ -3,31 +3,54 @@ import { citySlug } from "@/lib/airports";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { programPath, programPillar } from "@/lib/programUrls";
 import { plainSummary } from "@/lib/markdown";
+import { localizePath } from "@/lib/i18n/locales";
+import { indexedAvailableLocales } from "@/lib/i18n/contentLocale";
+
+const LANGUAGE_NAMES = { ar: "arabe", fr: "française" };
 
 // Multi-agences : le contenu dépend du sous-domaine de la requête (en-tête
 // posé par proxy.js) — jamais pré-généré au build.
 export const dynamic = "force-dynamic";
 
-// Une ligne Markdown par programme : la description saisie dans l'admin peut
-// contenir du Markdown et des sauts de ligne, qui cassaient la liste — elle
-// est ramenée à un résumé en texte brut sur une ligne.
-function programLine(baseUrl, program) {
-  const summary = plainSummary(program.short_description, 200);
-  return `- [${program.title}](${baseUrl}${programPath(program)})${summary ? `: ${summary}` : ""}`;
+// Une ligne Markdown par programme (dans sa langue principale, vers son URL
+// canonique), puis une ligne par autre langue réellement traduite (vague 1B).
+// La description saisie dans l'admin peut contenir du Markdown et des sauts
+// de ligne : elle est ramenée à un résumé en texte brut sur une ligne.
+// `byLocale` : { ar: Map(id → programme en arabe), fr: Map(...) }.
+function programLines(baseUrl, program, byLocale) {
+  const [principal, ...others] = indexedAvailableLocales(program);
+  const main = byLocale[principal]?.get(program.id) || program;
+  const summary = plainSummary(main.short_description, 200);
+  const lines = [
+    `- [${main.title}](${baseUrl}${localizePath(programPath(program), principal)})${summary ? `: ${summary}` : ""}`,
+  ];
+  for (const locale of others) {
+    const version = byLocale[locale]?.get(program.id);
+    if (version) {
+      lines.push(`  - Version ${LANGUAGE_NAMES[locale] || locale} : [${version.title}](${baseUrl}${localizePath(programPath(program), locale)})`);
+    }
+  }
+  return lines;
 }
 
 export async function GET() {
   const { baseUrl, name: brand } = await getCurrentAgency();
-  const [omraHajjPrograms, voyagePrograms, departureCities] = await Promise.all([
+  const [omraHajjPrograms, voyagePrograms, departureCities, arPrograms, frPrograms] = await Promise.all([
     getProgramsByFamily("omra_hajj").catch(() => []),
     getProgramsByFamily("voyage_organise").catch(() => []),
     getDepartureCities().catch(() => []),
+    Promise.all([getProgramsByFamily("omra_hajj", { locale: "ar" }), getProgramsByFamily("voyage_organise", { locale: "ar" })]).then((l) => l.flat()).catch(() => []),
+    Promise.all([getProgramsByFamily("omra_hajj", { locale: "fr" }), getProgramsByFamily("voyage_organise", { locale: "fr" })]).then((l) => l.flat()).catch(() => []),
   ]);
+  const byLocale = {
+    ar: new Map(arPrograms.map((p) => [p.id, p])),
+    fr: new Map(frPrograms.map((p) => [p.id, p])),
+  };
   const omraPrograms = omraHajjPrograms.filter((p) => programPillar(p) === "omra");
   const hajjPrograms = omraHajjPrograms.filter((p) => programPillar(p) === "hajj");
 
   const section = (title, programs) =>
-    programs.length > 0 ? [`## ${title}`, "", ...programs.map((p) => programLine(baseUrl, p)), ""] : [];
+    programs.length > 0 ? [`## ${title}`, "", ...programs.flatMap((p) => programLines(baseUrl, p, byLocale)), ""] : [];
 
   const lines = [
     `# ${brand}`,

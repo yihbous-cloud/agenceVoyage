@@ -5,6 +5,7 @@ import { listAllNews, createNews, slugify } from "@/lib/news";
 import { withNotFound } from "@/lib/apiGuard";
 import { removeRedirectsFrom } from "@/lib/redirects";
 import { refreshPublicPages } from "@/lib/publicRevalidation";
+import { setTranslations } from "@/lib/contentTranslations";
 
 async function GET_handler() {
   const session = await getSession();
@@ -29,6 +30,9 @@ async function POST_handler(request) {
   try {
     const slug = body.slug?.trim() || slugify(body.title);
     const id = await createNews({ ...body, slug });
+    if (body.translations !== undefined) {
+      await setTranslations("news", id, body.translations, { baseLocale: body.contentLocale === "fr" ? "fr" : "ar" });
+    }
     // Publié dès la création : son URL redevient vivante (une ancienne
     // redirection ne doit pas la masquer) et la liste est rafraîchie.
     if (body.isPublished) {

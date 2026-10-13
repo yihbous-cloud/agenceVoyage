@@ -92,6 +92,7 @@ export async function renderOmraHajjHub(params, searchParams, pillarKey) {
       agencyId: agencyRow.id,
       programType: pillar.programType,
       season: season || undefined,
+      locale,
     });
   } catch (err) {
     dbError = err.message;

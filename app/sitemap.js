@@ -3,7 +3,7 @@ import { listPublishedNews } from "@/lib/news";
 import { citySlug } from "@/lib/airports";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { programPath } from "@/lib/programUrls";
-import { programContentLocale, newsContentLocale } from "@/lib/i18n/contentLocale";
+import { indexedAvailableLocales } from "@/lib/i18n/contentLocale";
 import {
   INDEXED_LOCALES,
   DEFAULT_LOCALE,
@@ -18,18 +18,20 @@ export const dynamic = "force-dynamic";
 // Une entrée par page ET par langue INDEXÉE (arabe, français — l'anglais est
 // hors index, CLAUDE.md §3centtreizequadragies), chacune déclarant ses
 // alternates hreflang (ar-MA, fr-MA + x-default = arabe).
-// `contentLocale` : contenu saisi en base dans une seule langue (programme,
-// actualité) → une seule URL, celle de sa langue réelle, sans alternates
-// (même règle que pageAlternates, lib/i18n/seo.js).
-function localizedEntries(baseUrl, path, extra, contentLocale) {
-  if (contentLocale && INDEXED_LOCALES.includes(contentLocale)) {
-    return [{ url: `${baseUrl}${localizePath(path, contentLocale)}`, ...extra }];
+// `availableLocales` : langues dans lesquelles un contenu saisi en base
+// (programme, actualité) existe réellement — une URL par langue disponible,
+// hreflang entre elles seulement s'il y en a plusieurs (même règle que
+// pageAlternates, lib/i18n/seo.js ; vague 1B, CLAUDE.md §3centquinzequadragies).
+function localizedEntries(baseUrl, path, extra, availableLocales = INDEXED_LOCALES) {
+  const locales = INDEXED_LOCALES.filter((l) => availableLocales.includes(l));
+  if (locales.length < 2) {
+    return locales.map((l) => ({ url: `${baseUrl}${localizePath(path, l)}`, ...extra }));
   }
   const languages = Object.fromEntries(
-    INDEXED_LOCALES.map((l) => [HREFLANG_TAGS[l], `${baseUrl}${localizePath(path, l)}`])
+    locales.map((l) => [HREFLANG_TAGS[l], `${baseUrl}${localizePath(path, l)}`])
   );
-  languages["x-default"] = `${baseUrl}${localizePath(path, DEFAULT_LOCALE)}`;
-  return INDEXED_LOCALES.map((l) => ({
+  languages["x-default"] = `${baseUrl}${localizePath(path, locales.includes(DEFAULT_LOCALE) ? DEFAULT_LOCALE : locales[0])}`;
+  return locales.map((l) => ({
     url: `${baseUrl}${localizePath(path, l)}`,
     alternates: { languages },
     ...extra,
@@ -82,7 +84,7 @@ export default async function sitemap() {
       baseUrl,
       programPath(p),
       { changeFrequency: "weekly", priority: 0.8, ...lastModified(p.updated_at) },
-      programContentLocale(p)
+      indexedAvailableLocales(p)
     )
   );
 
@@ -91,7 +93,7 @@ export default async function sitemap() {
       baseUrl,
       `/actualites/${n.slug}`,
       { changeFrequency: "monthly", priority: 0.4, ...lastModified(n.updated_at || n.published_at) },
-      newsContentLocale(n)
+      indexedAvailableLocales(n)
     )
   );
 

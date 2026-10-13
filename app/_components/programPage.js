@@ -8,7 +8,7 @@ import {
 } from "@/lib/programs";
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
 import { programPath, programPillar } from "@/lib/programUrls";
-import { programContentLocale } from "@/lib/i18n/contentLocale";
+import { canonicalLocaleFor } from "@/lib/i18n/contentLocale";
 import { localizePath } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
@@ -21,22 +21,24 @@ import ProgramDetail from "./ProgramDetail";
 // ouvert sous le mauvais pilier (type changé dans l'admin, ancien lien) est
 // redirigé de façon permanente vers le bon, jamais affiché en double.
 
-async function loadProgram(subdomain, slug) {
+// Programme dans la langue de la page (traduction si elle existe, vague 1B)
+// avec ses langues disponibles (available_locales).
+async function loadProgram(subdomain, slug, locale) {
   const agencyRow = await requirePublicAgency(subdomain);
-  const program = await getProgramBySlug(slug, agencyRow.id).catch(() => null);
+  const program = await getProgramBySlug(slug, agencyRow.id, locale).catch(() => null);
   return { agencyRow, program };
 }
 
 export async function programMetadata(params) {
   const { agency: subdomain, locale, slug } = await params;
-  const { agencyRow, program } = await loadProgram(subdomain, slug);
+  const { agencyRow, program } = await loadProgram(subdomain, slug, locale);
 
   if (!program) {
     return { title: makeTranslator(locale, "public", { brandName: agencyRow.name })("Programme introuvable") };
   }
 
   const alternates = pageAlternates(locale, programPath(program), {
-    contentLocale: programContentLocale(program),
+    availableLocales: program.available_locales,
   });
   const description =
     program.meta_description || plainSummary(program.short_description || program.full_description);
@@ -61,7 +63,7 @@ export async function programMetadata(params) {
 
 export async function renderProgramPage(params, pillar) {
   const { agency: subdomain, locale, slug } = await params;
-  const { agencyRow, program } = await loadProgram(subdomain, slug);
+  const { agencyRow, program } = await loadProgram(subdomain, slug, locale);
 
   if (!program) {
     notFound();
@@ -72,7 +74,7 @@ export async function renderProgramPage(params, pillar) {
 
   const [trips, faqs] = await Promise.all([
     getOpenTripsForProgram(program.id, agencyRow.id, locale).catch(() => []),
-    listPublishedFaqsForProgram(program.id, agencyRow.id).catch(() => []),
+    listPublishedFaqsForProgram(program.id, agencyRow.id, locale).catch(() => []),
   ]);
 
   // TECH-09 : plus aucun départ ouvert → départs terminés + suite proposée
@@ -81,7 +83,7 @@ export async function renderProgramPage(params, pillar) {
     trips.length === 0
       ? await Promise.all([
           getPastTripsForProgram(program.id, agencyRow.id).catch(() => []),
-          getProgramSuggestions(program, agencyRow.id).catch(() => ({ successor: null, suggestions: [] })),
+          getProgramSuggestions(program, agencyRow.id, 3, locale).catch(() => ({ successor: null, suggestions: [] })),
         ])
       : [[], { successor: null, suggestions: [] }];
 
@@ -93,7 +95,7 @@ export async function renderProgramPage(params, pillar) {
       faqs={faqs}
       locale={locale}
       agency={{ id: agencyRow.id, name: agencyRow.name, subdomain }}
-      canonicalLocale={programContentLocale(program) || undefined}
+      canonicalLocale={canonicalLocaleFor(locale, program)}
       pastTrips={pastTrips}
       successor={successor}
       suggestions={suggestions}

@@ -4,7 +4,7 @@ import { getPublishedNewsBySlug } from "@/lib/news";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { INTL_TAGS } from "@/lib/i18n/locales";
 import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
-import { newsContentLocale } from "@/lib/i18n/contentLocale";
+import { canonicalLocaleFor } from "@/lib/i18n/contentLocale";
 import { plainSummary } from "@/lib/markdown";
 import { newsArticleNode } from "@/lib/seo/jsonLd";
 import { formatDate } from "@/app/_components/formatTrip";
@@ -24,16 +24,16 @@ export async function generateMetadata({ params }) {
   const { agency: subdomain, locale, slug } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
-  const post = await getPublishedNewsBySlug(slug, agencyRow.id).catch(() => null);
+  const post = await getPublishedNewsBySlug(slug, agencyRow.id, locale).catch(() => null);
 
   if (!post) {
     return { title: tr("Article introuvable") };
   }
 
-  // Article saisi dans une seule langue : canonical vers celle-ci, sans
-  // hreflang (lib/i18n/contentLocale.js, CLAUDE.md §3centtreizequadragies).
+  // Canonical et hreflang selon les langues dans lesquelles l'article existe
+  // réellement (vague 1B, CLAUDE.md §3centquinzequadragies).
   const alternates = pageAlternates(locale, `/actualites/${slug}`, {
-    contentLocale: newsContentLocale(post),
+    availableLocales: post.available_locales,
   });
   const description = post.meta_description || plainSummary(post.excerpt || post.content);
 
@@ -58,7 +58,7 @@ export default async function NewsDetailPage({ params }) {
   const { agency: subdomain, locale, slug } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
-  const post = await getPublishedNewsBySlug(slug, agencyRow.id).catch(() => null);
+  const post = await getPublishedNewsBySlug(slug, agencyRow.id, locale).catch(() => null);
 
   if (!post) {
     notFound();
@@ -77,7 +77,7 @@ export default async function NewsDetailPage({ params }) {
         agency={agencyRow}
         locale={locale}
         path={`/actualites/${slug}`}
-        canonicalLocale={newsContentLocale(post) || undefined}
+        canonicalLocale={canonicalLocaleFor(locale, post)}
         name={post.meta_title || post.title}
         description={description}
         breadcrumb={breadcrumb}

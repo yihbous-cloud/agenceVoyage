@@ -19,6 +19,7 @@ import * as lists from "../lib/listGenerators.js";
 import * as redirects from "../lib/redirects.js";
 import { getRedirectMap } from "../lib/redirectMap.js";
 import { listIndexNowPings } from "../lib/indexNow.js";
+import * as ct from "../lib/contentTranslations.js";
 import { getPool } from "../lib/db.js";
 
 // Test d'isolation multi-agences (CLAUDE.md §3sexvicies passe 2). Crée une
@@ -95,6 +96,13 @@ const tierId = await tiers.createTier(tripId, {
 const redirA3 = await redirects.createRedirect({ fromPath: "/omra/ancien-a3", toPath: "/omra/prog-a3" });
 const [redirRowA3] = await q("SELECT id FROM redirects WHERE agency_id = ? AND from_path = ?", [OTHER, redirA3.from_path]);
 await q("INSERT INTO seo_indexnow_pings (agency_id, url_count, urls, status) VALUES (?, 1, ?, 'ignore')", [OTHER, JSON.stringify(["https://a3.test/omra/prog-a3"])]);
+// Contenu FR/AR (migration 045) : traductions de l'agence 3
+await ct.setTranslations("program", programId, { fr: { title: "PROG-A3-FR", shortDescription: "Description A3" } });
+await ct.setTranslations("faq", faqId, { fr: { question: "Q-A3-FR", answer: "R-A3-FR" } });
+await ct.setTranslations("news", newsId, { fr: { title: "NEWS-A3-FR", excerpt: "Extrait A3" } });
+await ct.setTranslations("slide", slideId, { fr: { title: "SLIDE-A3-FR" } });
+const [frA3] = await programs.getProgramsByFamily("omra_hajj", { locale: "fr" }).then((rows) => rows.filter((p) => p.id === programId));
+ok(frA3?.title === "PROG-A3-FR" && frA3.available_locales.includes("fr"), "agence 3 : version française de son programme lue en /fr");
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
 // Demande de compte (migration 041)
@@ -134,6 +142,10 @@ ok((await settings.getAgencySettings()).id === 1, "getAgencySettings = agence 1"
 ok((await redirects.listRedirects()).every((r) => r.id !== redirRowA3.id), "redirections de l'agence 3 invisibles");
 ok(!(await getRedirectMap(1)).has("/omra/ancien-a3"), "le proxy n'applique pas la redirection d'une autre agence");
 ok((await listIndexNowPings(1)).every((p) => !String(JSON.stringify(p.urls)).includes("a3.test")), "journal IndexNow de l'agence 3 invisible");
+for (const [entity, id] of [["program", programId], ["faq", faqId], ["news", newsId], ["slide", slideId]]) {
+  ok(Object.keys(await ct.listTranslations(entity, [id])).length === 0, `traductions ${entity} de l'agence 3 invisibles`);
+}
+ok((await programs.getProgramBySlug("prog-a3", undefined, "fr")) === null, "version française d'un programme étranger introuvable");
 
 // écritures croisées : tout doit échouer ou ne rien faire
 await throwsNotFound(() => pa.createTrip(programId, { referenceCode: "X", departureDate: "2027-01-01", returnDate: "2027-01-02" }), "createTrip sur un programme étranger");
@@ -166,6 +178,9 @@ await throwsNotFound(() => regs.deleteRegistration(reg.id), "deleteRegistration 
 await throwsNotFound(() => visa.deleteVisaType(visaId), "deleteVisaType étranger");
 await throwsNotFound(() => tiers.deleteTier(tierId), "deleteTier étranger");
 await throwsNotFound(() => redirects.deleteRedirect(redirRowA3.id), "deleteRedirect étranger");
+for (const [entity, id] of [["program", programId], ["faq", faqId], ["news", newsId], ["slide", slideId]]) {
+  await throwsNotFound(() => ct.setTranslations(entity, id, { fr: { title: "PIRATE", question: "PIRATE", answer: "PIRATE" } }), `setTranslations ${entity} étranger`);
+}
 const [ownProgram] = await q("SELECT id FROM programs WHERE agency_id = 1 LIMIT 1");
 if (ownProgram) await throwsNotFound(() => pa.updateProgram(ownProgram.id, { successorProgramId: programId }), "successeur pris dans une autre agence");
 try { await pa.deleteProgram(programId); ok(false, "deleteProgram étranger devrait échouer"); } catch { ok(true, "deleteProgram étranger refusé"); }
@@ -186,6 +201,10 @@ ok((await pay.getPaymentById(payId)) !== null, "paiement A3 intact");
 ok((await tiers.listTiersForTrip(tripId)).length === 1, "tarif A3 intact");
 ok((await airlines.listAirlines()).some((a) => a.id === airlineId), "compagnie A3 intacte");
 ok((await redirects.listRedirects()).some((r) => r.id === redirRowA3.id), "redirection A3 intacte");
+ok((await ct.listTranslations("program", [programId]))[programId]?.fr?.title === "PROG-A3-FR", "traduction du programme A3 intacte");
+ok((await ct.listTranslations("faq", [faqId]))[faqId]?.fr?.question === "Q-A3-FR", "traduction de la FAQ A3 intacte");
+ok((await ct.listTranslations("news", [newsId]))[newsId]?.fr?.title === "NEWS-A3-FR", "traduction de l'actualité A3 intacte");
+ok((await ct.listTranslations("slide", [slideId]))[slideId]?.fr?.title === "SLIDE-A3-FR", "traduction de la diapositive A3 intacte");
 ok((await staff.listStaffUsers()).find((u) => u.id === signupA3)?.approval_status === "en_attente", "demande de compte A3 toujours en attente");
 
 // même numéro WhatsApp dans deux agences = deux voyageurs distincts

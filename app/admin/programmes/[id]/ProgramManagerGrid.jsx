@@ -27,6 +27,8 @@ export default function ProgramManagerGrid({
   roomsCount,
   tiers,
   faqs,
+  programTranslations = {},
+  faqTranslations = {},
   canManagePrograms,
   canManageTrips,
   canManageInfo,
@@ -181,6 +183,7 @@ export default function ProgramManagerGrid({
         <Modal title="Informations" onClose={close}>
           <InfoCard
             program={program}
+            translations={programTranslations}
             successorOptions={successorOptions}
             trip={primaryTrip}
             hasTierPrices={tiers.some((t) => (t.prices || []).some((p) => Number(p.price_per_person) > 0))}
@@ -234,6 +237,8 @@ export default function ProgramManagerGrid({
           <ProgramFaqManager
             programId={programId}
             initialFaqs={faqs}
+            contentLocale={program.content_locale || "ar"}
+            faqTranslations={faqTranslations}
             canManage={canManagePrograms}
           />
         </Modal>

@@ -36,10 +36,10 @@ export default async function Home({ params }) {
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
   const [omraHajjPrograms, voyagePrograms, news, slides] = await Promise.all([
-    getProgramsByFamily("omra_hajj", { agencyId: agencyRow.id, limit: 3 }).catch(() => []),
-    getProgramsByFamily("voyage_organise", { agencyId: agencyRow.id, limit: 3 }).catch(() => []),
-    listPublishedNews(agencyRow.id).catch(() => []),
-    listActiveSlides(agencyRow.id).catch(() => []),
+    getProgramsByFamily("omra_hajj", { agencyId: agencyRow.id, limit: 3, locale }).catch(() => []),
+    getProgramsByFamily("voyage_organise", { agencyId: agencyRow.id, limit: 3, locale }).catch(() => []),
+    listPublishedNews(agencyRow.id, locale).catch(() => []),
+    listActiveSlides(agencyRow.id, locale).catch(() => []),
   ]);
 
   const latestNews = news.slice(0, 3);

@@ -11,6 +11,7 @@ import { hasPermission } from "@/lib/permissions";
 import { listExpensesForTrip } from "@/lib/tripExpenses";
 import ProgramManagerGrid from "./ProgramManagerGrid";
 import { getTripDiscountCap } from "@/lib/registrationPricing";
+import { listTranslations, toFormValues } from "@/lib/contentTranslations";
 
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
@@ -36,6 +37,12 @@ export default async function ProgramDetailPage({ params }) {
     [...trips].sort(
       (a, b) => new Date(a.departure_date) - new Date(b.departure_date) || a.id - b.id
     )[0] || null;
+
+  // Autre langue du programme et de ses FAQ (vague 1B du référencement).
+  const [programTranslations, faqTranslations] = await Promise.all([
+    listTranslations("program", [program.id]),
+    listTranslations("faq", faqs.map((f) => f.id)),
+  ]);
 
   const [tripHotels, rooms, tiers] = await Promise.all([
     primaryTrip ? listTripHotels(primaryTrip.id) : [],
@@ -77,6 +84,10 @@ export default async function ProgramDetailPage({ params }) {
         roomsCount={rooms.length}
         tiers={tiers}
         faqs={faqs}
+        programTranslations={toFormValues("program", programTranslations[program.id])}
+        faqTranslations={Object.fromEntries(
+          Object.entries(faqTranslations).map(([faqId, byLocale]) => [faqId, toFormValues("faq", byLocale)])
+        )}
         canManagePrograms={canManagePrograms}
         canManageTrips={canManageTrips}
         canManageInfo={canManageInfo}

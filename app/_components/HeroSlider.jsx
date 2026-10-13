@@ -112,7 +112,7 @@ export default function HeroSlider({ slides }) {
                   href={slide.href}
                   className="mt-2 bg-gold px-9 py-3.5 text-xs font-medium tracking-widest text-ink uppercase transition-colors hover:bg-gold-light"
                 >
-                  {slide.button_text}
+                  {tr(slide.button_text)}
                 </Link>
               )}
             </div>

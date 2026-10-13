@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import PageHeader from "../_components/PageHeader";
 import Icon from "../_components/Icon";
+import { translationStatus } from "@/lib/contentTranslations";
 
 export default async function ProgrammesPage({ searchParams }) {
   const params = await searchParams;
@@ -14,6 +15,8 @@ export default async function ProgrammesPage({ searchParams }) {
   const archivedPrograms = allPrograms.filter((p) => Boolean(Number(p.is_archived)));
   const currentPrograms = allPrograms.filter((p) => !Number(p.is_archived));
   const programs = view === "archives" ? archivedPrograms : currentPrograms;
+  // Langues complètes (titre + description) de chaque programme — vague 1B.
+  const languages = await translationStatus("program", programs);
   const [canManage, canCreateRegistration] = await Promise.all([
     hasPermission(session, "programmes.manage"),
     hasPermission(session, "inscriptions.create"),
@@ -52,6 +55,7 @@ export default async function ProgrammesPage({ searchParams }) {
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Voyages</th>
+              <th className="px-4 py-3">Langues</th>
               <th className="px-4 py-3">Publié</th>
               <th className="px-4 py-3" />
             </tr>
@@ -66,6 +70,23 @@ export default async function ProgrammesPage({ searchParams }) {
                 <td className="px-4 py-3 capitalize text-zinc-600">{p.program_type}</td>
                 <td className="px-4 py-3 text-zinc-500">{p.slug}</td>
                 <td className="px-4 py-3 text-zinc-600">{p.trips_count}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {["ar", "fr"].map((loc) => {
+                    const ok = (languages[p.id] || []).includes(loc);
+                    return (
+                      <span
+                        key={loc}
+                        translate="no"
+                        title={ok ? "Version complète" : "Version à compléter (titre et description)"}
+                        className={`me-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                          ok ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-400"
+                        }`}
+                      >
+                        {loc.toUpperCase()} {ok ? "✓" : "—"}
+                      </span>
+                    );
+                  })}
+                </td>
                 <td className="px-4 py-3">
                   {Boolean(Number(p.is_archived)) ? (
                     <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600">
@@ -106,7 +127,7 @@ export default async function ProgrammesPage({ searchParams }) {
             ))}
             {programs.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-zinc-500" colSpan={7}>
+                <td className="px-4 py-3 text-zinc-500" colSpan={8}>
                   {view === "archives" ? "Aucun programme archivé." : "Aucun programme en cours."}
                 </td>
               </tr>

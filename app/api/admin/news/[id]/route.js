@@ -5,6 +5,7 @@ import { updateNews, deleteNews, slugify, getNewsById } from "@/lib/news";
 import { withNotFound } from "@/lib/apiGuard";
 import { syncContentRedirects, redirectDeletedContent } from "@/lib/redirects";
 import { refreshPublicPages } from "@/lib/publicRevalidation";
+import { setTranslations } from "@/lib/contentTranslations";
 
 const newsPath = (post) => `/actualites/${post.slug}`;
 
@@ -27,6 +28,9 @@ async function PUT_handler(request, { params }) {
     const before = await getNewsById(id);
     await updateNews(id, { ...body, slug: body.slug?.trim() || slugify(body.title) });
     const after = await getNewsById(id);
+    if (body.translations !== undefined && after) {
+      await setTranslations("news", id, body.translations, { baseLocale: after.content_locale });
+    }
     if (before && after) {
       await syncContentRedirects({
         beforePath: newsPath(before),

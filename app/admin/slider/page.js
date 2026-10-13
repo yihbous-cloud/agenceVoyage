@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { listAllSlides } from "@/lib/slides";
 import { listPublishedProgramsForSelect } from "@/lib/programs";
+import { listTranslations, toFormValues } from "@/lib/contentTranslations";
 import SlidesManager from "./SlidesManager";
 import PageHeader from "../_components/PageHeader";
 
@@ -12,10 +13,13 @@ export default async function SliderPage() {
     redirect("/admin");
   }
 
-  const [slides, programs] = await Promise.all([
+  const [rawSlides, programs] = await Promise.all([
     listAllSlides(),
     listPublishedProgramsForSelect(),
   ]);
+  // Autre langue de chaque diapositive (vague 1B du référencement).
+  const translations = await listTranslations("slide", rawSlides.map((s) => s.id));
+  const slides = rawSlides.map((s) => ({ ...s, translations: toFormValues("slide", translations[s.id]) }));
 
   return (
     <div className="space-y-6">

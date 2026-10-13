@@ -5,6 +5,8 @@ import { withNotFound } from "@/lib/apiGuard";
 import { rateLimit, clientIp, tooManyRequests } from "@/lib/rateLimit";
 import { programPath } from "@/lib/programUrls";
 import { stripMarkdown } from "@/lib/markdown";
+import { localizePath, INDEXED_LOCALES } from "@/lib/i18n/locales";
+import { canonicalLocaleFor, indexedAvailableLocales } from "@/lib/i18n/contentLocale";
 
 // Multi-agences : le contenu dépend du sous-domaine de la requête (en-tête
 // posé par proxy.js) — jamais pré-généré au build.
@@ -18,9 +20,13 @@ async function GET_handler(request) {
   const limit = await rateLimit(`public-programs:${clientIp(request)}`, { limit: 120, windowSeconds: 60 });
   if (!limit.ok) return tooManyRequests(NextResponse, 60);
   const { baseUrl } = await getCurrentAgency();
+  // ?lang=fr|ar : contenu dans cette langue quand il est traduit (vague 1B) ;
+  // sans paramètre, chaque programme dans sa langue principale.
+  const requested = new URL(request.url).searchParams.get("lang");
+  const lang = INDEXED_LOCALES.includes(requested) ? requested : undefined;
   const [omraHajj, voyages] = await Promise.all([
-    getProgramsByFamily("omra_hajj").catch(() => []),
-    getProgramsByFamily("voyage_organise").catch(() => []),
+    getProgramsByFamily("omra_hajj", { locale: lang }).catch(() => []),
+    getProgramsByFamily("voyage_organise", { locale: lang }).catch(() => []),
   ]);
 
   // Texte brut (le Markdown de l'admin n'a pas de sens dans un flux JSON) ;
@@ -30,7 +36,9 @@ async function GET_handler(request) {
     slug: p.slug,
     family: p.family,
     programType: p.program_type,
-    url: `${baseUrl}${programPath(p)}`,
+    language: p.display_locale,
+    availableLanguages: indexedAvailableLocales(p),
+    url: `${baseUrl}${localizePath(programPath(p), canonicalLocaleFor(lang || p.content_locale, p))}`,
     shortDescription: stripMarkdown(p.short_description) || null,
     season: p.season || undefined,
     theme: p.theme || undefined,

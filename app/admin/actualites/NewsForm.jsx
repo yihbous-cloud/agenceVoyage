@@ -3,8 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import TranslationFields, { ContentLocaleSelect, otherContentLocale } from "@/app/admin/_components/TranslationFields";
 
-export default function NewsForm({ post, canDelete }) {
+// Champs traduisibles d'une actualité (vague 1B, lib/contentTranslations.js).
+const NEWS_TRANSLATION_FIELDS = [
+  { key: "title", label: "Titre" },
+  { key: "excerpt", label: "Extrait", multiline: true, rows: 2 },
+  { key: "content", label: "Contenu", multiline: true, rows: 8 },
+  { key: "metaTitle", label: "Meta title (SEO)" },
+  { key: "metaDescription", label: "Meta description (SEO)" },
+];
+const EMPTY_TRANSLATION = { title: "", excerpt: "", content: "", metaTitle: "", metaDescription: "" };
+
+export default function NewsForm({ post, translations = {}, canDelete }) {
   const router = useRouter();
   const isEdit = !!post;
   const [confirm, confirmDialog] = useConfirm();
@@ -17,6 +28,24 @@ export default function NewsForm({ post, canDelete }) {
   const [isPublished, setIsPublished] = useState(!!post?.is_published);
   const [metaTitle, setMetaTitle] = useState(post?.meta_title || "");
   const [metaDescription, setMetaDescription] = useState(post?.meta_description || "");
+  // Langue principale des champs ci-dessus et version dans l'autre langue.
+  const [contentLocale, setContentLocale] = useState(post?.content_locale || "ar");
+  const [translation, setTranslation] = useState({
+    ...EMPTY_TRANSLATION,
+    ...(translations[otherContentLocale(post?.content_locale || "ar")] || {}),
+  });
+  // Changer de langue principale échange les deux versions.
+  const handleContentLocaleChange = (next) => {
+    if (next === contentLocale) return;
+    const previousBase = { title, excerpt, content, metaTitle, metaDescription };
+    setTitle(translation.title);
+    setExcerpt(translation.excerpt);
+    setContent(translation.content);
+    setMetaTitle(translation.metaTitle);
+    setMetaDescription(translation.metaDescription);
+    setTranslation(previousBase);
+    setContentLocale(next);
+  };
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -34,6 +63,8 @@ export default function NewsForm({ post, canDelete }) {
       isPublished,
       metaTitle: metaTitle || null,
       metaDescription: metaDescription || null,
+      contentLocale,
+      translations: { [otherContentLocale(contentLocale)]: translation },
     };
 
     try {
@@ -74,9 +105,12 @@ export default function NewsForm({ post, canDelete }) {
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          dir={contentLocale === "ar" ? "rtl" : "ltr"}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
       </div>
+
+      <ContentLocaleSelect value={contentLocale} onChange={handleContentLocaleChange} />
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">
@@ -140,6 +174,13 @@ export default function NewsForm({ post, canDelete }) {
           />
         </div>
       </div>
+
+      <TranslationFields
+        locale={otherContentLocale(contentLocale)}
+        fields={NEWS_TRANSLATION_FIELDS}
+        values={translation}
+        onChange={setTranslation}
+      />
 
       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
         <input

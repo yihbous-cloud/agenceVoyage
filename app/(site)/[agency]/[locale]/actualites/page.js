@@ -28,7 +28,7 @@ export default async function ActualitesPage({ params }) {
   const { agency: subdomain, locale } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
-  const posts = await listPublishedNews(agencyRow.id).catch(() => []);
+  const posts = await listPublishedNews(agencyRow.id, locale).catch(() => []);
 
   return (
     <main className="mx-auto max-w-4xl flex-1 px-4 py-10 sm:px-6 sm:py-16">

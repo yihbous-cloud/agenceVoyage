@@ -56,6 +56,7 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
     programs = await getProgramsByFamily("voyage_organise", { agencyId: agencyRow.id,
       destination: destination || undefined,
       theme: envie || undefined,
+      locale,
     });
   } catch (err) {
     dbError = err.message;

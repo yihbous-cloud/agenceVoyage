@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import TranslationFields, { ContentLocaleSelect, otherContentLocale } from "@/app/admin/_components/TranslationFields";
+
+// Champs de contenu traduisibles (vague 1B, lib/contentTranslations.js).
+const PROGRAM_TRANSLATION_FIELDS = [
+  { key: "title", label: "Titre" },
+  { key: "shortDescription", label: "Description courte", multiline: true, rows: 2 },
+  { key: "fullDescription", label: "Description complète", multiline: true, rows: 6 },
+  { key: "metaTitle", label: "Meta title (SEO)" },
+  { key: "metaDescription", label: "Meta description (SEO)" },
+];
+const EMPTY_TRANSLATION = { title: "", shortDescription: "", fullDescription: "", metaTitle: "", metaDescription: "" };
 
 const PROGRAM_TYPES = ["omra", "hajj", "tourisme", "autre"];
 const FAMILIES = [
@@ -15,7 +26,7 @@ const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "
 // (migration 042), rattaché aux informations du programme (son voyage
 // principal) et visible/modifiable par l'administrateur seulement — jamais
 // transmis à un autre rôle (voir page.js).
-export default function InfoCard({ program, trip, successorOptions = [], hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
+export default function InfoCard({ program, trip, translations = {}, successorOptions = [], hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
   const router = useRouter();
 
   const [title, setTitle] = useState(program.title || "");
@@ -44,6 +55,29 @@ export default function InfoCard({ program, trip, successorOptions = [], hasTier
   const [metaDescription, setMetaDescription] = useState(program.meta_description || "");
   const [isPublished, setIsPublished] = useState(!!program.is_published);
   const [successorProgramId, setSuccessorProgramId] = useState(program.successor_program_id || "");
+  // Langue principale des champs de contenu ci-dessus et version dans l'autre
+  // langue (program_translations).
+  const [contentLocale, setContentLocale] = useState(program.content_locale || "ar");
+  const [translation, setTranslation] = useState({
+    ...EMPTY_TRANSLATION,
+    ...(translations[otherContentLocale(program.content_locale || "ar")] || {}),
+  });
+
+  // Changer de langue principale échange les deux versions : le texte saisi
+  // reste rattaché à sa vraie langue.
+  const handleContentLocaleChange = (next) => {
+    if (next === contentLocale) return;
+    const previousBase = { title, shortDescription, fullDescription, metaTitle, metaDescription };
+    setTitle(translation.title);
+    setShortDescription(translation.shortDescription);
+    setFullDescription(translation.fullDescription);
+    setMetaTitle(translation.metaTitle);
+    setMetaDescription(translation.metaDescription);
+    setTranslation(previousBase);
+    setContentLocale(next);
+  };
+  const translationComplete =
+    translation.title.trim() && (translation.shortDescription.trim() || translation.fullDescription.trim());
 
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +94,8 @@ export default function InfoCard({ program, trip, successorOptions = [], hasTier
     !hasTripPrice && !hasTierPrices && "aucun prix (affiché « Prix sur demande »)",
     !shortDescription.trim() && !fullDescription.trim() && "aucune description",
     !coverImageUrl && "aucune image de couverture",
+    !translationComplete &&
+      (contentLocale === "ar" ? "version française incomplète (titre et description)" : "version arabe incomplète (titre et description)"),
   ].filter(Boolean);
 
   const handleFileChange = async (e) => {
@@ -110,6 +146,8 @@ export default function InfoCard({ program, trip, successorOptions = [], hasTier
           metaDescription: metaDescription || null,
           isPublished,
           successorProgramId: successorProgramId || null,
+          contentLocale,
+          translations: { [otherContentLocale(contentLocale)]: translation },
         }),
       });
       if (!programRes.ok) {
@@ -170,9 +208,12 @@ export default function InfoCard({ program, trip, successorOptions = [], hasTier
           disabled={!canManage}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          dir={contentLocale === "ar" ? "rtl" : "ltr"}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
         />
       </div>
+
+      <ContentLocaleSelect value={contentLocale} onChange={handleContentLocaleChange} disabled={!canManage} />
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -439,6 +480,14 @@ export default function InfoCard({ program, trip, successorOptions = [], hasTier
             />
           </div>
         </div>
+
+        <TranslationFields
+          locale={otherContentLocale(contentLocale)}
+          fields={PROGRAM_TRANSLATION_FIELDS}
+          values={translation}
+          onChange={setTranslation}
+          disabled={!canManage}
+        />
 
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input

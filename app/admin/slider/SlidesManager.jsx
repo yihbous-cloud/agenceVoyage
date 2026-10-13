@@ -3,8 +3,27 @@
 import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import TranslationFields, { ContentLocaleSelect, otherContentLocale } from "@/app/admin/_components/TranslationFields";
 
 const CUSTOM_LINK_VALUE = "custom";
+
+// Textes traduisibles d'une diapositive (vague 1B, lib/contentTranslations.js).
+const SLIDE_TRANSLATION_FIELDS = [
+  { key: "title", label: "Titre (optionnel)" },
+  { key: "subtitle", label: "Sous-titre (optionnel)" },
+  { key: "buttonText", label: "Texte du bouton" },
+];
+const EMPTY_TRANSLATION = { title: "", subtitle: "", buttonText: "" };
+
+// Corps envoyé à l'API : l'autre langue part dans `translations`.
+function toPayload(form) {
+  const { translation, ...rest } = form;
+  return {
+    ...rest,
+    programId: rest.programId || null,
+    translations: { [otherContentLocale(rest.contentLocale)]: translation },
+  };
+}
 
 function emptyForm() {
   return {
@@ -16,6 +35,8 @@ function emptyForm() {
     programId: "",
     buttonLink: "",
     isActive: true,
+    contentLocale: "ar",
+    translation: { ...EMPTY_TRANSLATION },
   };
 }
 
@@ -29,6 +50,8 @@ function toFormState(slide) {
     programId: slide.program_id ? String(slide.program_id) : "",
     buttonLink: slide.program_id ? "" : slide.button_link || "",
     isActive: !!slide.is_active,
+    contentLocale: slide.content_locale || "ar",
+    translation: { ...EMPTY_TRANSLATION, ...(slide.translations?.[otherContentLocale(slide.content_locale || "ar")] || {}) },
   };
 }
 
@@ -47,6 +70,22 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
   const set = (key) => (e) => {
     const value = key === "isActive" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [key]: value }));
+  };
+
+  // Changer de langue principale échange les textes des deux versions.
+  const handleContentLocaleChange = (next) => {
+    setForm((f) =>
+      next === f.contentLocale
+        ? f
+        : {
+            ...f,
+            contentLocale: next,
+            title: f.translation.title,
+            subtitle: f.translation.subtitle,
+            buttonText: f.translation.buttonText,
+            translation: { title: f.title, subtitle: f.subtitle, buttonText: f.buttonText },
+          }
+    );
   };
 
   const handleLinkModeChange = (e) => {
@@ -192,6 +231,17 @@ function SlideForm({ initial, programs, onCancel, onSaved, submitLabel }) {
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
       </div>
+      <div className="col-span-2">
+        <ContentLocaleSelect value={form.contentLocale} onChange={handleContentLocaleChange} />
+      </div>
+      <div className="col-span-2">
+        <TranslationFields
+          locale={otherContentLocale(form.contentLocale)}
+          fields={SLIDE_TRANSLATION_FIELDS}
+          values={form.translation}
+          onChange={(translation) => setForm((f) => ({ ...f, translation }))}
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-zinc-700">Lien vers (optionnel)</label>
@@ -278,7 +328,7 @@ export default function SlidesManager({ initialSlides, programs }) {
     const res = await fetch("/api/admin/slides", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, programId: form.programId || null }),
+      body: JSON.stringify(toPayload(form)),
     });
     if (!res.ok) {
       const data = await res.json();
@@ -291,7 +341,7 @@ export default function SlidesManager({ initialSlides, programs }) {
     const res = await fetch(`/api/admin/slides/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, programId: form.programId || null }),
+      body: JSON.stringify(toPayload(form)),
     });
     if (!res.ok) {
       const data = await res.json();

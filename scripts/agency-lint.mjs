@@ -26,6 +26,8 @@ const TENANT_TABLES = [
   "wa_segments", "wa_campaigns", "wa_campaign_recipients", "wa_ops_settings", "ia_audits", "ia_audit_items",
   // Référencement (migration 044)
   "redirects", "seo_indexnow_pings",
+  // Contenu FR/AR par entité (migration 045)
+  "program_translations", "program_faq_translations", "news_translations", "slide_translations",
 ];
 
 const TABLE_RE = new RegExp(

@@ -7,6 +7,7 @@ import { withNotFound } from "@/lib/apiGuard";
 import { removeRedirectsFrom } from "@/lib/redirects";
 import { refreshPublicPages } from "@/lib/publicRevalidation";
 import { programPath } from "@/lib/programUrls";
+import { setTranslations } from "@/lib/contentTranslations";
 
 async function GET_handler() {
   const session = await getSession();
@@ -41,6 +42,9 @@ async function POST_handler(request) {
     });
     if (Array.isArray(body.defaultHotelIds)) {
       await setDefaultHotelsForProgram(id, body.defaultHotelIds);
+    }
+    if (body.translations !== undefined) {
+      await setTranslations("program", id, body.translations, { baseLocale: body.contentLocale === "fr" ? "fr" : "ar" });
     }
     // Publié dès la création : son URL redevient vivante (une ancienne
     // redirection ne doit pas la masquer), pilier et accueil rafraîchis.

@@ -60,7 +60,9 @@ export default async function PageJsonLd({
       url,
       name: name || agency.name,
       description,
-      locale,
+      // Page non canonique (contenu absent dans cette langue) : le nœud décrit
+      // la page canonique, dans sa langue.
+      locale: canonicalLocale || locale,
       baseUrl,
       type: pageType,
       hasBreadcrumb: Boolean(breadcrumb?.length),

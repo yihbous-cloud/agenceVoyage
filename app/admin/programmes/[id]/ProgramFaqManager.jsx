@@ -3,15 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import TranslationFields, { otherContentLocale } from "@/app/admin/_components/TranslationFields";
 
-function FaqForm({ initial, onSubmit, onCancel, submitting }) {
+// Une FAQ est saisie dans la langue principale de son programme ; l'autre
+// langue dans le bloc « Version » (vague 1B du référencement).
+const FAQ_TRANSLATION_FIELDS = [
+  { key: "question", label: "Question" },
+  { key: "answer", label: "Réponse", multiline: true, rows: 3 },
+];
+
+function FaqForm({ initial, initialTranslation, contentLocale, onSubmit, onCancel, submitting }) {
   const [question, setQuestion] = useState(initial?.question || "");
   const [answer, setAnswer] = useState(initial?.answer || "");
   const [isPublished, setIsPublished] = useState(initial?.is_published !== false);
+  const otherLocale = otherContentLocale(contentLocale);
+  const [translation, setTranslation] = useState({ question: "", answer: "", ...(initialTranslation || {}) });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ question, answer, isPublished });
+    onSubmit({ question, answer, isPublished, translations: { [otherLocale]: translation } });
   };
 
   return (
@@ -22,6 +32,7 @@ function FaqForm({ initial, onSubmit, onCancel, submitting }) {
           required
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          dir={contentLocale === "ar" ? "rtl" : "ltr"}
           placeholder="ex: Combien coûte le voyage depuis Casablanca ?"
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
@@ -33,9 +44,11 @@ function FaqForm({ initial, onSubmit, onCancel, submitting }) {
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           rows={3}
+          dir={contentLocale === "ar" ? "rtl" : "ltr"}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
       </div>
+      <TranslationFields locale={otherLocale} fields={FAQ_TRANSLATION_FIELDS} values={translation} onChange={setTranslation} />
       <label className="flex items-center gap-2 text-sm text-zinc-700">
         <input
           type="checkbox"
@@ -66,7 +79,7 @@ function FaqForm({ initial, onSubmit, onCancel, submitting }) {
   );
 }
 
-export default function ProgramFaqManager({ programId, initialFaqs, canManage }) {
+export default function ProgramFaqManager({ programId, initialFaqs, canManage, contentLocale = "ar", faqTranslations = {} }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -132,6 +145,8 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
             <FaqForm
               key={faq.id}
               initial={faq}
+              initialTranslation={faqTranslations[faq.id]?.[otherContentLocale(contentLocale)]}
+              contentLocale={contentLocale}
               submitting={submitting}
               onCancel={() => setEditingId(null)}
               onSubmit={(data) => handleUpdate(faq.id, data)}
@@ -142,6 +157,11 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
                 <div>
                   <p className="font-medium text-zinc-900">{faq.question}</p>
                   <p className="mt-1 text-sm text-zinc-600">{faq.answer}</p>
+                  {!faqTranslations[faq.id]?.[otherContentLocale(contentLocale)]?.question && (
+                    <span className="me-2 mt-2 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                      {contentLocale === "ar" ? "Version française manquante" : "Version arabe manquante"}
+                    </span>
+                  )}
                   {!faq.is_published && (
                     <span className="mt-2 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
                       Brouillon
@@ -178,6 +198,7 @@ export default function ProgramFaqManager({ programId, initialFaqs, canManage })
       {canManage &&
         (adding ? (
           <FaqForm
+            contentLocale={contentLocale}
             submitting={submitting}
             onCancel={() => setAdding(false)}
             onSubmit={handleCreate}
