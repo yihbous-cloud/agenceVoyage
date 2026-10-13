@@ -31,7 +31,9 @@ const geistMono = Geist_Mono({
 const kufi = Noto_Kufi_Arabic({
   variable: "--font-kufi",
   subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+  // Police variable (un seul fichier par sous-ensemble) : avec une liste de
+  // graisses, Google renvoie le MÊME fichier pour chacune et Turbopack (dev)
+  // échoue avec « next/font/google queries have exactly one entry ».
 });
 
 
