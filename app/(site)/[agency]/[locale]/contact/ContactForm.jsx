@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useLocale } from "@/app/_components/LocaleProvider";
+import { readStoredLeadSource } from "@/lib/leadSource";
+import { trackEvent } from "@/lib/analytics";
 
 export default function ContactForm() {
-  const { tr } = useLocale();
+  const { tr, locale } = useLocale();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -26,12 +28,14 @@ export default function ContactForm() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        // Première visite (source de la demande) : classée côté serveur.
+        body: JSON.stringify({ ...form, leadSource: readStoredLeadSource() }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Erreur lors de l'envoi");
       }
+      trackEvent("demande_devis", { langue: locale });
       setStatus({ type: "success", message: tr("Message envoyé, nous vous répondrons rapidement.") });
       setForm({ fullName: "", email: "", phone: "", subject: "", message: "" });
     } catch (err) {

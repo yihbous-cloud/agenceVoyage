@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useLocale } from "./LocaleProvider";
+import { readStoredLeadSource } from "@/lib/leadSource";
+import { trackEvent } from "@/lib/analytics";
 
-export default function ReservationForm({ tripId }) {
-  const { tr } = useLocale();
+// tripRef : référence du départ, jointe à l'événement de conversion.
+export default function ReservationForm({ tripId, tripRef }) {
+  const { tr, locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -23,7 +26,8 @@ export default function ReservationForm({ tripId }) {
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripId, ...form }),
+        // Première visite (source de la demande) : classée côté serveur.
+        body: JSON.stringify({ tripId, ...form, leadSource: readStoredLeadSource() }),
       });
       const data = await res.json();
 
@@ -31,6 +35,7 @@ export default function ReservationForm({ tripId }) {
         throw new Error(data.message || "Erreur lors de la réservation");
       }
 
+      trackEvent("reservation", { langue: locale, ...(tripRef ? { voyage: tripRef } : {}) });
       setStatus({ type: "success", message: tr("Inscription enregistrée ! Nous vous contacterons sur WhatsApp.") });
       setForm({ fullName: "", phoneWhatsapp: "", email: "" });
     } catch (err) {

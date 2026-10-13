@@ -406,6 +406,10 @@ CREATE TABLE registrations (
     total_due DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'montant total dû pour cette inscription',
     registration_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     notes TEXT NULL,
+    -- Source de la demande (migration 046, lib/leadSource.js) : canal classé
+    -- côté serveur + première visite mémorisée par le navigateur.
+    lead_source VARCHAR(30) NULL,
+    lead_source_details JSON NULL,
     FOREIGN KEY (trip_id) REFERENCES trips(id),
     FOREIGN KEY (traveler_id) REFERENCES travelers(id),
     FOREIGN KEY (registered_by_staff_id) REFERENCES staff_users(id),
@@ -711,6 +715,8 @@ CREATE TABLE contact_messages (
     subject VARCHAR(200) NULL,
     message TEXT NOT NULL,
     status ENUM('nouveau', 'traite') NOT NULL DEFAULT 'nouveau',
+    lead_source VARCHAR(30) NULL,
+    lead_source_details JSON NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_contact_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -860,6 +866,19 @@ CREATE TABLE agencies (
     tax_id VARCHAR(50) NULL,
     ice VARCHAR(50) NULL,
     footer_note VARCHAR(255) NULL,
+    -- Informations légales, CGV et mesure d'audience (migration 046)
+    legal_name VARCHAR(200) NULL COMMENT 'raison sociale',
+    legal_form VARCHAR(100) NULL COMMENT 'forme juridique (SARL, SARL AU...)',
+    share_capital VARCHAR(100) NULL COMMENT 'capital social, texte libre (ex. 100 000 MAD)',
+    publication_director VARCHAR(150) NULL,
+    license_number VARCHAR(100) NULL COMMENT 'licence d agence de voyages (loi 31-96)',
+    founding_date DATE NULL,
+    insurance_info VARCHAR(500) NULL COMMENT 'assurance responsabilité civile professionnelle',
+    cndp_number VARCHAR(100) NULL COMMENT 'déclaration / autorisation CNDP (loi 09-08)',
+    hosting_provider VARCHAR(255) NULL COMMENT 'hébergeur du site (nom et adresse)',
+    cgv_fr MEDIUMTEXT NULL COMMENT 'conditions générales de vente, Markdown',
+    cgv_ar MEDIUMTEXT NULL,
+    gtm_container_id VARCHAR(20) NULL COMMENT 'GTM-XXXX — vide : aucune mesure, aucun bandeau',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -2096,3 +2115,13 @@ CREATE TABLE slide_translations (
     CONSTRAINT fk_slide_translations_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
     CONSTRAINT fk_slide_translations_slide FOREIGN KEY (slide_id) REFERENCES slides(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =====================================================================
+-- Référencement, vague 1C (migration 046) : index des sources de demandes
+-- et lien WhatsApp « SITE » (code source des boutons WhatsApp du site).
+-- =====================================================================
+ALTER TABLE registrations ADD INDEX idx_registrations_lead_source (agency_id, lead_source);
+ALTER TABLE contact_messages ADD INDEX idx_contact_lead_source (agency_id, lead_source);
+INSERT IGNORE INTO wa_links (agency_id, code, label, prefilled_message)
+SELECT id, 'SITE', 'Site web (boutons WhatsApp)', 'Bonjour, je vous contacte depuis votre site.'
+FROM agencies;

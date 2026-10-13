@@ -3,6 +3,8 @@ import { hasPermission } from "@/lib/permissions";
 import { listRedirects } from "@/lib/redirects";
 import { listIndexNowPings } from "@/lib/indexNow";
 import { getCurrentAgency } from "@/lib/currentAgency";
+import { getLeadSourceReports } from "@/lib/leadReports";
+import { getAgencySettings } from "@/lib/agencySettings";
 import PageHeader from "../_components/PageHeader";
 import ReferencementManager from "./ReferencementManager";
 
@@ -17,7 +19,12 @@ export default async function ReferencementPage() {
     return <p className="text-sm text-zinc-500">Accès réservé.</p>;
   }
   const agency = await getCurrentAgency();
-  const [redirects, pings] = await Promise.all([listRedirects(), listIndexNowPings(agency.id)]);
+  const [redirects, pings, leadReports, settings] = await Promise.all([
+    listRedirects(),
+    listIndexNowPings(agency.id),
+    getLeadSourceReports(agency.id),
+    getAgencySettings(agency.id),
+  ]);
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -30,6 +37,8 @@ export default async function ReferencementPage() {
         initialRedirects={JSON.parse(JSON.stringify(redirects))}
         pings={JSON.parse(JSON.stringify(pings))}
         baseUrl={agency.baseUrl}
+        leadReports={leadReports}
+        gtmId={settings?.gtm_container_id || null}
       />
     </div>
   );

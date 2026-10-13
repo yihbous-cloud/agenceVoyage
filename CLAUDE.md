@@ -2138,6 +2138,37 @@ Suite de §3centquatorzequadragies. **Remplace le garde-fou provisoire de §3cen
 
 `test:agency` étendu (traductions des 4 entités : invisibles, non modifiables et intactes entre agences) ; `lint:agency`, ESLint, `i18n-check public` (0 manquant), `test:whatsapp-ai` (24/24), build (fiches toujours ● ISR), `schema.sql` importé dans une base vierge (tables identiques). Build de production local avec compte/rôle temporaires (supprimés) : sans version française → canonical vers l'arabe, sans hreflang ; version française saisie → `fr-MA`/`ar-MA` réciproques, canonical propre, titre/FAQ/JSON-LD dans chaque langue, mise à jour immédiate ; changement de langue principale refusé puis accepté avec FAQ basculées (aller-retour depuis le formulaire) ; actualité en français seul ; diapositive : traduction conservée après bascule actif/inactif ; `lastmod` inchangé si rien ne change ; écrans admin vérifiés en arabe sans texte manquant ; `npm run test:seo` : 0 erreur.
 
+## 3centseizequadragies. Référencement global — phase 1, vague 1C : sources des demandes, GA4 désactivé par défaut, pages légales (migration `046_add_lead_source_and_legal.sql`)
+
+Fin de la phase 1 (§3centquatorzequadragies, §3centquinzequadragies). Paramétrage GA4 côté Google : `docs/referencement-global.md`.
+
+### Source des demandes (L8)
+
+- `registrations.lead_source` / `lead_source_details` (JSON) et idem sur `contact_messages`, index `(agency_id, lead_source)`. Canaux (`lib/leadSource.js`, fichier pur) : `assistant_ia`, `moteur_recherche`, `reseau_social`, `publicite`, `campagne` (lien suivi non reconnu — ajouté au plan initial), `site_referent`, `direct`, `admin` ; `NULL` = demande antérieure au suivi.
+- **Navigateur** : `SiteAnalytics.jsx` (dans le layout public) mémorise la **première visite** dans le stockage local (`gf_lead_source`, 90 jours, attribution au premier contact) : `utm_*`, `gclid`/`fbclid`/`msclkid`, référent externe, page d'arrivée, date. Aucun cookie. `ContactForm` et `ReservationForm` l'envoient (`leadSource`).
+- **Serveur** : `/api/contact` et `/api/reservations` appellent `resolveLeadSource(body.leadSource, Host)` — détails filtrés (clés connues, longueurs bornées), canal **classé côté serveur** (un canal envoyé par le client est ignoré ; un référent du site lui-même n'est pas une source). `createRegistration` (saisie de l'équipe) enregistre `admin`.
+- **Boutons WhatsApp du site** (pied de page, `/contact`, `/a-propos`) : `lib/contactLinks.js` (`whatsappUrl`, `telHref`, pur) — message pré-rempli dans la langue de la page terminé par **`[SITE]`** ; la migration crée le lien WhatsApp `SITE` pour chaque agence (et `scripts/create-agency.js` pour les nouvelles), donc un contact WhatsApp arrivé par le site reçoit la source `lien:SITE` (`sourceFromMessage`, §3centdeuxquadragies). Téléphone, WhatsApp et email de `/contact` et `/a-propos` sont désormais cliquables (`TrackedContactLink.jsx`) ; `/contact` affiche aussi le téléphone.
+- **Admin** : cellule « Source » (canal + site d'origine, campagne, page d'arrivée, date) dans le récapitulatif de `/admin/inscriptions/[id]` ; source sur chaque message de `/admin/messages` ; onglet **« Sources des demandes »** de `/admin/referencement` (`lib/leadReports.js` : inscriptions et messages par canal sur 30 j / 90 j / 12 mois, contacts WhatsApp arrivés par un bouton du site, état de la mesure d'audience).
+
+### GA4 via Google Tag Manager — désactivé tant que l'identifiant est vide
+
+- `agencies.gtm_container_id` (champ « Mesure d'audience » de `/admin/parametres`, format `GTM-XXXX` validé côté serveur, mis en majuscules). **Vide : aucun bandeau, aucun script tiers.**
+- Renseigné : bandeau de consentement (`SiteAnalytics.jsx`, `useSyncExternalStore` — rien au rendu serveur, pages toujours statiques) Accepter / Refuser de même poids, lien « En savoir plus » vers `/confidentialite` ; choix mémorisé 13 mois (`gf_consent`). **GTM n'est chargé qu'après « Accepter »** (`lib/analytics.js`, `loadGtm` : consentement v2 refusé par défaut, `analytics_storage` accordé, puis `gtm.js`). « Gérer les cookies » (pied de page, si GTM actif) efface le choix et réaffiche le bandeau ; un refus après acceptation envoie `consent update denied`.
+- Événements `dataLayer` (`trackEvent`, seulement GTM chargé + consentement) : `clic_whatsapp`, `clic_telephone`, `demande_devis` (formulaire de contact envoyé), `reservation` (inscription en ligne), avec `langue`, `page` et `voyage` (référence du départ).
+
+### Pages légales générées (L12)
+
+- `agencies` : `legal_name`, `legal_form`, `share_capital`, `publication_director`, `license_number` (loi 31-96), `founding_date`, `insurance_info`, `cndp_number`, `hosting_provider`, `cgv_fr`, `cgv_ar` (Markdown). Section « Informations légales » de `/admin/parametres` (`parametres.edit`, validation des longueurs côté serveur ; champs en `dir="auto"`).
+- **`/mentions-legales`** : éditeur (raison sociale ou nom de l'agence, nom commercial, forme, capital, siège, téléphone, email, RC, IF, ICE, licence), directeur de la publication, assurance RC professionnelle, hébergeur, données personnelles (+ n° CNDP), contact. `app/_components/LegalSection.jsx` : **un bloc sans valeur n'est pas affiché, aucune valeur inventée** (plus de textes « à compléter » publics).
+- **`/confidentialite`** réécrite sur les traitements réels : responsable, données collectées (formulaires, dossier, WhatsApp — mention de l'assistant automatisé seulement si le compte WhatsApp de l'agence est `actif`), usage, destinataires, conservation, origine de la visite (stockage local 90 j), cookies (texte selon que GTM est renseigné ou non), droits loi 09-08 (+ n° CNDP).
+- **`/conditions-generales-de-vente`** (nouvelle) : `cgv_ar` en arabe, `cgv_fr` sinon, l'autre en repli (canonical/hreflang via `available_locales`, comme la vague 1B) ; rendu `RichText` ; **404 tant qu'aucune CGV n'est saisie**, lien du pied de page masqué d'ici là. Pages légales en noindex, hors sitemap.
+- Le nœud `organization` du JSON-LD reçoit `legalName` et `foundingDate` dès qu'ils sont saisis. Le pied de page ne reçoit plus que les champs qu'il affiche (pas les CGV).
+- ⚠️ Textes légaux arabes et anglais rédigés par IA : **à faire relire par un juriste** avant de compter dessus.
+
+### Vérification
+
+Classement testé sur 16 cas (IA par `utm_source` et par référent, Gemini ≠ Google, moteurs, réseaux sociaux, publicité, campagne, autre site, référent interne, entrées malformées ou trop longues). `test:agency` étendu (sources et messages isolés par agence) : tous les contrôles passent ; `lint:agency`, ESLint, `i18n-check public` (0 manquant), build (pages légales ● statiques), `schema.sql` dans une base vierge. Build de production local avec compte/rôle temporaires (supprimés, coordonnées de l'agence intactes) : sans GTM ni CGV → aucun bandeau, aucun script Google, CGV 404, lien WhatsApp avec `[SITE]` ; informations légales + CGV + GTM de test enregistrés → pages mises à jour immédiatement, blocs vides masqués, CGV ar/fr, liens « CGV » et « Gérer les cookies », `legalName`/`foundingDate` dans le JSON-LD ; bandeau → GTM chargé seulement après acceptation, `clic_whatsapp`/`clic_telephone` envoyés, plus rien après refus ; message envoyé depuis `/fr?utm_source=chatgpt.com` → `assistant_ia` ; réservation avec référent Google → `moteur_recherche`, canal forcé par le client ignoré ; écrans admin vérifiés en arabe ; `test:seo` : 0 erreur.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

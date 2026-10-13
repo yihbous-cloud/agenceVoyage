@@ -20,6 +20,8 @@ import * as redirects from "../lib/redirects.js";
 import { getRedirectMap } from "../lib/redirectMap.js";
 import { listIndexNowPings } from "../lib/indexNow.js";
 import * as ct from "../lib/contentTranslations.js";
+import * as contactMessages from "../lib/contactMessages.js";
+import { getLeadSourceReport } from "../lib/leadReports.js";
 import { getPool } from "../lib/db.js";
 
 // Test d'isolation multi-agences (CLAUDE.md §3sexvicies passe 2). Crée une
@@ -103,6 +105,10 @@ await ct.setTranslations("news", newsId, { fr: { title: "NEWS-A3-FR", excerpt: "
 await ct.setTranslations("slide", slideId, { fr: { title: "SLIDE-A3-FR" } });
 const [frA3] = await programs.getProgramsByFamily("omra_hajj", { locale: "fr" }).then((rows) => rows.filter((p) => p.id === programId));
 ok(frA3?.title === "PROG-A3-FR" && frA3.available_locales.includes("fr"), "agence 3 : version française de son programme lue en /fr");
+// Source des demandes (migration 046) : message de contact de l'agence 3
+await contactMessages.createContactMessage({ fullName: "Contact A3", email: "a3@iso.test", message: "m", leadSource: "assistant_ia", leadSourceDetails: { utm_source: "chatgpt.com" } });
+const reportA3 = await getLeadSourceReport(3650);
+ok(reportA3.channels.find((c) => c.key === "assistant_ia")?.messages === 1, "agence 3 : son message compté dans ses sources");
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
 // Demande de compte (migration 041)
@@ -146,6 +152,10 @@ for (const [entity, id] of [["program", programId], ["faq", faqId], ["news", new
   ok(Object.keys(await ct.listTranslations(entity, [id])).length === 0, `traductions ${entity} de l'agence 3 invisibles`);
 }
 ok((await programs.getProgramBySlug("prog-a3", undefined, "fr")) === null, "version française d'un programme étranger introuvable");
+const [ownAi] = await q("SELECT COUNT(*) AS n FROM contact_messages WHERE agency_id = 1 AND lead_source = 'assistant_ia' AND created_at >= UTC_TIMESTAMP() - INTERVAL 3650 DAY");
+const report1 = await getLeadSourceReport(3650);
+ok(report1.channels.find((c) => c.key === "assistant_ia")?.messages === Number(ownAi.n), "sources des demandes : agence 1 ne compte pas les messages de l'agence 3");
+ok((await contactMessages.listContactMessages()).every((m) => m.email !== "a3@iso.test"), "messages de contact de l'agence 3 invisibles");
 
 // écritures croisées : tout doit échouer ou ne rien faire
 await throwsNotFound(() => pa.createTrip(programId, { referenceCode: "X", departureDate: "2027-01-01", returnDate: "2027-01-02" }), "createTrip sur un programme étranger");

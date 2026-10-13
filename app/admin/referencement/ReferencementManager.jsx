@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Icon from "../_components/Icon";
 import { useConfirm } from "../_components/useConfirm";
+import { leadChannelLabel } from "@/lib/leadSource";
 
 // Origine d'une redirection (colonne redirects.source).
 const SOURCE_LABELS = {
@@ -21,8 +22,10 @@ const PING_STATUS = {
 // Date MySQL « AAAA-MM-JJ HH:MM:SS » → « AAAA-MM-JJ HH:MM ».
 const shortDate = (value) => (value ? String(value).replace("T", " ").slice(0, 16) : "—");
 
-export default function ReferencementManager({ initialRedirects, pings, baseUrl }) {
+export default function ReferencementManager({ initialRedirects, pings, baseUrl, leadReports = {}, gtmId = null }) {
   const [tab, setTab] = useState("redirections");
+  const [leadPeriod, setLeadPeriod] = useState("30");
+  const leadReport = leadReports[leadPeriod];
   const [redirects, setRedirects] = useState(initialRedirects);
   const [fromPath, setFromPath] = useState("");
   const [toPath, setToPath] = useState("");
@@ -72,6 +75,9 @@ export default function ReferencementManager({ initialRedirects, pings, baseUrl 
         </button>
         <button type="button" className={tabClass("indexation")} onClick={() => setTab("indexation")}>
           Indexation
+        </button>
+        <button type="button" className={tabClass("sources")} onClick={() => setTab("sources")}>
+          Sources des demandes
         </button>
       </div>
 
@@ -259,6 +265,69 @@ export default function ReferencementManager({ initialRedirects, pings, baseUrl 
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {tab === "sources" && (
+        <div className="space-y-6">
+          <div className="gf-card p-5 text-sm text-zinc-600">
+            <p>
+              Origine des demandes reçues par le site : la première visite de chaque visiteur (site d&apos;origine, lien de campagne, page d&apos;arrivée) est jointe à son inscription en ligne ou à son message, puis classée par canal. Le détail est visible sur la fiche de l&apos;inscription et dans les messages.
+            </p>
+            <p className="mt-2">
+              {gtmId ? (
+                <>
+                  Mesure d&apos;audience active : les visiteurs qui l&apos;acceptent sont suivis dans Google Analytics.{" "}
+                  <span className="gf-mono" dir="ltr" translate="no">
+                    {gtmId}
+                  </span>
+                </>
+              ) : (
+                <>Mesure d&apos;audience désactivée : saisissez l&apos;identifiant Google Tag Manager dans Paramètres de l&apos;agence pour l&apos;activer.</>
+              )}
+            </p>
+          </div>
+
+          <div className="gf-card overflow-x-auto">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
+              <span className="text-sm font-medium text-zinc-800">Demandes par canal</span>
+              <select
+                value={leadPeriod}
+                onChange={(e) => setLeadPeriod(e.target.value)}
+                className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              >
+                <option value="30">30 derniers jours</option>
+                <option value="90">90 derniers jours</option>
+                <option value="365">12 derniers mois</option>
+              </select>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-start">Canal</th>
+                  <th className="px-4 py-3 text-end">Inscriptions</th>
+                  <th className="px-4 py-3 text-end">Messages</th>
+                  <th className="px-4 py-3 text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(leadReport?.channels || []).map((row) => (
+                  <tr key={row.key} className="border-t border-zinc-100">
+                    <td className="px-4 py-2.5">{leadChannelLabel(row.key === "non_renseignee" ? null : row.key)}</td>
+                    <td className="px-4 py-2.5 text-end">{row.registrations}</td>
+                    <td className="px-4 py-2.5 text-end">{row.messages}</td>
+                    <td className="px-4 py-2.5 text-end font-medium">{row.registrations + row.messages}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="border-t border-zinc-100 px-4 py-3 text-sm text-zinc-600">
+              Contacts WhatsApp arrivés par un bouton du site : <strong>{leadReport?.whatsappFromSite ?? 0}</strong>
+            </p>
+          </div>
+          <p className="text-xs text-zinc-500">
+            « Saisie dans l&apos;admin » : inscriptions créées par l&apos;équipe. « Non renseignée » : demandes antérieures au suivi des sources.
+          </p>
         </div>
       )}
 

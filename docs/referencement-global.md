@@ -55,7 +55,7 @@ Le détail technique de chaque livraison est tenu à jour dans `CLAUDE.md` (sect
 | Phase | Développement (dans le site) | Contenu et commercial | Condition de passage |
 |---|---|---|---|
 | **0 · S1** (livrée) | L0 corrections + piliers `/omra` `/hajj` | Décisions restantes, Search Console + Bing, fiche Google, mots-clés, brief Ramadan | Phase 0 vérifiée en production |
-| **1 · S2 à S5** | **1A (livrée le 12/10) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B (prête) :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C :** L8 GA4 + source des leads dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
+| **1 · S2 à S5** | **1A (livrée le 12/10) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B (livrée le 13/10) :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C (prête) :** L8 GA4 (désactivé tant que l'identifiant GTM est vide) + source des demandes dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
 | **2 · S6 à S10** | L3 fiche voyage en 10 blocs · L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · L11 santé SEO dans l'admin | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
 | **3 · S11 à S16** | L6 PSEO, un gabarit à la fois, avec garde-fous · L10 GEO (baromètre des prix, `llms-full.txt`, panel de prompts) · L9 performance | Textes uniques des pages PSEO, premier panel IA | ≥ 70 % des pages PSEO indexées après 8 semaines |
 | **4 · en continu** | Anglais, ajustements | Netlinking, presse, YouTube, panel mensuel | — |
@@ -110,3 +110,23 @@ Pages indexées (Search Console, Bing), positions sur les 50 requêtes cœur, Co
 - **Diapositives de l'accueil** : titre, sous-titre et texte du bouton ont leur version dans l'autre langue ; activer ou désactiver une diapositive ne touche pas à ses traductions.
 - L'agent WhatsApp cite les programmes dans la langue du client quand la version existe.
 - Les traductions sont saisies à la main (pas de traduction automatique) : à faire relire par un locuteur natif pour l'arabe.
+
+## 11. Ce que la vague 1C change pour l'équipe
+
+- **Source de chaque demande** : une inscription en ligne ou un message de contact indique désormais d'où venait le visiteur (assistant IA comme ChatGPT ou Perplexity, moteur de recherche, réseau social, publicité, campagne, autre site, accès direct). Elle s'affiche sur la fiche de l'inscription et dans les messages. Le bilan par canal est dans **Référencement → Sources des demandes** (30 jours, 90 jours, 12 mois). Les inscriptions saisies par l'équipe apparaissent comme « Saisie dans l'admin ».
+- **Boutons WhatsApp du site** : le message pré-rempli se termine par `[SITE]` ; ne pas l'effacer. Il permet de compter les contacts WhatsApp venus du site. Le lien « SITE » doit rester actif dans WhatsApp → Liens & QR codes.
+- **Paramètres de l'agence → Informations légales** : raison sociale, forme juridique, capital, licence d'agence de voyages (loi 31-96), date de création, directeur de la publication, assurance RC professionnelle, n° CNDP, hébergeur, et conditions générales de vente (français et arabe). Les pages Mentions légales, Confidentialité et CGV du site se remplissent automatiquement ; un champ vide n'y apparaît pas. La page CGV n'existe qu'une fois un texte saisi. **Les textes juridiques doivent être relus par un juriste.**
+- **Mesure d'audience** : rien n'est mesuré tant que le champ « identifiant Google Tag Manager » est vide. Une fois rempli, un bandeau demande l'accord des visiteurs ; Google Analytics ne se charge qu'après « Accepter ».
+
+## 12. Paramétrer Google Analytics 4 (à faire par l'agence ou son prestataire)
+
+1. **Google Analytics** : créer une propriété GA4 (fuseau Casablanca, devise MAD) et un flux Web pour le domaine du site. Noter l'identifiant de mesure `G-XXXXXXX`.
+2. **Google Tag Manager** : créer un conteneur Web. Y ajouter :
+   - une balise « Google Tag » avec l'identifiant `G-XXXXXXX`, déclenchée sur « Initialization - All Pages » ;
+   - une balise « Événement GA4 » par événement envoyé par le site : `clic_whatsapp`, `clic_telephone`, `demande_devis`, `reservation`. Déclencheur « Événement personnalisé » au même nom. Paramètres à transmettre (variables « Couche de données ») : `langue`, `page`, `voyage` ;
+   - publier le conteneur.
+3. **Site** : saisir l'identifiant du conteneur (`GTM-XXXXXXX`) dans **Paramètres de l'agence → Mesure d'audience**. Le bandeau de consentement apparaît aussitôt sur le site.
+4. **Dans GA4** :
+   - marquer `demande_devis`, `reservation`, `clic_whatsapp` et `clic_telephone` comme **événements clés** ;
+   - créer un **groupe de canaux personnalisé** avec, en premier, un canal « Assistants IA » : source qui correspond à l'expression régulière `chatgpt|openai|perplexity|gemini|claude|copilot|mistral|deepseek|meta\.ai|grok`.
+5. Le site applique le **mode de consentement v2** : stockage publicitaire toujours refusé, mesure d'audience accordée seulement après « Accepter ».

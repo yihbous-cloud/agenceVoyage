@@ -4,6 +4,9 @@ import Link from "./LocalizedLink";
 import { useLocale } from "./LocaleProvider";
 import { NAV_LINKS } from "./navLinks";
 import SocialIcon, { getSocialBrand } from "./SocialIcon";
+import TrackedContactLink from "./TrackedContactLink";
+import { whatsappUrl, telHref } from "@/lib/contactLinks";
+import { resetConsent } from "@/lib/analytics";
 
 // Couleur or utilisée pour le texte sur fond clair — même valeur que le
 // reste du site public (HomeShowcaseCard.jsx, ProgramDetail.jsx,
@@ -16,22 +19,6 @@ const GOLD_ON_LIGHT = "#A8863C";
 // l'ordre d'origine de NAV_LINKS est préservé dans chaque groupe.
 const QUICK_LINKS_GROUP_1_HREFS = ["/omra", "/hajj", "/voyages-organises", "/actualites"];
 const QUICK_LINKS_GROUP_2_HREFS = ["/a-propos", "/faq", "/contact"];
-
-// WhatsApp exige un numéro international sans "0" initial (wa.me) — les
-// numéros saisis dans /admin/parametres sont au format marocain local
-// ("0661..."), convertis ici en +212661... Repli sur les chiffres tels
-// quels si le numéro est déjà international (commence par "+" ou ne
-// commence pas par "0").
-function whatsappHref(raw) {
-  if (!raw) return null;
-  const digits = raw.replace(/[^\d+]/g, "");
-  const intl = digits.startsWith("+")
-    ? digits.slice(1)
-    : digits.startsWith("0")
-      ? `212${digits.slice(1)}`
-      : digits;
-  return `https://wa.me/${intl}`;
-}
 
 // Convertit la couleur de marque (hex) en rgba() déjà résolu — plutôt que de
 // passer un hex brut à un modificateur d'opacité Tailwind arbitraire sur une
@@ -154,19 +141,18 @@ export default function SiteFooter({ agency }) {
                 <>
                   {addressLine && <p>{addressLine}</p>}
                   {agency?.phone && (
-                    <a href={`tel:${agency.phone.replace(/\s+/g, "")}`} className="hover:text-[#A8863C]">
-                      {agency.phone}
-                    </a>
+                    <TrackedContactLink kind="phone" href={telHref(agency.phone)} className="hover:text-[#A8863C]">
+                      <bdi>{agency.phone}</bdi>
+                    </TrackedContactLink>
                   )}
                   {agency?.whatsapp && (
-                    <a
-                      href={whatsappHref(agency.whatsapp)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <TrackedContactLink
+                      kind="whatsapp"
+                      href={whatsappUrl(agency.whatsapp, tr("Bonjour, je vous contacte depuis votre site."))}
                       className="hover:text-[#A8863C]"
                     >
-                      {tr("WhatsApp")} : {agency.whatsapp}
-                    </a>
+                      {tr("WhatsApp")} : <bdi>{agency.whatsapp}</bdi>
+                    </TrackedContactLink>
                   )}
                   {agency?.email && (
                     <a href={`mailto:${agency.email}`} className="hover:text-[#A8863C]">
@@ -202,13 +188,23 @@ export default function SiteFooter({ agency }) {
               (0661327686)
             </a>
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
             <Link href="/mentions-legales" className="hover:text-[#A8863C]">
               {tr("Mentions légales")}
             </Link>
             <Link href="/confidentialite" className="hover:text-[#A8863C]">
               {tr("Confidentialité")}
             </Link>
+            {agency?.has_cgv && (
+              <Link href="/conditions-generales-de-vente" className="hover:text-[#A8863C]">
+                {tr("Conditions générales de vente")}
+              </Link>
+            )}
+            {agency?.analytics_enabled && (
+              <button type="button" onClick={resetConsent} className="hover:text-[#A8863C]">
+                {tr("Gérer les cookies")}
+              </button>
+            )}
           </div>
         </div>
       </div>

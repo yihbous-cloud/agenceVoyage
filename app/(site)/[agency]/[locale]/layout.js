@@ -6,6 +6,7 @@ import { getAgencySettings } from "@/lib/agencySettings";
 import { LocaleProvider } from "@/app/_components/LocaleProvider";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
+import SiteAnalytics from "@/app/_components/SiteAnalytics";
 import { SUPPORTED_LOCALES, isValidLocale, isRtl, isIndexedLocale } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
@@ -113,6 +114,20 @@ export default async function SiteLayout({ children, params }) {
   // chaque page a UN SEUL bloc JSON-LD qui l'inclut (PageJsonLd,
   // CLAUDE.md §3centquatorzequadragies).
   const agency = await getAgencySettings(agencyRow.id).catch(() => null);
+  // Le pied de page est un composant client : seulement ce qu'il affiche
+  // (pas les CGV complètes ni les autres champs légaux).
+  const footerAgency = agency && {
+    name: agency.name,
+    logo_url: agency.logo_url,
+    address: agency.address,
+    city: agency.city,
+    phone: agency.phone,
+    whatsapp: agency.whatsapp,
+    email: agency.email,
+    social_links: agency.social_links,
+    has_cgv: Boolean(agency.cgv_fr?.trim() || agency.cgv_ar?.trim()),
+    analytics_enabled: Boolean(agency.gtm_container_id),
+  };
 
   return (
     <html
@@ -124,7 +139,8 @@ export default async function SiteLayout({ children, params }) {
         <LocaleProvider locale={locale} brandName={agencyRow.name}>
           <SiteHeader agencyName={agencyRow.name} />
           <div className="flex flex-1 flex-col">{children}</div>
-          <SiteFooter agency={agency} />
+          <SiteFooter agency={footerAgency} />
+          <SiteAnalytics gtmId={agency?.gtm_container_id || null} />
         </LocaleProvider>
       </body>
     </html>

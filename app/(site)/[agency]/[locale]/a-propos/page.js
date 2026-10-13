@@ -4,6 +4,8 @@ import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates } from "@/lib/i18n/seo";
 import PageJsonLd from "@/app/_components/PageJsonLd";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
+import TrackedContactLink from "@/app/_components/TrackedContactLink";
+import { whatsappUrl, telHref } from "@/lib/contactLinks";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -73,17 +75,30 @@ export default async function AProposPage({ params }) {
             )}
             {agency.phone && (
               <li>
-                <strong>{tr("Téléphone")} :</strong> <bdi>{agency.phone}</bdi>
+                <strong>{tr("Téléphone")} :</strong>{" "}
+                <TrackedContactLink kind="phone" href={telHref(agency.phone)} className="text-[#A8863C] hover:underline">
+                  <bdi>{agency.phone}</bdi>
+                </TrackedContactLink>
               </li>
             )}
             {agency.whatsapp && (
               <li>
-                <strong>{tr("WhatsApp")} :</strong> <bdi>{agency.whatsapp}</bdi>
+                <strong>{tr("WhatsApp")} :</strong>{" "}
+                <TrackedContactLink
+                  kind="whatsapp"
+                  href={whatsappUrl(agency.whatsapp, tr("Bonjour, je vous contacte depuis votre site."))}
+                  className="text-[#A8863C] hover:underline"
+                >
+                  <bdi>{agency.whatsapp}</bdi>
+                </TrackedContactLink>
               </li>
             )}
             {agency.email && (
               <li>
-                <strong>{tr("Email")} :</strong> <bdi>{agency.email}</bdi>
+                <strong>{tr("Email")} :</strong>{" "}
+                <a href={`mailto:${agency.email}`} className="text-[#A8863C] hover:underline">
+                  <bdi>{agency.email}</bdi>
+                </a>
               </li>
             )}
           </ul>

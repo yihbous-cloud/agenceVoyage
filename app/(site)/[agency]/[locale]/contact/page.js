@@ -5,6 +5,8 @@ import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates } from "@/lib/i18n/seo";
 import PageJsonLd from "@/app/_components/PageJsonLd";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
+import TrackedContactLink from "@/app/_components/TrackedContactLink";
+import { whatsappUrl, telHref } from "@/lib/contactLinks";
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -51,11 +53,35 @@ export default async function ContactPage({ params }) {
         <div className="space-y-3 text-sm text-zinc-700">
           <p>
             <strong>{tr("WhatsApp")} :</strong>{" "}
-            {agency?.whatsapp ? <bdi>{agency.whatsapp}</bdi> : toComplete}
+            {agency?.whatsapp ? (
+              <TrackedContactLink
+                kind="whatsapp"
+                href={whatsappUrl(agency.whatsapp, tr("Bonjour, je vous contacte depuis votre site."))}
+                className="text-[#A8863C] hover:underline"
+              >
+                <bdi>{agency.whatsapp}</bdi>
+              </TrackedContactLink>
+            ) : (
+              toComplete
+            )}
           </p>
+          {agency?.phone && (
+            <p>
+              <strong>{tr("Téléphone")} :</strong>{" "}
+              <TrackedContactLink kind="phone" href={telHref(agency.phone)} className="text-[#A8863C] hover:underline">
+                <bdi>{agency.phone}</bdi>
+              </TrackedContactLink>
+            </p>
+          )}
           <p>
             <strong>{tr("Email")} :</strong>{" "}
-            {agency?.email ? <bdi>{agency.email}</bdi> : toComplete}
+            {agency?.email ? (
+              <a href={`mailto:${agency.email}`} className="text-[#A8863C] hover:underline">
+                <bdi>{agency.email}</bdi>
+              </a>
+            ) : (
+              toComplete
+            )}
           </p>
           <p>
             <strong>{tr("Adresse")} :</strong>{" "}

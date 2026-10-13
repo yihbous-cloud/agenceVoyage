@@ -70,6 +70,14 @@ async function main() {
       [agencyId]
     );
 
+    // Lien WhatsApp « SITE » (migration 046) : code source des boutons
+    // WhatsApp du site public.
+    await connection.execute(
+      `INSERT IGNORE INTO wa_links (agency_id, code, label, prefilled_message)
+       VALUES (?, 'SITE', 'Site web (boutons WhatsApp)', 'Bonjour, je vous contacte depuis votre site.')`,
+      [agencyId]
+    );
+
     await connection.commit();
     console.log(`Agence créée : id ${agencyId}, sous-domaine "${subdomain}".`);
     console.log(`En développement : http://${subdomain}.localhost:3000 — en production : https://${subdomain}.<ROOT_DOMAIN>`);

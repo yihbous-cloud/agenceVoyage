@@ -14,6 +14,7 @@ import { listPhoneNumbersForTraveler } from "@/lib/travelerPhoneNumbers";
 import InscriptionManagerGrid from "./InscriptionManagerGrid";
 import { getTripDiscountCap } from "@/lib/registrationPricing";
 import Icon from "../../_components/Icon";
+import { leadChannelLabel, leadSourceFacts } from "@/lib/leadSource";
 import { REGISTRATION_STATUS, VISA_STATUS, initialsOf } from "../../_components/statusStyles";
 
 export default async function RegistrationDetailPage({ params, searchParams }) {
@@ -135,6 +136,22 @@ export default async function RegistrationDetailPage({ params, searchParams }) {
         </>
       ) : (
         "Non réservé"
+      ),
+    },
+    {
+      // Source de la demande (référencement, vague 1C) : canal + première
+      // visite du client quand l'inscription vient du site.
+      icon: "campaign",
+      label: "Source",
+      value: (
+        <>
+          <div>{leadChannelLabel(registration.lead_source)}</div>
+          {leadSourceFacts(registration.lead_source_details).map((fact) => (
+            <div key={fact.label} style={{ color: "var(--gf-subtle)", fontWeight: 400, fontSize: 12.5 }}>
+              {fact.label} : <span dir="ltr" translate="no">{fact.value}</span>
+            </div>
+          ))}
+        </>
       ),
     },
   ];

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
+import { leadChannelLabel, leadSourceFacts } from "@/lib/leadSource";
 
 export default function MessagesList({ initialMessages, canManage }) {
   const router = useRouter();
@@ -37,6 +38,17 @@ export default function MessagesList({ initialMessages, canManage }) {
                 <span className="font-normal text-zinc-500">— {msg.email}</span>
               </p>
               {msg.phone && <p className="text-sm text-zinc-500">{msg.phone}</p>}
+              {msg.lead_source && (
+                <p className="mt-1 text-xs text-zinc-500">
+                  Source : {leadChannelLabel(msg.lead_source)}
+                  {leadSourceFacts(msg.lead_source_details).map((fact) => (
+                    <span key={fact.label}>
+                      {" · "}
+                      {fact.label} : <span dir="ltr" translate="no">{fact.value}</span>
+                    </span>
+                  ))}
+                </p>
+              )}
               {msg.subject && (
                 <p className="mt-1 text-sm font-medium text-zinc-700">
                   {msg.subject}

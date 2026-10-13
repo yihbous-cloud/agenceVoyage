@@ -17,11 +17,33 @@ const FIELDS = [
   { key: "footerNote", label: "Note de bas de reçu", dataKey: "footer_note", span: 2 },
 ];
 
+// Informations légales (référencement, vague 1C — pages Mentions légales,
+// Confidentialité, CGV et balisage de l'organisation). Aucune valeur n'est
+// inventée sur le site : un champ vide n'y est simplement pas affiché.
+const LEGAL_FIELDS = [
+  { key: "legalName", label: "Raison sociale", dataKey: "legal_name", span: 2 },
+  { key: "legalForm", label: "Forme juridique", dataKey: "legal_form", placeholder: "ex. SARL, SARL AU" },
+  { key: "shareCapital", label: "Capital social", dataKey: "share_capital", placeholder: "ex. 100 000 MAD" },
+  { key: "licenseNumber", label: "N° de licence d'agence de voyages (loi 31-96)", dataKey: "license_number", span: 2 },
+  { key: "foundingDate", label: "Date de création", dataKey: "founding_date", type: "date" },
+  { key: "publicationDirector", label: "Directeur de la publication", dataKey: "publication_director" },
+  { key: "insuranceInfo", label: "Assurance responsabilité civile professionnelle (assureur, n° de police)", dataKey: "insurance_info", span: 2 },
+  { key: "cndpNumber", label: "N° de déclaration / autorisation CNDP (loi 09-08)", dataKey: "cndp_number", span: 2 },
+  { key: "hostingProvider", label: "Hébergeur du site (nom et adresse)", dataKey: "hosting_provider", span: 2 },
+];
+
+const TEXT_FIELDS = [
+  { key: "cgvFr", dataKey: "cgv_fr" },
+  { key: "cgvAr", dataKey: "cgv_ar" },
+  { key: "gtmContainerId", dataKey: "gtm_container_id" },
+];
+
 function toFormState(settings) {
   const state = {};
-  for (const field of FIELDS) {
+  for (const field of [...FIELDS, ...LEGAL_FIELDS, ...TEXT_FIELDS]) {
     const dbKey = field.dataKey || field.key;
-    state[field.key] = settings?.[dbKey] || "";
+    const value = settings?.[dbKey];
+    state[field.key] = value == null ? "" : field.type === "date" ? String(value).slice(0, 10) : value;
   }
   return state;
 }
@@ -220,6 +242,74 @@ export default function AgencySettingsForm({ settings, canEdit }) {
             />
           </div>
         ))}
+      </div>
+
+      <div className="border-t border-zinc-200 pt-4">
+        <label className="block text-sm font-medium text-zinc-700">Informations légales</label>
+        <p className="mt-1 text-xs text-zinc-500">
+          Utilisées pour les pages Mentions légales, Confidentialité et Conditions générales de vente du site. Un champ vide n&apos;est pas affiché.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          {LEGAL_FIELDS.map((field) => (
+            <div key={field.key} className={field.span === 2 ? "col-span-2" : ""}>
+              <label className="block text-sm font-medium text-zinc-700">{field.label}</label>
+              <input
+                type={field.type || "text"}
+                dir="auto"
+                disabled={!canEdit}
+                value={values[field.key]}
+                placeholder={field.placeholder}
+                onChange={handleChange(field.key)}
+                className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Conditions générales de vente — français</label>
+            <textarea
+              rows={8}
+              dir="ltr"
+              lang="fr"
+              disabled={!canEdit}
+              value={values.cgvFr}
+              onChange={handleChange("cgvFr")}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700">Conditions générales de vente — arabe</label>
+            <textarea
+              rows={8}
+              dir="rtl"
+              lang="ar"
+              disabled={!canEdit}
+              value={values.cgvAr}
+              onChange={handleChange("cgvAr")}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+            />
+          </div>
+          <p className="text-xs text-zinc-500">
+            Mise en forme simple possible : titres (## Titre), listes (- élément), gras (**texte**). La page « Conditions générales de vente » n&apos;apparaît sur le site qu&apos;une fois un texte saisi.
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-zinc-200 pt-4">
+        <label className="block text-sm font-medium text-zinc-700">Mesure d&apos;audience — identifiant Google Tag Manager</label>
+        <input
+          disabled={!canEdit}
+          value={values.gtmContainerId}
+          onChange={handleChange("gtmContainerId")}
+          placeholder="GTM-XXXXXXX"
+          dir="ltr"
+          className="mt-1 w-full max-w-xs rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase disabled:bg-zinc-100"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Vide : aucune mesure d&apos;audience et aucun bandeau de cookies sur le site. Renseigné : un bandeau demande l&apos;accord des visiteurs, et Google Tag Manager (Google Analytics 4) n&apos;est chargé qu&apos;après acceptation.
+        </p>
       </div>
 
       <div className="border-t border-zinc-200 pt-4">

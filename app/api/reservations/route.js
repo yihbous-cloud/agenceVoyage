@@ -4,6 +4,7 @@ import { getTripById } from "@/lib/programs";
 import { resolveAgencyId } from "@/lib/agencyContext";
 import { withNotFound } from "@/lib/apiGuard";
 import { rateLimit, clientIp, tooManyRequests } from "@/lib/rateLimit";
+import { resolveLeadSource } from "@/lib/leadSource";
 
 async function POST_handler(request) {
   // Réservation publique : 5 demandes / 10 min par adresse IP (NF-10).
@@ -50,10 +51,19 @@ async function POST_handler(request) {
       travelerId = result.insertId;
     }
 
+    // Source de la demande : le navigateur n'envoie que sa première
+    // visite, le canal est classé ici (lib/leadSource.js).
+    const lead = resolveLeadSource(body.leadSource, request.headers.get("host"));
     const [registrationResult] = await connection.execute(
-      `INSERT INTO registrations (trip_id, traveler_id, status, agency_id)
-       VALUES (?, ?, 'inscrit', ?)`,
-      [tripId, travelerId, agencyId]
+      `INSERT INTO registrations (trip_id, traveler_id, status, lead_source, lead_source_details, agency_id)
+       VALUES (?, ?, 'inscrit', ?, ?, ?)`,
+      [
+        tripId,
+        travelerId,
+        lead.leadSource,
+        lead.leadSourceDetails ? JSON.stringify(lead.leadSourceDetails) : null,
+        agencyId,
+      ]
     );
 
     await connection.commit();

@@ -216,7 +216,7 @@ export default function ProgramDetail({
                     ? tr.plural("{count} place restante", "{count} places restantes", trip.seats_remaining)
                     : tr("Complet")}
                 </p>
-                {trip.seats_remaining > 0 && <ReservationForm tripId={trip.id} />}
+                {trip.seats_remaining > 0 && <ReservationForm tripId={trip.id} tripRef={trip.reference_code} />}
               </div>
             );
           })}

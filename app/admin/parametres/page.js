@@ -13,12 +13,7 @@ export default async function ParametresPage() {
       <PageHeader
         icon="storefront"
         title="Paramètres de l'agence"
-        description={
-          <>
-            Ces informations apparaissent en en-tête des reçus de paiement
-            imprimables (format A5).
-          </>
-        }
+        description="Coordonnées et informations légales de l'agence : en-tête des reçus de paiement, pied de page et pages légales du site."
       />
 
       <AgencySettingsForm settings={settings} canEdit={canEdit} />

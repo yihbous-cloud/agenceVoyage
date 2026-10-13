@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createContactMessage } from "@/lib/contactMessages";
 import { withNotFound } from "@/lib/apiGuard";
 import { rateLimit, clientIp, tooManyRequests } from "@/lib/rateLimit";
+import { resolveLeadSource } from "@/lib/leadSource";
 
 async function POST_handler(request) {
   // Formulaire public : 5 messages / 10 min par adresse IP (NF-10).
@@ -17,7 +18,17 @@ async function POST_handler(request) {
     );
   }
 
-  const id = await createContactMessage(body);
+  // Source de la demande : le navigateur n'envoie que sa première visite,
+  // le canal est classé ici (lib/leadSource.js).
+  const lead = resolveLeadSource(body.leadSource, request.headers.get("host"));
+  const id = await createContactMessage({
+    fullName,
+    email,
+    message,
+    phone: body.phone,
+    subject: body.subject,
+    ...lead,
+  });
   return NextResponse.json({ id }, { status: 201 });
 }
 
