@@ -56,7 +56,7 @@ Le détail technique de chaque livraison est tenu à jour dans `CLAUDE.md` (sect
 |---|---|---|---|
 | **0 · S1** (livrée) | L0 corrections + piliers `/omra` `/hajj` | Décisions restantes, Search Console + Bing, fiche Google, mots-clés, brief Ramadan | Phase 0 vérifiée en production |
 | **1 · S2 à S5** | **1A (livrée le 12/10) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B (livrée le 13/10) :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C (livrée le 13/10) :** L8 GA4 (désactivé tant que l'identifiant GTM est vide) + source des demandes dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
-| **2 · S6 à S10** | **2A (livrée le 13/10) :** L3 fiche voyage en 10 blocs (programme jour par jour, inclus/non inclus, formalités datées, conditions, photos, vidéo, avis, tableau des formules) · **2B (prête) :** L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · **2C :** L11 santé SEO dans l'admin | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
+| **2 · S6 à S10** | **2A (livrée le 13/10) :** L3 fiche voyage en 10 blocs (programme jour par jour, inclus/non inclus, formalités datées, conditions, photos, vidéo, avis, tableau des formules) · **2B (livrée le 13/10) :** L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · **2C (prête) :** L11 santé SEO dans l'admin (problèmes à corriger et indicateurs face aux objectifs) | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
 | **3 · S11 à S16** | L6 PSEO, un gabarit à la fois, avec garde-fous · L10 GEO (baromètre des prix, `llms-full.txt`, panel de prompts) · L9 performance | Textes uniques des pages PSEO, premier panel IA | ≥ 70 % des pages PSEO indexées après 8 semaines |
 | **4 · en continu** | Anglais, ajustements | Netlinking, presse, YouTube, panel mensuel | — |
 
@@ -154,3 +154,16 @@ Pages indexées (Search Console, Bing), positions sur les 50 requêtes cœur, Co
 - Tant qu'aucune question n'est affectée à la page « Questions fréquentes », `/faq` garde sa liste actuelle. Tant qu'aucun guide n'est publié, `/guide` n'existe pas et le lien du pied de page n'apparaît pas.
 - Les fiches programme affichent « Guides utiles » (les guides choisis, sinon les plus récents du même pilier), et chaque pilier ses guides et ses questions.
 
+## 15. Ce que la vague 2C change pour l'équipe
+
+- **Nouvel onglet « Santé SEO »** dans Paramètres → Référencement (ouvert par défaut). Il liste ce qui empêche le site d'être bien référencé, avec pour chaque point un lien « Corriger » qui ouvre le bon écran. Rien n'est modifié automatiquement.
+- **En haut, quatre compteurs face aux objectifs du cahier** :
+  - fiches complètes (10 blocs sur 10) ;
+  - guides publiés (objectif 20) ;
+  - questions affichées sur le site (objectif 200) ;
+  - termes du lexique (objectif 50).
+- **Trois niveaux** :
+  - **Erreur** : à corriger tout de suite. Exemples : un départ ouvert à 0 MAD ; un guide religieux publié sans relecteur référent.
+  - **Avertissement** : à traiter. Exemples : bloc de fiche manquant ; version arabe ou française absente ; titre trop long pour Google ; formalités ou guide non revérifiés depuis 6 mois ; terme ou question sans arabe ; moins de 10 questions sur un pilier ; envoi aux moteurs en échec ; redirection vers une page retirée.
+  - **Information** : à garder en tête. Exemples : aucun départ ouvert ; pas de description Google saisie (une description automatique est utilisée) ; questions connues seulement de l'agent WhatsApp.
+- **Usage conseillé** : un passage chaque semaine. Traiter les erreurs le jour même, puis les avertissements des programmes publiés en premier. Le bouton « Actualiser » recalcule la liste après une correction.

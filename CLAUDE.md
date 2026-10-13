@@ -2247,6 +2247,85 @@ Suite de §3centdixseptquadragies (plan validé le 13/10/2026). Guides de fond, 
 
 `test:agency` étendu (auteurs, guides, traductions de guide, guides liés, lexique, questions du site : lectures et écritures croisées refusées, guide religieux sans relecteur refusé) : 143 contrôles OK ; `lint:agency` (les requêtes à gabarits imbriqués ont été réécrites avec des clauses précalculées pour que le contrôle les lise), ESLint, `i18n-check public` (0 manquant), `test:whatsapp-ai` (24/24, serveur de dev requis), build, `schema.sql` importé dans une base vierge (tables identiques). Build de production local, compte et rôle temporaires (supprimés) : 46 contrôles HTTP (404 sans contenu, relecteur non référent refusé, slug en double et slug réservé refusés, guide FR/AR avec auteur, relecteur, offre la plus proche et hreflang, `Article`/`Person`/`reviewedBy`, hub, pilier, « Guides utiles », pied de page, lexique FR/AR et `DefinedTermSet`, banque de questions sur `/faq` et le pilier Omra avec variantes et lien localisé, `FAQPage`, question sans réponse dans sa langue et lien externe refusés, redirection 301 au changement de slug, sitemap et `llms.txt`), bloc de connaissances de l'agent (question arabe et variantes incluses), écrans admin en arabe sans texte manquant, pages publiques sur téléphone, `test:seo` : 0 erreur. Données de test supprimées.
 
+## 3centdixneufquadragies. Référencement global — phase 2, vague 2C : santé SEO dans l'admin (aucune migration)
+
+Fin de la phase 2 (§3centdixseptquadragies, §3centdixhuitquadragies). Onglet **« Santé SEO »**, ouvert par défaut, de `/admin/referencement` (permission `seo.manage`). `?onglet=sante|redirections|indexation|sources` ouvre directement un onglet (utilisé par les liens « Corriger »).
+
+### `lib/seoHealth.js` → `getSeoHealth(agencyId)`
+
+- Tout est calculé à la demande depuis la base, en requêtes groupées (~100 ms sur les données locales). Rien n'est stocké, aucune tâche planifiée.
+- Résultat : `{ counts: {erreur, avertissement, info}, indicators, sections }`.
+- **Problème** = `{ severity, subject, message, params, href }`.
+  - `message` est un **texte source français à variables** (`{count}`, `{date}`…), traduit par le dictionnaire admin.
+  - Un paramètre tableau est une liste de libellés traduits un à un, puis joints par « ، » en arabe.
+- `SEO_TARGETS` (objectifs du cahier) :
+
+  | Objectif | Valeur |
+  |---|---|
+  | Guides publiés | 20 |
+  | Questions affichées sur le site | 200 |
+  | Termes du lexique | 50 |
+  | Questions par pilier | 10 au minimum |
+  | Questions de FAQ par programme | 5 au minimum |
+
+  Les seuils de titre (60 caractères) et de description (155) sont ceux de `scripts/seo-check.mjs`.
+- **Indicateurs** : fiches complètes (10/10 blocs) sur le nombre de programmes publiés, guides publiés / 20, questions affichées sur le site / 200, termes du lexique / 50.
+
+### Contrôles
+
+| Section | Contrôle | Gravité |
+|---|---|---|
+| Programmes publiés | Blocs manquants (`programCompleteness`, qui couvre aussi FAQ < 5, photos et avis) | Avertissement |
+| | Prix à 0 sur un départ ouvert | **Erreur** |
+| | Aucun départ ouvert | Information |
+| | Version de l'autre langue manquante | Avertissement |
+| | Titre Google > 60 caractères dans une langue (`meta_title`, sinon « titre \| marque ») | Avertissement |
+| | Description Google absente | Information (une description est générée) |
+| | Description Google > 155 caractères | Avertissement |
+| | Formalités vérifiées il y a plus de 6 mois | Avertissement |
+| Guides publiés | Religieux sans relecteur référent religieux | **Erreur** |
+| | Sans auteur | Avertissement |
+| | Jamais relu, ou relu il y a plus de 6 mois | Avertissement |
+| | Moins de 300 mots | Avertissement |
+| | Version de l'autre langue manquante | Avertissement |
+| Lexique et banque de questions | Termes publiés sans version arabe ou française (5 noms cités au plus) | Avertissement |
+| | Questions publiées sans réponse en arabe | Avertissement |
+| | Questions publiées sans « Page du site » | Information |
+| | Moins de 10 questions sur un pilier **qui a des programmes publiés** | Avertissement |
+| Technique | Échecs IndexNow sur 7 jours | Avertissement |
+| | Redirection vers une fiche, un guide ou une actualité non publié | Avertissement |
+
+Les liens « Corriger » mènent à :
+- la fiche programme ;
+- l'éditeur de guide ;
+- le lexique ;
+- la banque de questions ;
+- l'onglet Indexation ou Redirections.
+
+⚠️ Pour ajouter un contrôle :
+1. ajouter une entrée `issue(...)` dans la section concernée ;
+2. ajouter son texte source français dans `admin.ar.js` et `admin.en.js` ;
+3. le déclencher puis le résoudre dans `scripts/seo-health-test.mjs`.
+
+### Admin
+
+`SeoHealthPanel.jsx` contient :
+- les 4 cartes d'indicateurs (barre de progression, % de l'objectif — fraction isolée en `<bdi dir="ltr">` pour l'arabe) ;
+- le total par gravité ;
+- un filtre par gravité et un bouton « Actualiser » ;
+- une carte par section (« N point(s) à revoir »), chaque problème avec sa pastille de gravité, son sujet et « Corriger ».
+
+### Vérification
+
+- **`npm run test:seo-health`** (`scripts/seo-health-test.mjs`, 31 contrôles) : dans une agence **temporaire**, chaque contrôle est déclenché par une donnée de test, constaté, puis résolu ; on vérifie ensuite qu'il disparaît. Cela vaut aussi pour la fiche complète 10/10, qui fait passer l'indicateur de 0 à 1. Le test vérifie enfin que l'agence 1 ne voit rien de l'agence de test, puis supprime tout.
+- ⚠️ `createProgram` n'écrit pas les champs de la fiche (formalités, jours…) : passer par `updateProgram`.
+- Autres contrôles : `test:agency`, `lint:agency`, ESLint, `i18n-check public` (0 manquant) et build OK.
+- Build de production local avec un compte et un rôle temporaires (supprimés ensuite), sur les données de l'agence 1, en lecture seule : onglet vérifié en français et en arabe (aucun texte manquant hors données), sur téléphone sans débordement.
+
+## 3centvingtquadragies. Admin : police Noto Kufi Arabic variable (erreur Turbopack en dev)
+
+Le serveur de dev affichait « Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font' — next/font/google queries have exactly one entry » et l'admin restait blanc. Cause : `Noto_Kufi_Arabic({ weight: ["400","500","600","700"] })` (`app/admin/layout.js`) — Google renvoie le **même fichier** pour chaque graisse (police variable), ce que Turbopack (dev) ne supporte pas. Correctif : **aucune liste de graisses** (police variable, un fichier par sous-ensemble) ; les graisses 400-700 de `admin-theme.css` fonctionnent comme avant. Règle : pour une police Google qui existe en version variable, ne pas passer `weight: [...]`. Vérifié : `/admin/login` s'affiche en arabe, `next build` OK. (Vider `.next/dev` n'avait pas suffi.)
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

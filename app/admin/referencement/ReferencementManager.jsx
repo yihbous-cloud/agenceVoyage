@@ -4,6 +4,7 @@ import { useState } from "react";
 import Icon from "../_components/Icon";
 import { useConfirm } from "../_components/useConfirm";
 import { leadChannelLabel } from "@/lib/leadSource";
+import SeoHealthPanel from "./SeoHealthPanel";
 
 // Origine d'une redirection (colonne redirects.source).
 const SOURCE_LABELS = {
@@ -22,8 +23,8 @@ const PING_STATUS = {
 // Date MySQL « AAAA-MM-JJ HH:MM:SS » → « AAAA-MM-JJ HH:MM ».
 const shortDate = (value) => (value ? String(value).replace("T", " ").slice(0, 16) : "—");
 
-export default function ReferencementManager({ initialRedirects, pings, baseUrl, leadReports = {}, gtmId = null }) {
-  const [tab, setTab] = useState("redirections");
+export default function ReferencementManager({ initialRedirects, pings, baseUrl, leadReports = {}, gtmId = null, health, initialTab = "sante" }) {
+  const [tab, setTab] = useState(initialTab);
   const [leadPeriod, setLeadPeriod] = useState("30");
   const leadReport = leadReports[leadPeriod];
   const [redirects, setRedirects] = useState(initialRedirects);
@@ -70,6 +71,9 @@ export default function ReferencementManager({ initialRedirects, pings, baseUrl,
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2">
+        <button type="button" className={tabClass("sante")} onClick={() => setTab("sante")}>
+          Santé SEO
+        </button>
         <button type="button" className={tabClass("redirections")} onClick={() => setTab("redirections")}>
           Redirections
         </button>
@@ -80,6 +84,8 @@ export default function ReferencementManager({ initialRedirects, pings, baseUrl,
           Sources des demandes
         </button>
       </div>
+
+      {tab === "sante" && health && <SeoHealthPanel health={health} />}
 
       {tab === "redirections" && (
         <div className="space-y-6">
