@@ -9,20 +9,25 @@ import { itemListNode } from "@/lib/seo/jsonLd";
 import { programPath } from "@/lib/programUrls";
 import { localizePath } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
-import { pageAlternates } from "@/lib/i18n/seo";
+import { withFrenchElision } from "@/lib/i18n/frenchGrammar";
+import { pageAlternates, brandedTitle } from "@/lib/i18n/seo";
 
 export const revalidate = 300;
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale, ville } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
-  const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  const baseTr = makeTranslator(locale, "public", { brandName: agencyRow.name });
   const iata = getIataBySlug(ville);
-  if (!iata) return { title: tr("Ville introuvable") };
+  if (!iata) return { title: baseTr("Ville introuvable") };
 
-  const cityName = tr(getCityByIata(iata).city);
+  const cityName = baseTr(getCityByIata(iata).city);
+  // « de Agadir » → « d'Agadir » dans tous les textes français de la page.
+  const tr = withFrenchElision(baseTr, cityName, locale);
   return {
-    title: tr("Voyages au départ de {city}", { city: cityName }),
+    // Titre court pour Google (60 caractères avec le nom de l'agence) ; le
+    // titre de la page (H1) garde la formulation longue.
+    title: brandedTitle(tr("Omra et voyages depuis {city}", { city: cityName }), agencyRow.name),
     description: tr(
       "Programmes Omra & Hajj et voyages organisés au départ de {city} ({iata}), avec Golden Fantastic.",
       { city: cityName, iata }
@@ -38,14 +43,16 @@ export default async function DepartureCityPage({ params, searchParams }) {
   const { agency: subdomain, locale, ville } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const { famille } = await searchParams;
-  const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  const baseTr = makeTranslator(locale, "public", { brandName: agencyRow.name });
   const iata = getIataBySlug(ville);
 
   if (!iata) {
     notFound();
   }
 
-  const cityName = tr(getCityByIata(iata).city);
+  const cityName = baseTr(getCityByIata(iata).city);
+  // « de Agadir » → « d'Agadir » dans tous les textes français de la page.
+  const tr = withFrenchElision(baseTr, cityName, locale);
   const breadcrumb = [
     { name: tr("Accueil"), href: "/" },
     { name: tr("Départ de {city}", { city: cityName }) },

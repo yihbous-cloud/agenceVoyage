@@ -1,5 +1,6 @@
 import { getProgramsByFamily, getDepartureCities } from "@/lib/programs";
 import { citySlug } from "@/lib/airports";
+import { frenchDe } from "@/lib/i18n/frenchGrammar";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { programPath, programPillar } from "@/lib/programUrls";
 import { plainSummary } from "@/lib/markdown";
@@ -74,7 +75,7 @@ export async function GET() {
           "## Villes de départ",
           "",
           ...departureCities.map(
-            (c) => `- [Départ de ${c.city}](${baseUrl}/villes-depart/${citySlug(c.city)})`
+            (c) => `- [Départ ${frenchDe(c.city)}](${baseUrl}/villes-depart/${citySlug(c.city)})`
           ),
           "",
         ]
