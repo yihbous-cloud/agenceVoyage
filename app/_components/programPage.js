@@ -7,12 +7,16 @@ import {
   getProgramSuggestions,
 } from "@/lib/programs";
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
+import { listProgramMedia } from "@/lib/programMedia";
+import { listPublishedReviews } from "@/lib/programReviews";
+import { getAgencySettings } from "@/lib/agencySettings";
+import { computeDuration, formatDate } from "./formatTrip";
 import { programPath, programPillar } from "@/lib/programUrls";
 import { canonicalLocaleFor } from "@/lib/i18n/contentLocale";
-import { localizePath } from "@/lib/i18n/locales";
+import { localizePath, INTL_TAGS } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { pageAlternates, buildSocialMetadata } from "@/lib/i18n/seo";
-import { plainSummary } from "@/lib/markdown";
+import { plainSummary, truncateText } from "@/lib/markdown";
 import ProgramDetail from "./ProgramDetail";
 
 // Fiche programme publique, partagée par les trois piliers (/omra/[slug],
@@ -40,8 +44,7 @@ export async function programMetadata(params) {
   const alternates = pageAlternates(locale, programPath(program), {
     availableLocales: program.available_locales,
   });
-  const description =
-    program.meta_description || plainSummary(program.short_description || program.full_description);
+  const description = program.meta_description || (await defaultDescription(program, agencyRow, locale));
 
   return {
     // Un titre SEO saisi dans l'admin est utilisé tel quel (il contient déjà
@@ -61,6 +64,25 @@ export async function programMetadata(params) {
   };
 }
 
+// Description par défaut quand aucune n'est saisie (cahier §6.3) : durée,
+// prochain départ et prix « à partir de » en tête, puis le résumé du
+// programme — 155 caractères maximum.
+async function defaultDescription(program, agencyRow, locale) {
+  const summary = plainSummary(program.short_description || program.full_description, 300);
+  const trips = await getOpenTripsForProgram(program.id, agencyRow.id, locale).catch(() => []);
+  const next = trips[0];
+  if (!next) return truncateText(summary, 155);
+  const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
+  const priced = trips.filter((t) => Number(t.starting_price) > 0).map((t) => Number(t.starting_price));
+  const duration = computeDuration(next.departure_date, next.return_date);
+  const facts = [
+    duration ? tr.plural("{count} jour", "{count} jours", duration.days) : null,
+    tr("départ le {date}", { date: formatDate(next.departure_date, INTL_TAGS[locale]) }),
+    priced.length > 0 ? `${tr("à partir de")} ${Math.min(...priced)} ${tr(next.currency || "MAD")}` : null,
+  ].filter(Boolean);
+  return truncateText(`${program.title} : ${facts.join(", ")}. ${summary}`, 155);
+}
+
 export async function renderProgramPage(params, pillar) {
   const { agency: subdomain, locale, slug } = await params;
   const { agencyRow, program } = await loadProgram(subdomain, slug, locale);
@@ -72,9 +94,12 @@ export async function renderProgramPage(params, pillar) {
     permanentRedirect(localizePath(programPath(program), locale));
   }
 
-  const [trips, faqs] = await Promise.all([
+  const [trips, faqs, media, reviews, settings] = await Promise.all([
     getOpenTripsForProgram(program.id, agencyRow.id, locale).catch(() => []),
     listPublishedFaqsForProgram(program.id, agencyRow.id, locale).catch(() => []),
+    listProgramMedia(program.id, agencyRow.id).catch(() => []),
+    listPublishedReviews(program.id, agencyRow.id).catch(() => null),
+    getAgencySettings(agencyRow.id).catch(() => null),
   ]);
 
   // TECH-09 : plus aucun départ ouvert → départs terminés + suite proposée
@@ -99,6 +124,12 @@ export async function renderProgramPage(params, pillar) {
       pastTrips={pastTrips}
       successor={successor}
       suggestions={suggestions}
+      media={media}
+      reviews={reviews}
+      contact={{
+        whatsapp: settings?.whatsapp || null,
+        hasCgv: Boolean(settings?.cgv_fr?.trim() || settings?.cgv_ar?.trim()),
+      }}
     />
   );
 }

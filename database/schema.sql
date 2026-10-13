@@ -147,6 +147,16 @@ CREATE TABLE programs (
     theme VARCHAR(50) NULL COMMENT 'ex: plage, culture, aventure, famille, couple — pertinent uniquement si family = voyage_organise',
     short_description VARCHAR(500) NULL,
     full_description TEXT NULL COMMENT 'contenu riche, utilisé aussi pour schema.org / GEO',
+    -- Fiche voyage en 10 blocs (migration 047) : contenu saisi au niveau du
+    -- programme ; l'autre langue est dans program_translations.
+    supervision TEXT NULL COMMENT 'encadrement : guide religieux, accompagnateur',
+    itinerary_days JSON NULL COMMENT 'programme jour par jour : [{title, description}]',
+    included_items TEXT NULL COMMENT 'inclus, un élément par ligne',
+    excluded_items TEXT NULL COMMENT 'non inclus, un élément par ligne',
+    formalities TEXT NULL COMMENT 'documents, délais, conditions (Markdown)',
+    formalities_verified_at DATE NULL COMMENT 'formalités vérifiées le',
+    formalities_source_url VARCHAR(500) NULL COMMENT 'source officielle des formalités',
+    booking_conditions TEXT NULL COMMENT 'acompte, échéancier, annulation, modification (Markdown)',
     cover_image_url VARCHAR(500) NULL,
     is_published BOOLEAN NOT NULL DEFAULT FALSE,
     successor_program_id BIGINT UNSIGNED NULL COMMENT 'Programme qui prend la suite, affiché quand tous les départs sont terminés (migration 044)',
@@ -171,6 +181,7 @@ CREATE TABLE trips (
     destination_iata CHAR(3) NULL COMMENT 'Code IATA aéroport d''arrivée à l''aller, ex: JED',
     outbound_layover_iata CHAR(3) NULL COMMENT 'aéroport d''escale à l''aller, NULL = vol direct (migration 017)',
     return_layover_iata CHAR(3) NULL COMMENT 'aéroport d''escale au retour, NULL = vol direct (migration 017)',
+    baggage_allowance VARCHAR(150) NULL COMMENT 'franchise bagages, ex. 2 x 23 kg + 7 kg cabine (migration 047)',
     return_origin_iata CHAR(3) NULL COMMENT 'aéroport de départ au retour, NULL = même aéroport que l''arrivée à l''aller (sens inversé) (migration 018)',
     return_destination_iata CHAR(3) NULL COMMENT 'aéroport d''arrivée au retour, NULL = même aéroport que le départ à l''aller (sens inversé) (migration 018)',
     airline_id SMALLINT UNSIGNED NULL,
@@ -239,6 +250,7 @@ CREATE TABLE hotels (
     star_rating VARCHAR(10) NULL COMMENT 'ex: 3, 4, 4+, 5+ (texte libre depuis migration 023)',
     board_basis ENUM('logement_seul', 'petit_dejeuner', 'demi_pension') NOT NULL DEFAULT 'logement_seul' COMMENT 'Formule de restauration proposée par l''hôtel (migration 022)',
     landmark_distance_m INT UNSIGNED NULL COMMENT 'distance en mètres jusqu''à landmark_name',
+    photo_url VARCHAR(500) NULL COMMENT 'photo réelle de l hôtel (migration 047)',
     contact_info VARCHAR(255) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     reserved_rooms_simple INT UNSIGNED NULL COMMENT 'Quota de chambres réservées pour l''agence par type, planification (migration 022) — distinct des chambres réelles de rooms ; NULL = ce type n''existe pas dans cet hôtel, 0 = existe mais aucune réservée (migration 023)',
@@ -2065,6 +2077,12 @@ CREATE TABLE program_translations (
     title VARCHAR(200) NULL,
     short_description VARCHAR(500) NULL,
     full_description TEXT NULL,
+    supervision TEXT NULL,
+    itinerary_days JSON NULL,
+    included_items TEXT NULL,
+    excluded_items TEXT NULL,
+    formalities TEXT NULL,
+    booking_conditions TEXT NULL,
     meta_title VARCHAR(200) NULL,
     meta_description VARCHAR(300) NULL,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -2125,3 +2143,51 @@ ALTER TABLE contact_messages ADD INDEX idx_contact_lead_source (agency_id, lead_
 INSERT IGNORE INTO wa_links (agency_id, code, label, prefilled_message)
 SELECT id, 'SITE', 'Site web (boutons WhatsApp)', 'Bonjour, je vous contacte depuis votre site.'
 FROM agencies;
+
+-- =====================================================================
+-- Référencement, vague 2A (migration 047) : photos/vidéo et avis clients
+-- des fiches programme.
+-- =====================================================================
+-- --- Preuves : photos et vidéo du programme -------------------------------
+CREATE TABLE program_media (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    agency_id BIGINT UNSIGNED NOT NULL,
+    program_id BIGINT UNSIGNED NOT NULL,
+    kind ENUM('photo', 'video') NOT NULL DEFAULT 'photo',
+    url VARCHAR(500) NOT NULL COMMENT 'chemin d upload (photo) ou lien YouTube (vidéo)',
+    caption_fr VARCHAR(255) NULL COMMENT 'légende, sert aussi de texte alternatif',
+    caption_ar VARCHAR(255) NULL,
+    video_upload_date DATE NULL COMMENT 'date de mise en ligne de la vidéo (VideoObject)',
+    sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_program_media_program (agency_id, program_id, sort_order),
+    CONSTRAINT fk_program_media_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
+    CONSTRAINT fk_program_media_program FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --- Preuves : avis clients réellement reçus, saisis par l'équipe ---------
+-- Publiable seulement avec le consentement de l'auteur (consent_given).
+CREATE TABLE program_reviews (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    agency_id BIGINT UNSIGNED NOT NULL,
+    program_id BIGINT UNSIGNED NOT NULL,
+    trip_id BIGINT UNSIGNED NULL COMMENT 'départ concerné (facultatif)',
+    author_name VARCHAR(120) NOT NULL,
+    author_city VARCHAR(100) NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    body TEXT NOT NULL,
+    locale ENUM('ar', 'fr', 'en') NOT NULL DEFAULT 'ar' COMMENT 'langue du texte de l avis',
+    review_date DATE NOT NULL,
+    consent_given BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'accord de l auteur pour la publication',
+    is_published BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by_staff_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_program_reviews_program (agency_id, program_id, is_published),
+    CONSTRAINT chk_program_reviews_rating CHECK (rating BETWEEN 1 AND 5),
+    CONSTRAINT chk_program_reviews_consent CHECK (is_published = FALSE OR consent_given = TRUE),
+    CONSTRAINT fk_program_reviews_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
+    CONSTRAINT fk_program_reviews_program FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_program_reviews_trip FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE SET NULL,
+    CONSTRAINT fk_program_reviews_staff FOREIGN KEY (created_by_staff_id) REFERENCES staff_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

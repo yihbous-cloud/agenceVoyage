@@ -22,6 +22,8 @@ import { listIndexNowPings } from "../lib/indexNow.js";
 import * as ct from "../lib/contentTranslations.js";
 import * as contactMessages from "../lib/contactMessages.js";
 import { getLeadSourceReport } from "../lib/leadReports.js";
+import * as media from "../lib/programMedia.js";
+import * as reviews from "../lib/programReviews.js";
 import { getPool } from "../lib/db.js";
 
 // Test d'isolation multi-agences (CLAUDE.md §3sexvicies passe 2). Crée une
@@ -109,6 +111,20 @@ ok(frA3?.title === "PROG-A3-FR" && frA3.available_locales.includes("fr"), "agenc
 await contactMessages.createContactMessage({ fullName: "Contact A3", email: "a3@iso.test", message: "m", leadSource: "assistant_ia", leadSourceDetails: { utm_source: "chatgpt.com" } });
 const reportA3 = await getLeadSourceReport(3650);
 ok(reportA3.channels.find((c) => c.key === "assistant_ia")?.messages === 1, "agence 3 : son message compté dans ses sources");
+// Fiche voyage en 10 blocs (migration 047) : contenu, médias et avis de l'agence 3
+await pa.updateProgram(programId, { supervision: "Guide A3", itineraryDays: [{ title: "Jour A3", description: "Arrivée" }] });
+await ct.setTranslations("program", programId, { fr: { title: "PROG-A3-FR", shortDescription: "Description A3", itineraryDays: [{ title: "Day A3", description: "x" }] } });
+const photoA3 = await media.createProgramMedia(programId, { kind: "photo", url: `/uploads/agencies/${OTHER}/programs/a3.jpg`, captionFr: "Photo A3" });
+const videoA3 = await media.createProgramMedia(programId, { kind: "video", url: "https://youtu.be/dQw4w9WgXcQ", videoUploadDate: "2026-01-01" });
+ok((await media.listProgramMedia(programId)).length === 2, "agence 3 : ses 2 médias");
+const reviewA3 = await reviews.createReview(programId, { authorName: "Avis A3", rating: 5, body: "Très bien", reviewDate: "2026-01-02", consentGiven: true, isPublished: true }, null);
+ok((await reviews.listPublishedReviews(programId)).count === 1, "agence 3 : son avis publié");
+try {
+  await reviews.createReview(programId, { authorName: "Sans accord", rating: 4, body: "x", reviewDate: "2026-01-02", consentGiven: false, isPublished: true }, null);
+  ok(false, "un avis sans consentement ne doit pas être publiable");
+} catch (err) {
+  ok(err.code === "VALIDATION", "avis publié sans consentement refusé");
+}
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
 // Demande de compte (migration 041)
@@ -152,6 +168,9 @@ for (const [entity, id] of [["program", programId], ["faq", faqId], ["news", new
   ok(Object.keys(await ct.listTranslations(entity, [id])).length === 0, `traductions ${entity} de l'agence 3 invisibles`);
 }
 ok((await programs.getProgramBySlug("prog-a3", undefined, "fr")) === null, "version française d'un programme étranger introuvable");
+ok((await media.listProgramMedia(programId)).length === 0, "médias d'un programme étranger invisibles");
+ok((await reviews.listReviewsForProgram(programId)).length === 0, "avis d'un programme étranger invisibles (admin)");
+ok((await reviews.listPublishedReviews(programId)).count === 0, "avis publiés d'un programme étranger invisibles (site)");
 const [ownAi] = await q("SELECT COUNT(*) AS n FROM contact_messages WHERE agency_id = 1 AND lead_source = 'assistant_ia' AND created_at >= UTC_TIMESTAMP() - INTERVAL 3650 DAY");
 const report1 = await getLeadSourceReport(3650);
 ok(report1.channels.find((c) => c.key === "assistant_ia")?.messages === Number(ownAi.n), "sources des demandes : agence 1 ne compte pas les messages de l'agence 3");
@@ -191,7 +210,22 @@ await throwsNotFound(() => redirects.deleteRedirect(redirRowA3.id), "deleteRedir
 for (const [entity, id] of [["program", programId], ["faq", faqId], ["news", newsId], ["slide", slideId]]) {
   await throwsNotFound(() => ct.setTranslations(entity, id, { fr: { title: "PIRATE", question: "PIRATE", answer: "PIRATE" } }), `setTranslations ${entity} étranger`);
 }
+await throwsNotFound(() => media.createProgramMedia(programId, { kind: "video", url: "https://youtu.be/dQw4w9WgXcQ" }), "createProgramMedia sur un programme étranger");
+await throwsNotFound(() => media.updateProgramMedia(photoA3, { captionFr: "PIRATE" }), "updateProgramMedia étranger");
+await throwsNotFound(() => media.deleteProgramMedia(photoA3), "deleteProgramMedia étranger");
+await throwsNotFound(() => media.reorderProgramMedia(programId, [videoA3, photoA3]), "reorderProgramMedia étranger");
+await throwsNotFound(() => reviews.createReview(programId, { authorName: "x", rating: 5, body: "x", reviewDate: "2026-01-02" }, null), "createReview sur un programme étranger");
+await throwsNotFound(() => reviews.updateReview(reviewA3, { authorName: "PIRATE", rating: 1, body: "x", reviewDate: "2026-01-02" }), "updateReview étranger");
+await throwsNotFound(() => reviews.deleteReview(reviewA3), "deleteReview étranger");
 const [ownProgram] = await q("SELECT id FROM programs WHERE agency_id = 1 LIMIT 1");
+if (ownProgram) {
+  try {
+    await media.createProgramMedia(ownProgram.id, { kind: "photo", url: `/uploads/agencies/${OTHER}/programs/a3.jpg` });
+    ok(false, "une photo envoyée par une autre agence ne doit pas être acceptée");
+  } catch (err) {
+    ok(err.code === "VALIDATION", "photo d'une autre agence refusée");
+  }
+}
 if (ownProgram) await throwsNotFound(() => pa.updateProgram(ownProgram.id, { successorProgramId: programId }), "successeur pris dans une autre agence");
 try { await pa.deleteProgram(programId); ok(false, "deleteProgram étranger devrait échouer"); } catch { ok(true, "deleteProgram étranger refusé"); }
 
@@ -216,6 +250,13 @@ ok((await ct.listTranslations("faq", [faqId]))[faqId]?.fr?.question === "Q-A3-FR
 ok((await ct.listTranslations("news", [newsId]))[newsId]?.fr?.title === "NEWS-A3-FR", "traduction de l'actualité A3 intacte");
 ok((await ct.listTranslations("slide", [slideId]))[slideId]?.fr?.title === "SLIDE-A3-FR", "traduction de la diapositive A3 intacte");
 ok((await staff.listStaffUsers()).find((u) => u.id === signupA3)?.approval_status === "en_attente", "demande de compte A3 toujours en attente");
+const mediaA3 = await media.listProgramMedia(programId);
+ok(mediaA3.length === 2 && mediaA3[0].id === photoA3 && mediaA3[0].caption_fr === "Photo A3", "médias A3 intacts (ordre et légende)");
+ok((await reviews.listReviewsForProgram(programId)).find((r) => r.id === reviewA3)?.author_name === "Avis A3", "avis A3 intact");
+const ficheA3 = await pa.getProgramById(programId);
+ok(ficheA3.supervision === "Guide A3", "contenu de la fiche A3 intact");
+const ficheFr = (await ct.listTranslations("program", [programId]))[programId]?.fr;
+ok(JSON.stringify(ficheFr?.itinerary_days ?? ficheFr?.itineraryDays ?? "").includes("Day A3"), "programme jour par jour (version française) A3 enregistré");
 
 // même numéro WhatsApp dans deux agences = deux voyageurs distincts
 setScriptAgencyId(1);

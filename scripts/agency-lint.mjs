@@ -28,6 +28,7 @@ const TENANT_TABLES = [
   "redirects", "seo_indexnow_pings",
   // Contenu FR/AR par entité (migration 045)
   "program_translations", "program_faq_translations", "news_translations", "slide_translations",
+  "program_media", "program_reviews",
 ];
 
 const TABLE_RE = new RegExp(

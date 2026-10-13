@@ -29,6 +29,7 @@ function emptyForm() {
     reservedRoomsTriple: "",
     reservedRoomsQuadruple: "",
     reservedRoomsQuintuple: "",
+    photoUrl: "",
   };
 }
 
@@ -47,6 +48,7 @@ function hotelToFormValues(h) {
     reservedRoomsTriple: h.reserved_rooms_triple ?? "",
     reservedRoomsQuadruple: h.reserved_rooms_quadruple ?? "",
     reservedRoomsQuintuple: h.reserved_rooms_quintuple ?? "",
+    photoUrl: h.photo_url || "",
   };
 }
 
@@ -77,6 +79,30 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
   };
 
   const cityOptions = getCitiesForCountry(form.country);
+
+  // Photo réelle de l'hôtel (fiche voyage publique, vague 2A).
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("folder", "hotels");
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Erreur lors de l'envoi");
+      setForm((f) => ({ ...f, photoUrl: data.url }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -199,6 +225,24 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
         </select>
       </div>
       <div className="col-span-2">
+        <label className="block text-sm font-medium text-zinc-700">Photo de l&apos;hôtel</label>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          {form.photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.photoUrl} alt="" className="h-16 w-24 rounded object-cover" />
+          )}
+          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={handlePhoto} className="text-sm" />
+          {form.photoUrl && (
+            <button type="button" onClick={() => setForm((f) => ({ ...f, photoUrl: "" }))} className="text-xs text-red-600 hover:underline">
+              Retirer la photo
+            </button>
+          )}
+        </div>
+        {uploading && <p className="mt-1 text-xs text-zinc-500">Envoi en cours...</p>}
+        {uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
+        <p className="mt-1 text-xs text-zinc-400">Une vraie photo de l&apos;hôtel, affichée sur la fiche publique des voyages qui l&apos;utilisent.</p>
+      </div>
+      <div className="col-span-2">
         <label className="block text-sm font-medium text-zinc-700">
           Chambres réservées pour l&apos;agence, par type
         </label>
@@ -225,7 +269,7 @@ function HotelForm({ initial, onSubmit, onCancel, submitting, submitLabel }) {
       <div className="col-span-2 flex gap-3">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
         >
           {submitting ? "Enregistrement..." : submitLabel}

@@ -68,6 +68,8 @@ const REQUIRED = {
   FAQPage: ["mainEntity"],
   NewsArticle: ["headline", "url", "publisher"],
   ItemList: ["itemListElement"],
+  VideoObject: ["name", "thumbnailUrl", "uploadDate", "embedUrl"],
+  Product: ["name", "aggregateRating"],
 };
 
 function checkPage(path, html) {
@@ -102,11 +104,16 @@ function checkPage(path, html) {
           }
         }
       }
-      if (types.includes("TouristTrip")) {
-        for (const offer of node.offers || []) {
+      if (types.includes("TouristTrip") || types.includes("Product")) {
+        for (const offer of [].concat(node.offers || [])) {
           if (!(Number(offer.price) > 0)) errors.push("offre à prix nul ou absent");
           if (!offer.priceCurrency) errors.push("offre sans devise");
         }
+      }
+      if (types.includes("Product")) {
+        const rating = node.aggregateRating || {};
+        if (!(Number(rating.reviewCount) > 0)) errors.push("Product : aggregateRating sans avis");
+        if (!(Number(rating.ratingValue) >= 1 && Number(rating.ratingValue) <= 5)) errors.push("Product : note hors de 1 à 5");
       }
       if (types.includes("BreadcrumbList")) {
         (node.itemListElement || []).forEach((item, i) => {

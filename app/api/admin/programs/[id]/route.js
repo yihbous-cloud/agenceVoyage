@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
-import { updateProgram, deleteProgram, slugify, getProgramById, normalizeContentLocale } from "@/lib/programsAdmin";
+import { updateProgram, deleteProgram, slugify, getProgramById, normalizeContentLocale, ficheLocaleSwap } from "@/lib/programsAdmin";
 import { setDefaultHotelsForProgram } from "@/lib/programHotels";
 import { withNotFound } from "@/lib/apiGuard";
 import { syncContentRedirects, redirectDeletedContent } from "@/lib/redirects";
@@ -62,6 +62,17 @@ async function PUT_handler(request, { params }) {
       }
     }
     const payload = { ...body };
+    // Langue principale changée : le contenu de la fiche (jour par jour,
+    // inclus, formalités...) bascule aussi — l'ancien texte principal
+    // devient la traduction dans l'ancienne langue (vague 2A).
+    if (before && nextLocale !== previousLocale) {
+      const swap = await ficheLocaleSwap(id, nextLocale);
+      Object.assign(payload, swap.newBase);
+      payload.translations = {
+        ...(body.translations || {}),
+        [previousLocale]: { ...(body.translations?.[previousLocale] || {}), ...swap.previousBase },
+      };
+    }
     if (body.slug !== undefined) {
       const trimmed = body.slug?.trim();
       if (trimmed) {
@@ -82,8 +93,8 @@ async function PUT_handler(request, { params }) {
     }
     // Autre langue du contenu (vague 1B) : écrite seulement si le formulaire
     // l'envoie — une carte qui ne la gère pas n'efface rien.
-    if (body.translations !== undefined && after) {
-      await setTranslations("program", id, body.translations, { baseLocale: after.content_locale });
+    if (payload.translations !== undefined && after) {
+      await setTranslations("program", id, payload.translations, { baseLocale: after.content_locale });
     }
     if (before && after) {
       const stalePaths = await syncContentRedirects({

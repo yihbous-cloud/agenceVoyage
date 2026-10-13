@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/app/_components/LocaleProvider";
 import { readStoredLeadSource } from "@/lib/leadSource";
 import { trackEvent } from "@/lib/analytics";
@@ -15,6 +15,16 @@ export default function ContactForm() {
     message: "",
   });
   const [status, setStatus] = useState(null);
+
+  // « Demander un devis » depuis une fiche voyage : /contact?sujet=...
+  // pré-remplit le sujet. Lu après le montage (la page reste statique).
+  useEffect(() => {
+    const sujet = new URLSearchParams(window.location.search).get("sujet");
+    if (sujet) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronisation avec l'URL, une seule fois
+      setForm((f) => (f.subject ? f : { ...f, subject: sujet.slice(0, 200) }));
+    }
+  }, []);
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });

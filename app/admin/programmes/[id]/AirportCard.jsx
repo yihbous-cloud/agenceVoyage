@@ -16,6 +16,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
   const [originIata, setOriginIata] = useState(trip?.origin_iata || "");
   const [airlineId, setAirlineId] = useState(trip?.airline_id || "");
   const [pnr, setPnr] = useState(trip?.pnr || "");
+  const [baggageAllowance, setBaggageAllowance] = useState(trip?.baggage_allowance || "");
   const [destinationIata, setDestinationIata] = useState(
     airportInputValue(trip?.destination_iata)
   );
@@ -50,6 +51,7 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
           originIata: originIata || null,
           airlineId: airlineId || null,
           pnr: pnr || null,
+          baggageAllowance,
           destinationIata: extractIataFromInput(destinationIata) || null,
           returnOriginIata: extractIataFromInput(returnOriginIata) || null,
           returnDestinationIata: extractIataFromInput(returnDestinationIata) || null,
@@ -132,6 +134,19 @@ export default function AirportCard({ trip, airlines, canManage, onSuccess }) {
           placeholder="ex : ABC123 — fourni par la compagnie"
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm uppercase disabled:bg-zinc-100"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">Franchise bagages</label>
+        <input
+          disabled={!canManage}
+          value={baggageAllowance}
+          onChange={(e) => setBaggageAllowance(e.target.value)}
+          maxLength={150}
+          placeholder="ex : 2 × 23 kg en soute + 7 kg en cabine"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+        />
+        <p className="mt-1 text-xs text-zinc-500">Affichée sur la fiche publique, dans le bloc Vol.</p>
       </div>
 
       <div>

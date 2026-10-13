@@ -10,6 +10,10 @@ import TiersCard from "./TiersCard";
 import ProgramFaqManager from "./ProgramFaqManager";
 import ExpensesCard from "./ExpensesCard";
 import PackagesCard from "./PackagesCard";
+import FicheContentCard from "./FicheContentCard";
+import MediaCard from "./MediaCard";
+import ReviewsCard from "./ReviewsCard";
+import CompletenessPanel from "./CompletenessPanel";
 import { summarizeExpenses } from "@/lib/expenseState";
 import { formatMoney } from "@/app/admin/_components/statusStyles";
 import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
@@ -37,6 +41,10 @@ export default function ProgramManagerGrid({
   expenses = [],
   canAdminDiscount = false,
   discountCap = null,
+  media = [],
+  reviews = [],
+  trips = [],
+  completeness = null,
 }) {
   const { tr } = useAdminLocale();
   const plural = (n, one, other) => tr.plural(`{count} ${one}`, `{count} ${other}`, n);
@@ -130,6 +138,31 @@ export default function ProgramManagerGrid({
         ]
       : []),
     {
+      key: "fiche",
+      icon: "description",
+      title: "Contenu de la fiche",
+      subtitle: completeness
+        ? tr("Fiche : {score}/{total} blocs", { score: completeness.score, total: completeness.total })
+        : "",
+    },
+    {
+      key: "media",
+      icon: "view_carousel",
+      title: "Photos & vidéo",
+      subtitle: plural(media.filter((m) => m.kind === "photo").length, "photo", "photos"),
+      meta: media.some((m) => m.kind === "video") ? "Vidéo ajoutée" : null,
+    },
+    {
+      key: "reviews",
+      icon: "thumb_up",
+      title: "Avis clients",
+      subtitle: plural(reviews.length, "avis", "avis"),
+      meta: (() => {
+        const published = reviews.filter((r) => r.is_published && r.consent_given).length;
+        return published > 0 ? plural(published, "publié", "publiés") : null;
+      })(),
+    },
+    {
       key: "faq",
       icon: "help",
       title: "FAQ",
@@ -139,6 +172,7 @@ export default function ProgramManagerGrid({
 
   return (
     <>
+      {completeness && <CompletenessPanel completeness={completeness} />}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {tiles.map((t) => (
           <ModuleTile
@@ -229,6 +263,29 @@ export default function ProgramManagerGrid({
             initialTiers={tiers}
             canManage={canManageTrips}
           />
+        </Modal>
+      )}
+
+      {openModule === "fiche" && (
+        <Modal title="Contenu de la fiche" onClose={close} size="lg">
+          <FicheContentCard
+            program={program}
+            translations={programTranslations}
+            canManage={canManagePrograms}
+            onSuccess={close}
+          />
+        </Modal>
+      )}
+
+      {openModule === "media" && (
+        <Modal title="Photos & vidéo" onClose={close} size="lg">
+          <MediaCard programId={programId} initialMedia={media} canManage={canManagePrograms} />
+        </Modal>
+      )}
+
+      {openModule === "reviews" && (
+        <Modal title="Avis clients" onClose={close} size="lg">
+          <ReviewsCard programId={programId} initialReviews={reviews} trips={trips} canManage={canManagePrograms} />
         </Modal>
       )}
 

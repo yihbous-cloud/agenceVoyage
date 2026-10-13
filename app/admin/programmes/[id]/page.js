@@ -12,6 +12,10 @@ import { listExpensesForTrip } from "@/lib/tripExpenses";
 import ProgramManagerGrid from "./ProgramManagerGrid";
 import { getTripDiscountCap } from "@/lib/registrationPricing";
 import { listTranslations, toFormValues } from "@/lib/contentTranslations";
+import { listProgramMedia } from "@/lib/programMedia";
+import { listReviewsForProgram } from "@/lib/programReviews";
+import { programCompleteness } from "@/lib/programCompleteness";
+import { PRICE_TIER_FIELD } from "@/lib/roomTypes";
 
 export default async function ProgramDetailPage({ params }) {
   const { id } = await params;
@@ -39,9 +43,11 @@ export default async function ProgramDetailPage({ params }) {
     )[0] || null;
 
   // Autre langue du programme et de ses FAQ (vague 1B du référencement).
-  const [programTranslations, faqTranslations] = await Promise.all([
+  const [programTranslations, faqTranslations, media, reviews] = await Promise.all([
     listTranslations("program", [program.id]),
     listTranslations("faq", faqs.map((f) => f.id)),
+    listProgramMedia(program.id),
+    listReviewsForProgram(program.id),
   ]);
 
   const [tripHotels, rooms, tiers] = await Promise.all([
@@ -64,6 +70,32 @@ export default async function ProgramDetailPage({ params }) {
   // Plafond de réduction : chargé et transmis pour l'administrateur seulement.
   const canAdminDiscount = await hasPermission(session, "remises.admin");
   const discountCap = canAdminDiscount && primaryTrip ? await getTripDiscountCap(primaryTrip.id) : null;
+
+  // Complétude de la fiche publique (10 blocs du cahier référencement,
+  // vague 2A) — calculée sur le voyage principal, comme les autres cartes.
+  const tripPrices = primaryTrip
+    ? [
+        ...Object.values(PRICE_TIER_FIELD).map((column) => Number(primaryTrip[column])),
+        ...tiers.flatMap((t) => (t.prices || []).map((p) => Number(p.price_per_person))),
+      ].filter((n) => n > 0)
+    : [];
+  const completeness = programCompleteness({
+    program,
+    nextTrip: primaryTrip
+      ? {
+          departure_date: primaryTrip.departure_date,
+          return_date: primaryTrip.return_date,
+          price: tripPrices.length > 0 ? Math.min(...tripPrices) : 0,
+          airline: primaryTrip.airline_id,
+          baggage_allowance: primaryTrip.baggage_allowance,
+          hotelCount: tripHotels.length,
+        }
+      : null,
+    faqCount: faqs.filter((f) => f.is_published).length,
+    photoCount: media.filter((m) => m.kind === "photo").length,
+    videoCount: media.filter((m) => m.kind === "video").length,
+    reviewCount: reviews.filter((r) => r.is_published && r.consent_given).length,
+  });
 
   return (
     <div className="space-y-6">
@@ -96,6 +128,10 @@ export default async function ProgramDetailPage({ params }) {
         expenses={expenses}
         canAdminDiscount={canAdminDiscount}
         discountCap={discountCap}
+        media={media}
+        reviews={reviews}
+        trips={trips.map((t) => ({ id: t.id, reference_code: t.reference_code }))}
+        completeness={completeness}
       />
     </div>
   );

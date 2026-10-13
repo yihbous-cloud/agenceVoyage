@@ -55,8 +55,8 @@ Le détail technique de chaque livraison est tenu à jour dans `CLAUDE.md` (sect
 | Phase | Développement (dans le site) | Contenu et commercial | Condition de passage |
 |---|---|---|---|
 | **0 · S1** (livrée) | L0 corrections + piliers `/omra` `/hajj` | Décisions restantes, Search Console + Bing, fiche Google, mots-clés, brief Ramadan | Phase 0 vérifiée en production |
-| **1 · S2 à S5** | **1A (livrée le 12/10) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B (livrée le 13/10) :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C (prête) :** L8 GA4 (désactivé tant que l'identifiant GTM est vide) + source des demandes dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
-| **2 · S6 à S10** | L3 fiche voyage en 10 blocs · L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · L11 santé SEO dans l'admin | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
+| **1 · S2 à S5** | **1A (livrée le 12/10) :** L2 redirections 301 gérées dans l'admin + départs terminés · L7 mise à jour immédiate des pages + IndexNow · L4 balisage `@graph` complet. **1B (livrée le 13/10) :** L1 contenu FR/AR par entité (un seul slug latin, commun aux langues). **1C (livrée le 13/10) :** L8 GA4 (désactivé tant que l'identifiant GTM est vide) + source des demandes dans le CRM · L12 pages légales et cookies | Piliers Omra/Hajj, fiches Ramadan, 10 guides, regroupement des programmes (D3, possible dès la vague 1A) | Recette technique (§16 du cahier) |
+| **2 · S6 à S10** | **2A (prête) :** L3 fiche voyage en 10 blocs (programme jour par jour, inclus/non inclus, formalités datées, conditions, photos, vidéo, avis, tableau des formules) · **2B :** L5 outil éditorial (guides, auteurs, lexique, FAQ en base reliée à la base de connaissances de l'agent WhatsApp) · **2C :** L11 santé SEO dans l'admin | 20 guides, 200 questions, lexique, avis du groupe de décembre | Recette contenu |
 | **3 · S11 à S16** | L6 PSEO, un gabarit à la fois, avec garde-fous · L10 GEO (baromètre des prix, `llms-full.txt`, panel de prompts) · L9 performance | Textes uniques des pages PSEO, premier panel IA | ≥ 70 % des pages PSEO indexées après 8 semaines |
 | **4 · en continu** | Anglais, ajustements | Netlinking, presse, YouTube, panel mensuel | — |
 
@@ -130,3 +130,17 @@ Pages indexées (Search Console, Bing), positions sur les 50 requêtes cœur, Co
    - marquer `demande_devis`, `reservation`, `clic_whatsapp` et `clic_telephone` comme **événements clés** ;
    - créer un **groupe de canaux personnalisé** avec, en premier, un canal « Assistants IA » : source qui correspond à l'expression régulière `chatgpt|openai|perplexity|gemini|claude|copilot|mistral|deepseek|meta\.ai|grok`.
 5. Le site applique le **mode de consentement v2** : stockage publicitaire toujours refusé, mesure d'audience accordée seulement après « Accepter ».
+
+## 13. Ce que la vague 2A change pour l'équipe
+
+- **Nouvelle tuile « Contenu de la fiche »** sur chaque programme : programme jour par jour (ajouter, retirer, réordonner les jours), encadrement (guide religieux, accompagnateur), ce qui est inclus et non inclus (un élément par ligne), formalités avec leur **date de vérification** et le lien de la source officielle, conditions de réservation et d'annulation. Saisi **une fois par programme**, valable pour tous ses départs. Version dans l'autre langue juste en dessous, comme pour les titres et descriptions.
+- **Un bloc laissé vide n'apparaît pas sur le site** : rien n'est inventé. En haut de la fiche programme, l'indicateur **« Fiche publique : N/10 blocs »** liste ce qui manque et comment le compléter.
+- **Formalités** : la date « Vérifiées le » est affichée aux visiteurs. La revérifier au moins tous les six mois (la santé SEO, en vague 2C, le signalera).
+- **Tuile « Photos & vidéo »** : de **vraies** photos du voyage (hôtels, groupe, lieux visités), avec une légende en français et en arabe (elle décrit l'image aux moteurs de recherche), et une vidéo YouTube avec sa date de mise en ligne. La vidéo ne se charge qu'au clic du visiteur (page rapide).
+- **Tuile « Avis clients »** : saisir uniquement des avis **réellement reçus** (WhatsApp, e-mail, livre d'or), tels quels. Un avis n'est publiable qu'avec le **consentement** de son auteur ; sans consentement il reste interne. Dès qu'un avis est publié, la note moyenne peut apparaître dans les résultats Google.
+- **Carte « Aéroport »** : nouveau champ « Franchise bagages » (ex. « 2 × 23 kg en soute + 7 kg en cabine »), affiché dans le bloc Vol avec les escales.
+- **Catalogue des hôtels** : chaque hôtel peut recevoir une photo, affichée sur la fiche des voyages qui l'utilisent.
+- **Sur le site**, chaque fiche affiche désormais : durée (jours / nuits), prochain départ, prix « à partir de » TTC, places restantes, date de mise à jour, boutons Réserver / Demander un devis (formulaire pré-rempli) / WhatsApp, et pour chaque départ le vol (escales, bagages), les hôtels dans l'ordre du séjour et le **tableau des formules** (prix par type de chambre).
+- **L'agent WhatsApp** répond avec les mêmes informations (programme jour par jour, inclus, formalités et leur date de vérification, conditions, bagages, escales).
+- Une modification apparaît sur le site **en moins d'une seconde** après l'enregistrement.
+
