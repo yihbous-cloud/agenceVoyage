@@ -52,6 +52,38 @@ export default function RichText({ text, className = "" }) {
             </h3>
           );
         }
+        if (block.type === "table") {
+          // Alignement logique (start/end) : correct en arabe (RTL) comme en
+          // français. Défilement horizontal propre au tableau sur téléphone.
+          const alignClass = (i) =>
+            block.align[i] === "center" ? "text-center" : block.align[i] === "end" ? "text-end" : "text-start";
+          return (
+            <div key={index} className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-gold-pale text-xs text-muted">
+                    {block.header.map((cell, cellIndex) => (
+                      <th key={cellIndex} scope="col" className={`py-2 pe-3 font-medium ${alignClass(cellIndex)}`}>
+                        <Inline text={cell} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-gold-pale/50 align-top">
+                      {row.map((cell, cellIndex) => (
+                        <td key={cellIndex} className={`py-2 pe-3 ${alignClass(cellIndex)}`}>
+                          <Inline text={cell} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
         if (block.type === "ul" || block.type === "ol") {
           const List = block.type;
           return (
