@@ -3,6 +3,7 @@ import { listAgencies } from "@/lib/agencies";
 import { requirePublicAgency } from "@/lib/publicAgency";
 import { Geist, Geist_Mono, Italianno, Marcellus, Jost, Cairo } from "next/font/google";
 import { getAgencySettings } from "@/lib/agencySettings";
+import { countPublishedGuides } from "@/lib/guides";
 import { LocaleProvider } from "@/app/_components/LocaleProvider";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
@@ -113,7 +114,10 @@ export default async function SiteLayout({ children, params }) {
   // Le balisage schema.org (organisation, site...) n'est plus produit ici :
   // chaque page a UN SEUL bloc JSON-LD qui l'inclut (PageJsonLd,
   // CLAUDE.md §3centquatorzequadragies).
-  const agency = await getAgencySettings(agencyRow.id).catch(() => null);
+  const [agency, guideCount] = await Promise.all([
+    getAgencySettings(agencyRow.id).catch(() => null),
+    countPublishedGuides(agencyRow.id).catch(() => 0),
+  ]);
   // Le pied de page est un composant client : seulement ce qu'il affiche
   // (pas les CGV complètes ni les autres champs légaux).
   const footerAgency = agency && {
@@ -126,6 +130,8 @@ export default async function SiteLayout({ children, params }) {
     email: agency.email,
     social_links: agency.social_links,
     has_cgv: Boolean(agency.cgv_fr?.trim() || agency.cgv_ar?.trim()),
+    // Lien « Guides pratiques » seulement si au moins un guide est publié.
+    has_guides: guideCount > 0,
     analytics_enabled: Boolean(agency.gtm_container_id),
   };
 

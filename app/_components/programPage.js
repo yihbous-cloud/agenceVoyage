@@ -9,6 +9,8 @@ import {
 import { listPublishedFaqsForProgram } from "@/lib/programFaqs";
 import { listProgramMedia } from "@/lib/programMedia";
 import { listPublishedReviews } from "@/lib/programReviews";
+import { listGuidesForProgram } from "@/lib/guides";
+import { guidePillarOfProgramPillar } from "@/lib/editorial";
 import { getAgencySettings } from "@/lib/agencySettings";
 import { computeDuration, formatDate } from "./formatTrip";
 import { programPath, programPillar } from "@/lib/programUrls";
@@ -94,12 +96,13 @@ export async function renderProgramPage(params, pillar) {
     permanentRedirect(localizePath(programPath(program), locale));
   }
 
-  const [trips, faqs, media, reviews, settings] = await Promise.all([
+  const [trips, faqs, media, reviews, settings, guides] = await Promise.all([
     getOpenTripsForProgram(program.id, agencyRow.id, locale).catch(() => []),
     listPublishedFaqsForProgram(program.id, agencyRow.id, locale).catch(() => []),
     listProgramMedia(program.id, agencyRow.id).catch(() => []),
     listPublishedReviews(program.id, agencyRow.id).catch(() => null),
     getAgencySettings(agencyRow.id).catch(() => null),
+    listGuidesForProgram(program.id, guidePillarOfProgramPillar(programPillar(program)), agencyRow.id, locale).catch(() => []),
   ]);
 
   // TECH-09 : plus aucun départ ouvert → départs terminés + suite proposée
@@ -130,6 +133,7 @@ export async function renderProgramPage(params, pillar) {
         whatsapp: settings?.whatsapp || null,
         hasCgv: Boolean(settings?.cgv_fr?.trim() || settings?.cgv_ar?.trim()),
       }}
+      guides={guides}
     />
   );
 }

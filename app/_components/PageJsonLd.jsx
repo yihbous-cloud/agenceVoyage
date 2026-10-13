@@ -25,7 +25,8 @@ import {
 //   name, description, pageType ("WebPage", "CollectionPage", "AboutPage"...)
 //   breadcrumb    [{ name, href? }] — les mêmes éléments que <Breadcrumbs>
 //   nodes         (url, baseUrl) => [nœuds] — nœuds propres à la page
-//   mainEntity    "trip" | "faq" | "article" | "list" — nœud principal
+//   mainEntity    "trip" | "faq" | "article" | "list" | "lexique" — nœud principal
+//   reviewedBy, lastReviewed  relecteur ({ "@id" }) et date de relecture (guide)
 export default async function PageJsonLd({
   agency,
   locale,
@@ -38,6 +39,8 @@ export default async function PageJsonLd({
   nodes,
   mainEntity,
   dateModified,
+  reviewedBy,
+  lastReviewed,
 }) {
   const settings = await getAgencySettings(agency.id).catch(() => null);
   const baseUrl = siteBaseUrl(agency.subdomain);
@@ -68,6 +71,8 @@ export default async function PageJsonLd({
       hasBreadcrumb: Boolean(breadcrumb?.length),
       mainEntityId: mainEntity ? `${url}#${mainEntity}` : undefined,
       dateModified,
+      reviewedBy,
+      lastReviewed,
     }),
     breadcrumb?.length
       ? breadcrumbNode(

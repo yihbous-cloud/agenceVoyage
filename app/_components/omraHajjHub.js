@@ -4,7 +4,13 @@ import HomeShowcaseCard from "./HomeShowcaseCard";
 import ReassuranceBanner from "./ReassuranceBanner";
 import Breadcrumbs from "./Breadcrumbs";
 import PageJsonLd from "./PageJsonLd";
-import { itemListNode } from "@/lib/seo/jsonLd";
+import { itemListNode, faqNode } from "@/lib/seo/jsonLd";
+import { listPublishedGuides } from "@/lib/guides";
+import { listSiteQuestions } from "@/lib/ai/knowledge";
+import { GUIDE_HUB_PATH } from "@/lib/editorial";
+import GuideCards from "./GuideCards";
+import QuestionList from "./QuestionList";
+import Link from "./LocalizedLink";
 import { programPath } from "@/lib/programUrls";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { localizePath } from "@/lib/i18n/locales";
@@ -98,6 +104,13 @@ export async function renderOmraHajjHub(params, searchParams, pillarKey) {
     dbError = err.message;
   }
 
+  // Guides et questions du pilier (vague 2B du référencement) : banque de
+  // questions partagée avec l'agent WhatsApp (ia_knowledge, page = pilier).
+  const [guides, questions] = await Promise.all([
+    listPublishedGuides({ pillar: pillarKey, limit: 6 }, agencyRow.id, locale).catch(() => []),
+    listSiteQuestions(pillarKey, agencyRow.id, locale).catch(() => []),
+  ]);
+
   const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr(pillar.heading) }];
 
   return (
@@ -116,6 +129,7 @@ export async function renderOmraHajjHub(params, searchParams, pillarKey) {
             url,
             programs.map((p) => ({ name: p.title, url: `${baseUrl}${localizePath(programPath(p), locale)}` }))
           ),
+          faqNode(url, questions),
         ]}
       />
       <div className="mx-auto max-w-6xl px-6 pt-6">
@@ -183,6 +197,27 @@ export async function renderOmraHajjHub(params, searchParams, pillarKey) {
           ))}
         </div>
       </section>
+
+      {questions.length > 0 && (
+        <section className="mx-auto max-w-3xl px-6 pb-16">
+          <h2 className="font-display text-2xl text-ink">{tr("Questions fréquentes")}</h2>
+          <div className="mt-6">
+            <QuestionList items={questions} tr={tr} />
+          </div>
+        </section>
+      )}
+
+      {guides.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <h2 className="font-display text-2xl text-ink">{tr("Guides pratiques")}</h2>
+          <div className="mt-6">
+            <GuideCards guides={guides} locale={locale} tr={tr} showPillar={false} />
+          </div>
+          <Link href={GUIDE_HUB_PATH} className="mt-6 inline-block text-sm text-[#A8863C] hover:underline">
+            {tr("Tous nos guides")}
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

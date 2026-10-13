@@ -129,6 +129,11 @@ export default function SiteFooter({ agency }) {
                   {tr(link.label)}
                 </Link>
               ))}
+              {agency?.has_guides && (
+                <Link href="/guide" className="hover:text-[#A8863C]">
+                  {tr("Guides pratiques")}
+                </Link>
+              )}
             </nav>
           </div>
 

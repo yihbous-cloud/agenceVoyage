@@ -24,6 +24,10 @@ import * as contactMessages from "../lib/contactMessages.js";
 import { getLeadSourceReport } from "../lib/leadReports.js";
 import * as media from "../lib/programMedia.js";
 import * as reviews from "../lib/programReviews.js";
+import * as authors from "../lib/authors.js";
+import * as guides from "../lib/guides.js";
+import * as glossary from "../lib/glossary.js";
+import * as knowledge from "../lib/ai/knowledge.js";
 import { getPool } from "../lib/db.js";
 
 // Test d'isolation multi-agences (CLAUDE.md §3sexvicies passe 2). Crée une
@@ -125,6 +129,26 @@ try {
 } catch (err) {
   ok(err.code === "VALIDATION", "avis publié sans consentement refusé");
 }
+// Outil éditorial (migration 048) : auteurs, guides, lexique, banque de questions
+const authorA3 = await authors.createAuthor({ name: "Auteur A3", isReligiousReferent: true });
+try {
+  await guides.createGuide({ title: "Guide sans relecteur", slug: "sans-relecteur", isReligious: true, status: "publie", excerpt: "x" });
+  ok(false, "un guide religieux sans relecteur ne doit pas être publiable");
+} catch (err) {
+  ok(err.code === "VALIDATION", "guide religieux publié sans relecteur refusé");
+}
+const guideA3 = await guides.createGuide({
+  title: "Guide A3", slug: "guide-a3", pillar: "omra", isReligious: true, authorId: authorA3, reviewerId: authorA3,
+  status: "publie", excerpt: "Résumé A3", contentLocale: "fr",
+});
+await ct.setTranslations("guide", guideA3, { ar: { title: "دليل أ3", excerpt: "ملخص" } }, { baseLocale: "fr" });
+await guides.setGuidePrograms(guideA3, [programId]);
+const termA3 = await glossary.createTerm({ termFr: "Ihram A3", definitionFr: "Définition A3", slug: "ihram-a3", status: "publie" });
+const knowledgeA3 = await knowledge.createKnowledge({ question: "Question A3 ?", answerFr: "Réponse A3", status: "publie", sitePage: "faq" }, null);
+ok((await guides.listPublishedGuides({})).some((g) => g.id === guideA3), "agence 3 : son guide publié");
+ok((await guides.listGuidesForProgram(programId, "omra")).some((g) => g.id === guideA3), "agence 3 : guide affiché sur sa fiche programme");
+ok((await glossary.listPublishedTerms(undefined, "fr")).some((t) => t.slug === "ihram-a3"), "agence 3 : son terme du lexique");
+ok((await knowledge.listSiteQuestions("faq", undefined, "fr")).some((q) => q.question === "Question A3 ?"), "agence 3 : sa question sur /faq");
 const rolesA3 = await perms.listRoles();
 ok(rolesA3.length === 4 && rolesA3.every((r) => r.agency_id === OTHER), "agence 3 : ses 4 rôles seulement");
 // Demande de compte (migration 041)
@@ -171,6 +195,17 @@ ok((await programs.getProgramBySlug("prog-a3", undefined, "fr")) === null, "vers
 ok((await media.listProgramMedia(programId)).length === 0, "médias d'un programme étranger invisibles");
 ok((await reviews.listReviewsForProgram(programId)).length === 0, "avis d'un programme étranger invisibles (admin)");
 ok((await reviews.listPublishedReviews(programId)).count === 0, "avis publiés d'un programme étranger invisibles (site)");
+ok((await guides.listPublishedGuides({})).every((g) => g.id !== guideA3), "guides de l'agence 3 invisibles (site)");
+ok((await guides.getPublishedGuideBySlug("guide-a3")) === null, "slug de guide d'une autre agence introuvable");
+ok((await guides.listAllGuides()).every((g) => g.id !== guideA3), "guides de l'agence 3 invisibles (admin)");
+ok((await guides.getGuideById(guideA3)) === null, "getGuideById étranger = null");
+ok((await guides.listGuidesForProgram(programId, "omra")).every((g) => g.id !== guideA3), "« Guides utiles » d'un programme étranger vides");
+ok((await authors.listAuthors()).every((a) => a.id !== authorA3), "auteurs de l'agence 3 invisibles");
+ok(Object.keys(await authors.getAuthorsByIds([authorA3])).length === 0, "auteur étranger introuvable par identifiant");
+ok((await glossary.listAllTerms()).every((t) => t.id !== termA3), "lexique de l'agence 3 invisible (admin)");
+ok((await glossary.listPublishedTerms(undefined, "fr")).every((t) => t.slug !== "ihram-a3"), "lexique de l'agence 3 invisible (site)");
+ok((await knowledge.listSiteQuestions("faq", undefined, "fr")).every((q) => q.question !== "Question A3 ?"), "banque de questions de l'agence 3 invisible (/faq)");
+ok(Object.keys(await ct.listTranslations("guide", [guideA3])).length === 0, "traductions de guide de l'agence 3 invisibles");
 const [ownAi] = await q("SELECT COUNT(*) AS n FROM contact_messages WHERE agency_id = 1 AND lead_source = 'assistant_ia' AND created_at >= UTC_TIMESTAMP() - INTERVAL 3650 DAY");
 const report1 = await getLeadSourceReport(3650);
 ok(report1.channels.find((c) => c.key === "assistant_ia")?.messages === Number(ownAi.n), "sources des demandes : agence 1 ne compte pas les messages de l'agence 3");
@@ -217,6 +252,16 @@ await throwsNotFound(() => media.reorderProgramMedia(programId, [videoA3, photoA
 await throwsNotFound(() => reviews.createReview(programId, { authorName: "x", rating: 5, body: "x", reviewDate: "2026-01-02" }, null), "createReview sur un programme étranger");
 await throwsNotFound(() => reviews.updateReview(reviewA3, { authorName: "PIRATE", rating: 1, body: "x", reviewDate: "2026-01-02" }), "updateReview étranger");
 await throwsNotFound(() => reviews.deleteReview(reviewA3), "deleteReview étranger");
+await throwsNotFound(() => guides.createGuide({ title: "Intrus", slug: "intrus-a1", authorId: authorA3 }), "createGuide avec un auteur étranger");
+await throwsNotFound(() => guides.updateGuide(guideA3, { title: "PIRATE", slug: "guide-a3" }), "updateGuide étranger");
+await throwsNotFound(() => guides.deleteGuide(guideA3), "deleteGuide étranger");
+await throwsNotFound(() => guides.setGuidePrograms(guideA3, []), "setGuidePrograms sur un guide étranger");
+await throwsNotFound(() => authors.updateAuthor(authorA3, { name: "PIRATE" }), "updateAuthor étranger");
+await throwsNotFound(() => authors.deleteAuthor(authorA3), "deleteAuthor étranger");
+await throwsNotFound(() => glossary.updateTerm(termA3, { termFr: "PIRATE", slug: "pirate" }), "updateTerm étranger");
+await throwsNotFound(() => glossary.deleteTerm(termA3), "deleteTerm étranger");
+await throwsNotFound(() => knowledge.updateKnowledge(knowledgeA3, { question: "PIRATE" }), "updateKnowledge étranger");
+await throwsNotFound(() => ct.setTranslations("guide", guideA3, { ar: { title: "PIRATE" } }), "setTranslations guide étranger");
 const [ownProgram] = await q("SELECT id FROM programs WHERE agency_id = 1 LIMIT 1");
 if (ownProgram) {
   try {
@@ -257,6 +302,12 @@ const ficheA3 = await pa.getProgramById(programId);
 ok(ficheA3.supervision === "Guide A3", "contenu de la fiche A3 intact");
 const ficheFr = (await ct.listTranslations("program", [programId]))[programId]?.fr;
 ok(JSON.stringify(ficheFr?.itinerary_days ?? ficheFr?.itineraryDays ?? "").includes("Day A3"), "programme jour par jour (version française) A3 enregistré");
+const guideA3After = await guides.getGuideById(guideA3);
+ok(guideA3After?.title === "Guide A3" && guideA3After.program_ids.includes(programId), "guide A3 intact (titre et programme lié)");
+ok((await authors.listAuthors()).find((a) => a.id === authorA3)?.name === "Auteur A3", "auteur A3 intact");
+ok((await glossary.listAllTerms()).find((t) => t.id === termA3)?.term_fr === "Ihram A3", "terme A3 intact");
+ok((await knowledge.listSiteQuestions("faq", undefined, "fr")).some((q) => q.question === "Question A3 ?"), "question A3 intacte");
+ok((await ct.listTranslations("guide", [guideA3]))[guideA3]?.ar?.title === "دليل أ3", "traduction du guide A3 intacte");
 
 // même numéro WhatsApp dans deux agences = deux voyageurs distincts
 setScriptAgencyId(1);

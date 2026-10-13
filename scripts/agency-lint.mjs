@@ -29,6 +29,8 @@ const TENANT_TABLES = [
   // Contenu FR/AR par entité (migration 045)
   "program_translations", "program_faq_translations", "news_translations", "slide_translations",
   "program_media", "program_reviews",
+  // Outil éditorial (migration 048)
+  "authors", "guides", "guide_translations", "program_guides", "glossary_terms",
 ];
 
 const TABLE_RE = new RegExp(

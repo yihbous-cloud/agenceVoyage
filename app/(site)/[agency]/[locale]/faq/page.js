@@ -4,6 +4,17 @@ import { pageAlternates } from "@/lib/i18n/seo";
 import { faqNode } from "@/lib/seo/jsonLd";
 import PageJsonLd from "@/app/_components/PageJsonLd";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
+import QuestionList from "@/app/_components/QuestionList";
+import Link from "@/app/_components/LocalizedLink";
+import { listSiteQuestions } from "@/lib/ai/knowledge";
+import { countPublishedGuides } from "@/lib/guides";
+import { GUIDE_HUB_PATH } from "@/lib/editorial";
+
+// Questions de la banque (ia_knowledge, page « faq ») — la même base que
+// l'agent WhatsApp (vague 2B du référencement, CLAUDE.md
+// §3centdixhuitquadragies). Repli sur la liste ci-dessous tant que la banque
+// n'a aucune question pour cette page dans cette langue.
+export const revalidate = 300;
 
 export async function generateMetadata({ params }) {
   const { agency: subdomain, locale } = await params;
@@ -18,7 +29,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// Textes sources en français : traduits à l'affichage par tr().
+// Liste de repli. Textes sources en français : traduits à l'affichage par tr().
 const FAQ_ITEMS = [
   {
     question: "Quels documents sont nécessaires pour l'Omra ?",
@@ -51,10 +62,19 @@ export default async function FaqPage({ params }) {
   const { agency: subdomain, locale } = await params;
   const agencyRow = await requirePublicAgency(subdomain);
   const tr = makeTranslator(locale, "public", { brandName: agencyRow.name });
-  const items = FAQ_ITEMS.map((item) => ({
-    question: tr(item.question),
-    answer: tr(item.answer),
-  }));
+  const [bank, guideCount] = await Promise.all([
+    listSiteQuestions("faq", agencyRow.id, locale).catch(() => []),
+    countPublishedGuides(agencyRow.id).catch(() => 0),
+  ]);
+  const items =
+    bank.length > 0
+      ? bank
+      : FAQ_ITEMS.map((item, index) => ({
+          id: `repli-${index}`,
+          question: tr(item.question),
+          answer: tr(item.answer),
+          variants: [],
+        }));
 
   const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr("Questions fréquentes") }];
 
@@ -73,14 +93,19 @@ export default async function FaqPage({ params }) {
 
       <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">{tr("Questions fréquentes")}</h1>
 
-      <div className="mt-8 space-y-6">
-        {items.map((item) => (
-          <div key={item.question} className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6">
-            <h2 className="font-semibold text-zinc-900">{item.question}</h2>
-            <p className="mt-2 text-sm text-zinc-600">{item.answer}</p>
-          </div>
-        ))}
+      <div className="mt-8">
+        <QuestionList items={items} tr={tr} />
       </div>
+
+      {guideCount > 0 && (
+        <p className="mt-10 text-sm text-muted">
+          {tr("Pour aller plus loin, consultez nos")}{" "}
+          <Link href={GUIDE_HUB_PATH} className="text-[#A8863C] hover:underline">
+            {tr("guides pratiques")}
+          </Link>
+          .
+        </p>
+      )}
     </main>
   );
 }

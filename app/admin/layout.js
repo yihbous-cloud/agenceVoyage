@@ -84,6 +84,11 @@ const NAV_GROUPS = [
     label: "Contenu",
     items: [
       { href: "/admin/actualites", label: "Actualités", icon: "newspaper" },
+      // Outil éditorial (référencement, vague 2B)
+      { href: "/admin/contenus/guides", label: "Guides", icon: "article", perm: "contenus.manage" },
+      { href: "/admin/contenus/auteurs", label: "Auteurs", icon: "history_edu", perm: "contenus.manage" },
+      { href: "/admin/contenus/lexique", label: "Lexique", icon: "translate", perm: "contenus.manage" },
+      { href: "/admin/whatsapp/connaissances", label: "Banque de questions", icon: "help", perm: "ia.knowledge" },
       { href: "/admin/slider", label: "Slider accueil", icon: "view_carousel", perm: "slider.manage" },
       { href: "/admin/messages", label: "Messages", icon: "forum" },
     ],
@@ -137,6 +142,7 @@ const QUICK_ACTIONS = [
   { href: "/admin/visa-services/new", label: "Nouvelle demande", icon: "assignment", hint: "Service visa", perm: "visa_services.manage" },
   { href: "/admin/billets/new", label: "Nouvelle vente de billet", icon: "airplane_ticket", hint: "Billets d'avion", perm: "ticket_sales.manage" },
   { href: "/admin/actualites/new", label: "Nouvelle actualité", icon: "newspaper", hint: "Actualités" },
+  { href: "/admin/contenus/guides/new", label: "Nouveau guide", icon: "article", hint: "Guides", perm: "contenus.manage" },
 ];
 
 // Police d'icônes : sous-ensemble Google Fonts limité aux glyphes utilisés

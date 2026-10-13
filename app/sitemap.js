@@ -1,5 +1,8 @@
 import { getProgramsByFamily, getDepartureCities } from "@/lib/programs";
 import { listPublishedNews } from "@/lib/news";
+import { listPublishedGuides } from "@/lib/guides";
+import { glossaryInfo } from "@/lib/glossary";
+import { GUIDE_HUB_PATH, GLOSSARY_PATH, guidePath } from "@/lib/editorial";
 import { citySlug } from "@/lib/airports";
 import { getCurrentAgency } from "@/lib/currentAgency";
 import { programPath } from "@/lib/programUrls";
@@ -41,11 +44,13 @@ function localizedEntries(baseUrl, path, extra, availableLocales = INDEXED_LOCAL
 export default async function sitemap() {
   const { baseUrl } = await getCurrentAgency();
 
-  const [omraHajjPrograms, voyagePrograms, news, departureCities] = await Promise.all([
+  const [omraHajjPrograms, voyagePrograms, news, departureCities, guides, glossary] = await Promise.all([
     getProgramsByFamily("omra_hajj").catch(() => []),
     getProgramsByFamily("voyage_organise").catch(() => []),
     listPublishedNews().catch(() => []),
     getDepartureCities().catch(() => []),
+    listPublishedGuides().catch(() => []),
+    glossaryInfo().catch(() => ({ locales: [], lastModified: null })),
   ]);
   const programs = [...omraHajjPrograms, ...voyagePrograms];
 
@@ -97,5 +102,35 @@ export default async function sitemap() {
     )
   );
 
-  return [...staticRoutes, ...programRoutes, ...cityRoutes, ...newsRoutes];
+  // Outil éditorial (vague 2B) : hub des guides et lexique seulement s'ils
+  // ont du contenu (sinon 404), chaque guide dans ses langues disponibles.
+  const guideRoutes =
+    guides.length > 0
+      ? [
+          ...localizedEntries(baseUrl, GUIDE_HUB_PATH, {
+            changeFrequency: "weekly",
+            priority: 0.6,
+            ...lastModified(latest(guides)),
+          }),
+          ...guides.flatMap((g) =>
+            localizedEntries(
+              baseUrl,
+              guidePath(g.slug),
+              { changeFrequency: "monthly", priority: 0.6, ...lastModified(g.updated_at || g.published_at) },
+              indexedAvailableLocales(g)
+            )
+          ),
+        ]
+      : [];
+  const glossaryRoutes =
+    glossary.locales.length > 0
+      ? localizedEntries(
+          baseUrl,
+          GLOSSARY_PATH,
+          { changeFrequency: "monthly", priority: 0.5, ...lastModified(glossary.lastModified) },
+          glossary.locales
+        )
+      : [];
+
+  return [...staticRoutes, ...programRoutes, ...cityRoutes, ...newsRoutes, ...guideRoutes, ...glossaryRoutes];
 }

@@ -4,7 +4,13 @@ import HomeShowcaseCard from "@/app/_components/HomeShowcaseCard";
 import ReassuranceBanner from "@/app/_components/ReassuranceBanner";
 import Breadcrumbs from "@/app/_components/Breadcrumbs";
 import PageJsonLd from "@/app/_components/PageJsonLd";
-import { itemListNode } from "@/lib/seo/jsonLd";
+import { itemListNode, faqNode } from "@/lib/seo/jsonLd";
+import { listPublishedGuides } from "@/lib/guides";
+import { listSiteQuestions } from "@/lib/ai/knowledge";
+import { GUIDE_HUB_PATH } from "@/lib/editorial";
+import GuideCards from "@/app/_components/GuideCards";
+import QuestionList from "@/app/_components/QuestionList";
+import Link from "@/app/_components/LocalizedLink";
 import { programPath } from "@/lib/programUrls";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { localizePath } from "@/lib/i18n/locales";
@@ -62,6 +68,12 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
     dbError = err.message;
   }
 
+  // Guides et questions du pilier (vague 2B du référencement).
+  const [guides, questions] = await Promise.all([
+    listPublishedGuides({ pillar: "voyages", limit: 6 }, agencyRow.id, locale).catch(() => []),
+    listSiteQuestions("voyages", agencyRow.id, locale).catch(() => []),
+  ]);
+
   const breadcrumb = [{ name: tr("Accueil"), href: "/" }, { name: tr("Voyages organisés") }];
 
   return (
@@ -79,6 +91,7 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
             url,
             programs.map((p) => ({ name: p.title, url: `${siteUrl}${localizePath(programPath(p), locale)}` }))
           ),
+          faqNode(url, questions),
         ]}
       />
       <div className="mx-auto max-w-6xl px-6 pt-6">
@@ -165,6 +178,27 @@ export default async function VoyagesOrganisesPage({ params, searchParams }) {
           ))}
         </div>
       </section>
+
+      {questions.length > 0 && (
+        <section className="mx-auto max-w-3xl px-6 pb-16">
+          <h2 className="font-display text-2xl text-white">{tr("Questions fréquentes")}</h2>
+          <div className="mt-6">
+            <QuestionList items={questions} tr={tr} />
+          </div>
+        </section>
+      )}
+
+      {guides.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <h2 className="font-display text-2xl text-white">{tr("Guides pratiques")}</h2>
+          <div className="mt-6">
+            <GuideCards guides={guides} locale={locale} tr={tr} showPillar={false} />
+          </div>
+          <Link href={GUIDE_HUB_PATH} className="mt-6 inline-block text-sm text-gold hover:underline">
+            {tr("Tous nos guides")}
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

@@ -2205,6 +2205,48 @@ Dans une **route API**, `revalidatePath` ne fait que marquer la page ; l'invalid
 
 `test:agency` étendu (médias, avis, contenu et jours traduits isolés par agence ; photo d'une autre agence refusée ; avis publié sans consentement refusé) : 112 contrôles, tous OK ; `lint:agency`, ESLint, `i18n-check public` (0 manquant), `test:whatsapp-ai` (24/24), build (fiches ● ISR), `schema.sql` importé dans une base vierge (tables identiques). Build de production local, compte et rôle temporaires (supprimés) : blocs vides absents puis présents dans le HTML brut en FR et AR, ordre des hôtels, tableau des formules, bagages et escale, 3 photos + photo d'hôtel + vidéo, aucune iframe avant le clic, `Product` absent puis présent après un avis consenti, avis non publié invisible, score 10/10, aller-retour du formulaire sans perte de la version arabe, écrans admin en arabe sans texte manquant, fiche sur téléphone sans débordement, agent en FR et AR, `test:seo` : 0 erreur. Fichiers envoyés et données de test supprimés.
 
+## 3centdixhuitquadragies. Référencement global — phase 2, vague 2B : outil éditorial (migration `048_add_editorial_content.sql`)
+
+Suite de §3centdixseptquadragies (plan validé le 13/10/2026). Guides de fond, auteurs, lexique et banque de questions. Décision : la banque de questions **est** la base de connaissances de l'agent WhatsApp (`ia_knowledge` étendue) — une réponse = un endroit, partagée par le site et l'agent.
+
+### Données
+
+- **`authors`** : nom (+ `name_ar`), fonction et présentation FR/AR, photo, `trips_supervised`, `is_religious_referent`, compte de l'équipe facultatif, actif.
+- **`guides`** (+ **`guide_translations`**, modèle de la vague 1B, entrée `guide` de `TRANSLATABLE`) : `slug` unique par agence, `content_locale`, `pillar` (`omra`/`hajj`/`voyages`/`general`), titre, résumé, contenu Markdown, couverture, meta, `author_id`, `reviewer_id`, `is_religious`, `status`, `published_at` (posée à la première publication), `reviewed_at`.
+- **`program_guides`** : guides choisis pour la fiche d'un programme.
+- **`glossary_terms`** : `slug` (ancre), terme et définition FR **et** AR dans la même ligne, pilier, statut.
+- **`ia_knowledge`** gagne `question_ar`, `site_page` (NULL = agent seulement, sinon `faq`/`omra`/`hajj`/`voyages`), `site_sort`, `detail_path` (lien « En savoir plus », chemin interne seulement).
+- Nouvelle permission **`contenus.manage`** (catégorie « Contenu public », direction par défaut). Les 5 tables portent `agency_id` (`TENANT_TABLES`, `agency-lint`).
+
+### Règles (contrôlées côté serveur)
+
+- **Un guide religieux n'est publié qu'avec un relecteur référent religieux** (`normalizeGuide`, `lib/guides.js`). Un auteur qui relit un guide religieux publié ne peut ni perdre son statut de référent ni être supprimé.
+- Slug réservé : `lexique`. Un titre seulement arabe ne crée pas de slug : il faut le saisir.
+- Une question de la banque affichée sur le site doit avoir question **et** réponse dans une même langue ; elle n'apparaît que dans les langues où elles existent (`knowledgeForLocale`, `lib/editorial.js` : `question` écrite en arabe sert de version arabe tant que `question_ar` est vide).
+- Fonction et présentation d'un auteur : seulement dans la langue de la page (jamais de texte français sur la page arabe) ; le nom retombe sur sa forme saisie.
+- **`lib/editorial.js`** (pur, importable côté client) : piliers, chemins (`guidePath`, `GUIDE_HUB_PATH`, `GLOSSARY_PATH`, `SITE_PAGE_PATHS`), `knowledgeForLocale`, `variantList`, `authorDisplay`, `termForLocale`, `normalizeInternalPath`, `editorialSlug`.
+
+### Pages publiques (toutes ● ISR)
+
+- **`/guide`** : guides par pilier + lien vers le lexique ; **404 tant qu'aucun guide n'est publié**. **`/guide/[slug]`** : pilier, « Par … · Relu par … · Mis à jour le », résumé, contenu, encadré auteur (`AuthorBox.jsx` : photo, fonction, voyages encadrés, présentation, relecteur + date + badge référent), offre la plus proche du pilier (prochain départ ouvert, `HomeShowcaseCard`). **`/guide/lexique`** : termes de la langue de la page groupés par lettre (ancre = slug), **404 si aucun terme dans cette langue** ; titre d'onglet court (« Lexique Omra et Hajj »).
+- **`/faq`** : questions de la banque (`site_page = faq`) avec « Autres formulations » (variantes, en `<bdi>` pour la darija en alphabet latin) et « En savoir plus » ; **repli sur l'ancienne liste** tant que la banque n'a rien pour cette langue. Lien vers les guides s'il y en a.
+- **Piliers** `/omra`, `/hajj`, `/voyages-organises` : « Questions fréquentes » (banque, page = pilier) et « Guides pratiques » (6 derniers du pilier).
+- **Fiche programme** : « Guides utiles » (3 au plus : guides choisis, sinon les plus récents du pilier, puis conseils généraux).
+- Pied de page : lien « Guides pratiques » dès qu'un guide est publié (`has_guides`).
+- **Balisage** : `Article` (auteur `Person` à `@id` stable `#author-<id>`, `inLanguage`, dates), `WebPage.reviewedBy` + `lastReviewed`, `DefinedTermSet`/`DefinedTerm`, `FAQPage` sur `/faq` et les piliers depuis la banque.
+- **Sitemap** : `/guide`, chaque guide dans ses langues disponibles, `/guide/lexique` dans les langues qui ont des termes. **`llms.txt`** : section « Guides pratiques ».
+
+### Admin
+
+- Groupe « Contenu » de la barre latérale : **Guides** (`/admin/contenus/guides` : liste avec pilier, auteur, « Relu le » en orange après 6 mois, langues AR/FR, statut ; éditeur `GuideForm.jsx` : Markdown, pilier, slug, couverture, auteur, relecteur, « Contenu religieux », « Marquer comme relu », programmes liés, SEO avec compteurs, version de l'autre langue), **Auteurs** (`AuthorsManager.jsx`), **Lexique** (`GlossaryManager.jsx`), **Banque de questions** (raccourci vers `/admin/whatsapp/connaissances`, qui gagne la question en arabe, « Page du site », l'ordre, le lien « En savoir plus » et le filtre « Sur le site / Agent seulement »). Action rapide et bouton « Créer » : « Nouveau guide ».
+- Routes (`contenus.manage`, enveloppe `whatsappRoute` de `lib/whatsapp/apiHelpers.js` : VALIDATION → 400, NOT_FOUND → 404 ; slug en double → 409) : `GET/POST /api/admin/guides`, `PUT/DELETE /api/admin/guides/[id]`, `/api/admin/authors(/[id])`, `/api/admin/glossary(/[id])`. Upload : dossiers `authors` et `guides`.
+- **Redirections automatiques** d'un guide (comme les actualités) : slug changé → nouvelle adresse ; dépublié ou supprimé → son pilier, sinon `/guide`. Revalidation : page du guide, hub, pilier, fiches liées ; tout le site quand le premier guide est publié ou le dernier retiré (lien du pied de page). Questions de la banque → `/faq` ou le pilier concerné ; lexique → `/guide/lexique` et `/guide` ; auteur → ses guides.
+- ⚠️ Le traducteur DOM de l'admin : dans les libellés arabes, un chemin comme `/guide/...` doit être entouré de marques de direction (U+200E) sinon il s'affiche inversé.
+
+### Vérification
+
+`test:agency` étendu (auteurs, guides, traductions de guide, guides liés, lexique, questions du site : lectures et écritures croisées refusées, guide religieux sans relecteur refusé) : 143 contrôles OK ; `lint:agency` (les requêtes à gabarits imbriqués ont été réécrites avec des clauses précalculées pour que le contrôle les lise), ESLint, `i18n-check public` (0 manquant), `test:whatsapp-ai` (24/24, serveur de dev requis), build, `schema.sql` importé dans une base vierge (tables identiques). Build de production local, compte et rôle temporaires (supprimés) : 46 contrôles HTTP (404 sans contenu, relecteur non référent refusé, slug en double et slug réservé refusés, guide FR/AR avec auteur, relecteur, offre la plus proche et hreflang, `Article`/`Person`/`reviewedBy`, hub, pilier, « Guides utiles », pied de page, lexique FR/AR et `DefinedTermSet`, banque de questions sur `/faq` et le pilier Omra avec variantes et lien localisé, `FAQPage`, question sans réponse dans sa langue et lien externe refusés, redirection 301 au changement de slug, sitemap et `llms.txt`), bloc de connaissances de l'agent (question arabe et variantes incluses), écrans admin en arabe sans texte manquant, pages publiques sur téléphone, `test:seo` : 0 erreur. Données de test supprimées.
+
 ## 4. Modules fonctionnels
 
 ### a) Site public

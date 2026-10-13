@@ -5,6 +5,7 @@ import Icon from "../../_components/Icon";
 import Modal from "../../_components/Modal";
 import { useConfirm } from "../../_components/useConfirm";
 import { formatDateTime } from "../labels";
+import { SITE_PAGES, SITE_PAGE_LABELS } from "@/lib/editorial";
 
 const CATEGORY_LABELS = {
   documents: "Documents",
@@ -16,7 +17,18 @@ const CATEGORY_LABELS = {
   autre: "Autre",
 };
 
-const EMPTY = { category: "documents", question: "", variants: "", answerFr: "", answerAr: "", status: "brouillon" };
+const EMPTY = {
+  category: "documents",
+  question: "",
+  questionAr: "",
+  variants: "",
+  answerFr: "",
+  answerAr: "",
+  status: "brouillon",
+  sitePage: "",
+  siteSort: 0,
+  detailPath: "",
+};
 
 function ItemForm({ initial, categories, onSubmit, onCancel, busy }) {
   const [form, setForm] = useState(initial);
@@ -53,6 +65,11 @@ function ItemForm({ initial, categories, onSubmit, onCancel, busy }) {
         <input required value={form.question} onChange={set("question")} className="mt-1 w-full rounded-md border px-3 py-2" dir="auto" />
       </label>
       <label className="block text-sm">
+        Question en arabe (pour le site en arabe)
+        <input value={form.questionAr} onChange={set("questionAr")} className="mt-1 w-full rounded-md border px-3 py-2" dir="rtl" lang="ar" />
+        <span className="mt-1 block text-xs text-zinc-500">Si la question ci-dessus est déjà en arabe, elle sert de version arabe.</span>
+      </label>
+      <label className="block text-sm">
         Variantes de formulation (une par ligne, darija comprise)
         <textarea value={form.variants} onChange={set("variants")} rows={3} className="mt-1 w-full rounded-md border px-3 py-2" dir="auto" />
       </label>
@@ -66,6 +83,31 @@ function ItemForm({ initial, categories, onSubmit, onCancel, busy }) {
           <textarea value={form.answerAr} onChange={set("answerAr")} rows={5} className="mt-1 w-full rounded-md border px-3 py-2" dir="rtl" />
         </label>
       </div>
+      <fieldset className="grid gap-3 rounded-md border border-zinc-200 p-3 sm:grid-cols-3">
+        <legend className="px-1 text-sm font-medium">Affichage sur le site (banque de questions)</legend>
+        <label className="text-sm">
+          Page du site
+          <select value={form.sitePage} onChange={set("sitePage")} className="mt-1 w-full rounded-md border px-3 py-2">
+            <option value="">Agent WhatsApp seulement</option>
+            {SITE_PAGES.map((page) => (
+              <option key={page} value={page}>
+                {SITE_PAGE_LABELS[page]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          Ordre d&apos;affichage
+          <input type="number" min="0" value={form.siteSort} onChange={set("siteSort")} className="mt-1 w-full rounded-md border px-3 py-2" />
+        </label>
+        <label className="text-sm">
+          Lien « En savoir plus »
+          <input value={form.detailPath} onChange={set("detailPath")} placeholder="/guide/..." className="mt-1 w-full rounded-md border px-3 py-2" dir="ltr" />
+        </label>
+        <p className="text-xs text-zinc-500 sm:col-span-3">
+          Une fiche publiée avec une page du site y apparaît dans chaque langue où la question et sa réponse existent ; les variantes s&apos;affichent en « Autres formulations ». La même réponse sert à l&apos;agent WhatsApp.
+        </p>
+      </fieldset>
       <div className="flex gap-2">
         <button type="submit" disabled={busy} className="gf-btn-primary">
           Enregistrer
@@ -85,6 +127,7 @@ export default function KnowledgeManager({ initialItems, initialUnanswered, cate
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("");
+  const [siteFilter, setSiteFilter] = useState("");
   const [confirm, confirmDialog] = useConfirm();
 
   async function post(payload) {
@@ -105,7 +148,9 @@ export default function KnowledgeManager({ initialItems, initialUnanswered, cate
     }
   }
 
-  const shown = items.filter((i) => !filter || `${i.question} ${i.variants || ""} ${i.answer_fr || ""}`.toLowerCase().includes(filter.toLowerCase()));
+  const shown = items
+    .filter((i) => !filter || `${i.question} ${i.question_ar || ""} ${i.variants || ""} ${i.answer_fr || ""}`.toLowerCase().includes(filter.toLowerCase()))
+    .filter((i) => (siteFilter === "site" ? Boolean(i.site_page) : siteFilter === "agent" ? !i.site_page : true));
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -117,6 +162,11 @@ export default function KnowledgeManager({ initialItems, initialUnanswered, cate
           </h2>
           <div className="flex gap-2">
             <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Rechercher" className="rounded-md border px-3 py-1.5 text-sm" />
+            <select value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)} className="rounded-md border px-2 py-1.5 text-sm">
+              <option value="">Toutes</option>
+              <option value="site">Sur le site</option>
+              <option value="agent">Agent seulement</option>
+            </select>
             <button type="button" className="gf-btn-primary" onClick={() => setEditing({ initial: EMPTY })}>
               <Icon name="add" size={16} />
               Nouvelle fiche
@@ -135,6 +185,7 @@ export default function KnowledgeManager({ initialItems, initialUnanswered, cate
                     <div className="font-medium" translate="no">{i.question}</div>
                     <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-zinc-500">
                       <span className="gf-chip">{CATEGORY_LABELS[i.category] || i.category}</span>
+                      {i.site_page && <span className="gf-chip">{SITE_PAGE_LABELS[i.site_page]}</span>}
                       <span className="gf-pill" style={i.status === "publie" ? { background: "#e6f4ee", color: "#0f6b4b" } : { background: "#f1f1ee", color: "#5a5a60" }}>
                         {i.status === "publie" ? "Publié" : "Brouillon"}
                       </span>
@@ -151,7 +202,18 @@ export default function KnowledgeManager({ initialItems, initialUnanswered, cate
                       onClick={() =>
                         setEditing({
                           id: i.id,
-                          initial: { category: i.category, question: i.question, variants: i.variants || "", answerFr: i.answer_fr || "", answerAr: i.answer_ar || "", status: i.status },
+                          initial: {
+                            category: i.category,
+                            question: i.question,
+                            questionAr: i.question_ar || "",
+                            variants: i.variants || "",
+                            answerFr: i.answer_fr || "",
+                            answerAr: i.answer_ar || "",
+                            status: i.status,
+                            sitePage: i.site_page || "",
+                            siteSort: i.site_sort || 0,
+                            detailPath: i.detail_path || "",
+                          },
                         })
                       }
                     >

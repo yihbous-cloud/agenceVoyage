@@ -7,6 +7,7 @@ import Breadcrumbs from "./Breadcrumbs";
 import RichText from "./RichText";
 import PageJsonLd from "./PageJsonLd";
 import HomeShowcaseCard from "./HomeShowcaseCard";
+import GuideCards from "./GuideCards";
 import { SEASON_LABELS, formatDate } from "./formatTrip";
 import { getCityByIata, citySlug } from "@/lib/airports";
 import { programPath, pillarPath, programPillar, PILLAR_LABELS } from "@/lib/programUrls";
@@ -55,6 +56,7 @@ export default function ProgramDetail({
   media = [], // photos et vidéo (bloc Preuves)
   reviews = null, // avis publiés : { reviews, average, count }
   contact = {}, // { whatsapp, hasCgv } — coordonnées de l'agence
+  guides = [], // « Guides utiles » (vague 2B) : 3 guides au plus
 }) {
   const tr = makeTranslator(locale, "public", { brandName: agency?.name });
   const intlTag = INTL_TAGS[locale];
@@ -320,6 +322,17 @@ export default function ProgramDetail({
                   </p>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Guides utiles (vague 2B) : guides choisis pour ce programme, sinon
+            les plus récents de son pilier. */}
+        {guides.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-normal text-ink">{tr("Guides utiles")}</h2>
+            <div className="mt-4">
+              <GuideCards guides={guides} locale={locale} tr={tr} showPillar={false} />
             </div>
           </section>
         )}

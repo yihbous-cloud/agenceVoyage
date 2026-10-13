@@ -26,6 +26,7 @@ const CREATE_ACTIONS = [
   { prefix: "/admin/visa-types", href: "/admin/visa-types/new", label: "Nouveau type de visa" },
   { prefix: "/admin/visa-services", href: "/admin/visa-services/new", label: "Nouvelle demande" },
   { prefix: "/admin/actualites", href: "/admin/actualites/new", label: "Nouvelle actualité" },
+  { prefix: "/admin/contenus/guides", href: "/admin/contenus/guides/new", label: "Nouveau guide" },
   { prefix: "/admin/billets", href: "/admin/billets/new", label: "Nouvelle vente de billet" },
 ];
 const DEFAULT_CREATE = { href: "/admin/inscriptions/new", label: "Nouvelle inscription" };
