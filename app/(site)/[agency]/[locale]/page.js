@@ -230,7 +230,7 @@ export default async function Home({ params }) {
       <a
         href="#top"
         aria-label={tr("Retour en haut")}
-        className="fixed end-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center border border-gold bg-ink text-xl text-gold shadow-lg"
+        className="fixed left-4 bottom-4 z-40 flex h-12 w-12 sm:left-6 sm:bottom-6 sm:h-14 sm:w-14 items-center justify-center border border-gold bg-ink text-xl text-gold shadow-lg"
       >
         ↑
       </a>

@@ -17,6 +17,7 @@ import { getCurrentAgency } from "@/lib/currentAgency";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { INTL_TAGS } from "@/lib/i18n/locales";
 import Icon from "./_components/Icon";
+import { getOrganizer, organizerLabel } from "@/lib/organizers";
 import PageHeader from "./_components/PageHeader";
 import FinanceWidget from "./_components/FinanceWidget";
 import BulkVisaButton from "./_components/BulkVisaButton";
@@ -303,6 +304,15 @@ export default async function AdminDashboard() {
                       >
                         {trip.title}
                       </Link>
+                      {getOrganizer(trip.organizer) && (
+                        <span
+                          className="rounded-full"
+                          translate="no"
+                          style={{ fontSize: 11.5, fontWeight: 600, padding: "2px 8px", background: getOrganizer(trip.organizer).soft, color: getOrganizer(trip.organizer).tone }}
+                        >
+                          {organizerLabel(trip.organizer, locale)}
+                        </span>
+                      )}
                       <span
                         className="rounded-full"
                         style={{ fontSize: 11.5, fontWeight: 600, padding: "2px 8px", background: "#fff4e0", color: "#a35a00" }}

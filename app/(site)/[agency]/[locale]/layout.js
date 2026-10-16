@@ -8,6 +8,8 @@ import { LocaleProvider } from "@/app/_components/LocaleProvider";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
 import SiteAnalytics from "@/app/_components/SiteAnalytics";
+import WhatsAppFloatButton from "@/app/_components/WhatsAppFloatButton";
+import { siteButtonHref } from "@/lib/contactLinks";
 import { SUPPORTED_LOCALES, isValidLocale, isRtl, isIndexedLocale } from "@/lib/i18n/locales";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { siteBaseUrl, buildSocialMetadata } from "@/lib/i18n/seo";
@@ -40,13 +42,13 @@ const marcellus = Marcellus({
 const cairo = Cairo({
   variable: "--font-cairo",
   subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  // Police variable (pas de liste de graisses : Turbopack en dev échoue sinon,
+  // voir CLAUDE.md §3centvingtquadragies).
 });
 
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
 });
 
 // Multi-agences (CLAUDE.md §3sexvicies passe 2) : proxy.js réécrit chaque URL
@@ -146,6 +148,8 @@ export default async function SiteLayout({ children, params }) {
           <SiteHeader agencyName={agencyRow.name} />
           <div className="flex flex-1 flex-col">{children}</div>
           <SiteFooter agency={footerAgency} />
+          {/* Bouton WhatsApp flottant (migration 049, réglé dans « Paramètres WhatsApp »). */}
+          <WhatsAppFloatButton href={siteButtonHref(agency, locale)} />
           <SiteAnalytics gtmId={agency?.gtm_container_id || null} />
         </LocaleProvider>
       </body>

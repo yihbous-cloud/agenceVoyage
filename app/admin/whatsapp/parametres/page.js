@@ -9,6 +9,8 @@ import PageHeader from "../../_components/PageHeader";
 import Icon from "../../_components/Icon";
 import WhatsAppAccountForm from "./WhatsAppAccountForm";
 import OpsSettingsForm from "./OpsSettingsForm";
+import SiteButtonForm from "./SiteButtonForm";
+import { getWhatsAppButtonSettings } from "@/lib/agencySettings";
 import { getOpsSettings, REPORT_SECTIONS } from "@/lib/whatsapp/ops";
 import { listJobs } from "@/lib/systemJobs";
 import { isMailConfigured } from "@/lib/mailer";
@@ -62,13 +64,14 @@ export default async function WhatsAppSettingsPage() {
   if (!(await hasPermission(session, "whatsapp.settings"))) {
     return <p className="text-sm text-zinc-500">Accès réservé.</p>;
   }
-  const [agency, account, health, ops, jobs, canData] = await Promise.all([
+  const [agency, account, health, ops, jobs, canData, siteButton] = await Promise.all([
     getCurrentAgency(),
     getAccountForAgency(),
     getQueueHealth(),
     getOpsSettings(),
     listJobs(),
     hasPermission(session, "whatsapp.data"),
+    getWhatsAppButtonSettings(),
   ]);
   const messages = account ? await listRecentMessages(agency.id, 20) : [];
   const encryptionOk = isEncryptionConfigured();
@@ -148,6 +151,8 @@ export default async function WhatsAppSettingsPage() {
           </ul>
         </div>
       </div>
+
+      <SiteButtonForm initial={siteButton} />
 
       <OpsSettingsForm
         initial={JSON.parse(JSON.stringify(ops))}

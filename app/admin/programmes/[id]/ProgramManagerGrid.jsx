@@ -1,5 +1,6 @@
 "use client";
 
+import { organizerLabel } from "@/lib/organizers";
 import { useState } from "react";
 import Modal from "@/app/admin/_components/Modal";
 import ModuleTile from "@/app/admin/_components/ModuleTile";
@@ -46,7 +47,7 @@ export default function ProgramManagerGrid({
   trips = [],
   completeness = null,
 }) {
-  const { tr } = useAdminLocale();
+  const { tr, locale } = useAdminLocale();
   const plural = (n, one, other) => tr.plural(`{count} ${one}`, `{count} ${other}`, n);
   const [openModule, setOpenModule] = useState(null);
   const close = () => setOpenModule(null);
@@ -63,11 +64,13 @@ export default function ProgramManagerGrid({
       key: "info",
       icon: "info",
       title: "Informations",
-      subtitle: primaryTrip
-        ? `${primaryTrip.reference_code} · ${primaryTrip.status} · ${program.is_published ? "Publié" : "Brouillon"}`
-        : program.is_published
-        ? "Publié"
-        : "Brouillon",
+      subtitle: [
+        primaryTrip ? `${primaryTrip.reference_code} · ${primaryTrip.status}` : null,
+        tr(program.is_published ? "Publié" : "Brouillon"),
+        program.organizer ? organizerLabel(program.organizer, locale) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       // Plafond de réduction (administrateur seulement) : fait partie des
       // informations du programme, pas de la formule billet.
       meta:

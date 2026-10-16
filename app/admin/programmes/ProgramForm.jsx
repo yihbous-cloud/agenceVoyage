@@ -1,5 +1,7 @@
 "use client";
 
+import { ORGANIZERS, organizerLabel } from "@/lib/organizers";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { POPULAR_DESTINATION_COUNTRIES, getCitiesForCountry } from "@/lib/worldPlaces";
@@ -17,9 +19,11 @@ const FAMILIES = [
 // organisée en cartes.
 export default function ProgramForm() {
   const router = useRouter();
+  const { locale } = useAdminLocale();
 
   const [title, setTitle] = useState("");
   const [programType, setProgramType] = useState("omra");
+  const [organizer, setOrganizer] = useState("");
   const [family, setFamily] = useState("omra_hajj");
   const [theme, setTheme] = useState("");
 
@@ -57,6 +61,7 @@ export default function ProgramForm() {
     const payload = {
       title,
       programType,
+      organizer: organizer || null,
       family,
       theme: family === "voyage_organise" ? theme || null : null,
       isPublished: false,
@@ -123,6 +128,24 @@ export default function ProgramForm() {
           onChange={(e) => setTitle(e.target.value)}
           className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">Organisateur</label>
+        <select
+          required
+          value={organizer}
+          onChange={(e) => setOrganizer(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+        >
+          <option value="">{"Choisir l'organisateur…"}</option>
+          {ORGANIZERS.map((o) => (
+            <option key={o.value} value={o.value} translate="no">
+              {organizerLabel(o.value, locale)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-zinc-500">Usage interne : jamais affiché au client.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

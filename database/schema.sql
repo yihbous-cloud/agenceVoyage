@@ -139,6 +139,7 @@ CREATE TABLE programs (
     slug VARCHAR(220) NOT NULL UNIQUE COMMENT 'pour URL SEO-friendly',
     content_locale ENUM('ar', 'fr') NOT NULL DEFAULT 'ar' COMMENT 'Langue des champs de contenu de cette ligne ; l''autre langue est dans program_translations (migration 045)',
     program_type ENUM('omra', 'hajj', 'tourisme', 'autre') NOT NULL DEFAULT 'omra',
+    organizer ENUM('agence_ouled_teima', 'groupe_golden_fantastic', 'groupement') NULL COMMENT 'organisateur (usage interne, jamais public ; migration 050)',
     -- Famille de catalogue pour la navigation publique (2 hubs distincts) :
     -- indépendante de program_type (granularité différente, voir
     -- database/migrations/001_add_program_family.sql pour la décision)
@@ -891,6 +892,10 @@ CREATE TABLE agencies (
     cgv_fr MEDIUMTEXT NULL COMMENT 'conditions générales de vente, Markdown',
     cgv_ar MEDIUMTEXT NULL,
     gtm_container_id VARCHAR(20) NULL COMMENT 'GTM-XXXX — vide : aucune mesure, aucun bandeau',
+    wa_button_enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'bouton WhatsApp flottant du site public (migration 049)',
+    wa_button_number VARCHAR(30) NULL COMMENT 'vide : agencies.whatsapp',
+    wa_button_message_ar VARCHAR(500) NULL,
+    wa_button_message_fr VARCHAR(500) NULL COMMENT 'utilisé aussi pour l anglais',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

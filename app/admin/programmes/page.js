@@ -2,19 +2,29 @@ import Link from "next/link";
 import { listAllPrograms } from "@/lib/programsAdmin";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
+import { ORGANIZERS, getOrganizer, organizerLabel } from "@/lib/organizers";
+import { getAdminLocale } from "@/lib/adminLocale";
 import PageHeader from "../_components/PageHeader";
 import Icon from "../_components/Icon";
 import { translationStatus } from "@/lib/contentTranslations";
 
 export default async function ProgrammesPage({ searchParams }) {
   const params = await searchParams;
+  const adminLocale = await getAdminLocale();
   // Programme clôturé = tous ses voyages terminés/annulés ou passés
   // (lib/tripArchive.js) : archivé, séparé des programmes en cours.
   const view = params?.view === "archives" ? "archives" : "current";
   const [allPrograms, session] = await Promise.all([listAllPrograms(), getSession()]);
   const archivedPrograms = allPrograms.filter((p) => Boolean(Number(p.is_archived)));
   const currentPrograms = allPrograms.filter((p) => !Number(p.is_archived));
-  const programs = view === "archives" ? archivedPrograms : currentPrograms;
+  // Filtre par organisateur (usage interne) : ?organizer=groupement, ou "none".
+  const organizerFilter =
+    ORGANIZERS.some((o) => o.value === params?.organizer) || params?.organizer === "none" ? params.organizer : "";
+  const viewPrograms = view === "archives" ? archivedPrograms : currentPrograms;
+  const programs = organizerFilter
+    ? viewPrograms.filter((p) => (organizerFilter === "none" ? !p.organizer : p.organizer === organizerFilter))
+    : viewPrograms;
+  const viewParam = view === "archives" ? "view=archives&" : "";
   // Langues complètes (titre + description) de chaque programme — vague 1B.
   const languages = await translationStatus("program", programs);
   const [canManage, canCreateRegistration] = await Promise.all([
@@ -46,12 +56,27 @@ export default async function ProgrammesPage({ searchParams }) {
         </Link>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-zinc-500">Organisateur :</span>
+        {[{ value: "", label: "Tous" }, ...ORGANIZERS, { value: "none", label: "Non défini" }].map((o) => (
+          <Link
+            key={o.value || "all"}
+            href={`/admin/programmes?${viewParam}${o.value ? `organizer=${o.value}` : ""}`.replace(/[?&]$/, "")}
+            scroll={false}
+            className={`rounded-full border px-3 py-1 ${organizerFilter === o.value ? "border-emerald-600 bg-emerald-50 font-medium text-emerald-700" : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+          >
+            <span translate={o.labels ? "no" : undefined}>{o.labels ? organizerLabel(o.value, adminLocale) : o.label}</span>
+          </Link>
+        ))}
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-start text-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
               <th className="px-4 py-3">Titre</th>
               <th className="px-4 py-3">Famille</th>
+              <th className="px-4 py-3">Organisateur</th>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Voyages</th>
@@ -66,6 +91,18 @@ export default async function ProgrammesPage({ searchParams }) {
                 <td className="px-4 py-3 font-medium text-zinc-900">{p.title}</td>
                 <td className="px-4 py-3 text-zinc-600">
                   {p.family === "omra_hajj" ? "Omra & Hajj" : "Voyage organisé"}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {(() => {
+                    const o = getOrganizer(p.organizer);
+                    return o ? (
+                      <span className="gf-pill" translate="no" style={{ background: o.soft, color: o.tone }}>
+                        {organizerLabel(o.value, adminLocale)}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3 capitalize text-zinc-600">{p.program_type}</td>
                 <td className="px-4 py-3 text-zinc-500">{p.slug}</td>

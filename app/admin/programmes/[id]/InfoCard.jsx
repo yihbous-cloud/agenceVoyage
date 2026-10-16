@@ -1,5 +1,7 @@
 "use client";
 
+import { ORGANIZERS, organizerLabel } from "@/lib/organizers";
+import { useAdminLocale } from "@/app/admin/_components/AdminLocale";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/app/admin/_components/useConfirm";
@@ -28,9 +30,11 @@ const TRIP_STATUSES = ["planifie", "ouvert", "complet", "en_cours", "termine", "
 // transmis à un autre rôle (voir page.js).
 export default function InfoCard({ program, trip, translations = {}, successorOptions = [], hasTierPrices = false, canManage, canAdminDiscount = false, discountCap = null, onSuccess }) {
   const router = useRouter();
+  const { locale } = useAdminLocale();
 
   const [title, setTitle] = useState(program.title || "");
   const [programType, setProgramType] = useState(program.program_type || "omra");
+  const [organizer, setOrganizer] = useState(program.organizer || "");
   const [family, setFamily] = useState(program.family || "omra_hajj");
   const [theme, setTheme] = useState(program.theme || "");
 
@@ -136,6 +140,7 @@ export default function InfoCard({ program, trip, translations = {}, successorOp
         body: JSON.stringify({
           title,
           programType,
+          organizer: organizer || null,
           family,
           theme: family === "voyage_organise" ? theme || null : null,
           slug,
@@ -214,6 +219,24 @@ export default function InfoCard({ program, trip, translations = {}, successorOp
       </div>
 
       <ContentLocaleSelect value={contentLocale} onChange={handleContentLocaleChange} disabled={!canManage} />
+
+      <div>
+        <label className="block text-sm font-medium text-zinc-700">Organisateur</label>
+        <select
+          disabled={!canManage}
+          value={organizer}
+          onChange={(e) => setOrganizer(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm disabled:bg-zinc-100"
+        >
+          <option value="">Non défini</option>
+          {ORGANIZERS.map((o) => (
+            <option key={o.value} value={o.value} translate="no">
+              {organizerLabel(o.value, locale)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-zinc-500">Usage interne : jamais affiché au client.</p>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
